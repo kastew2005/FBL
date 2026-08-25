@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Flappy Bird Telegram</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+    body { 
+      background: #70c5ce; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden; 
+    }
+    canvas { background: #70c5ce; display: block; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.expand(); // Разворачиваем Mini App на весь экран
+
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // Адаптация под размер экрана смартфона
+  canvas.width = Math.min(window.innerWidth, 400);
+  canvas.height = Math.min(window.innerHeight, 600);
+
+  // Игровые переменные
+  let bird = { x: 50, y: 150, width: 20, height: 20, gravity: 0.35, jump: -6.5, velocity: 0 };
+  let pipes = [];
+  let frame = 0;
+  let score = 0;
+  let highScore = localStorage.getItem("flappy_highscore") || 0;
+  let gameOver = false;
+
+  function resetGame() {
+    bird.y = 150;
+    bird.velocity = 0;
+    pipes = [];
+    frame = 0;
+    score = 0;
+    gameOver = false;
+  }
+
+  // Управление (касание экрана)
+  window.addEventListener("touchstart", () => {
+    if (gameOver) {
+      resetGame();
+    } else {
+      bird.velocity = bird.jump;
+    }
+  });
+
+  function draw() {
+    // Очистка экрана (Небо)
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Птичка
+    ctx.fillStyle = "#ffdb26";
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Генерация и отрисовка труб
+    if (frame % 90 === 0 && !gameOver) {
+      let gap = 120; // Окно между трубами
+      let topHeight = Math.floor(Math.random() * (canvas.height - gap - 100)) + 30;
+      pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - gap });
+    }
+
+    for (let i = 0; i < pipes.length; i++) {
+      let p = pipes[i];
+      if (!gameOver) p.x -= 2;
+
+      // Зеленый цвет труб
+      ctx.fillStyle = "#73bf2e";
+      ctx.fillRect(p.x, 0, 40, p.top);
+      ctx.fillRect(p.x, canvas.height - p.bottom, 40, p.bottom);
+
+      // Проверка столкновений
+      if (
+        bird.x + bird.width / 2 > p.x && bird.x - bird.width / 2 < p.x + 40 &&
+        (bird.y - bird.width / 2 < p.top || bird.y + bird.width / 2 > canvas.height - p.bottom)
+      ) {
+        endGame();
+      }
+
+      // Подсчет очков
+      if (p.x === 48) {
+        score++;
+      }
+    }
+
+    // Физика птицы
+    if (!gameOver) {
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+    }
+
+    // Столкновение с землей или потолком
+    if (bird.y + bird.width / 2 >= canvas.height || bird.y - bird.width / 2 <= 0) {
+      endGame();
+    }
+
+    // Отрисовка счета
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 24px Arial";
+    ctx.fillText(`Счет: ${score}`, 20, 40);
+    ctx.fillText(`Рекорд: ${highScore}`, 20, 70);
+
+    if (gameOver) {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 28px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Игра Окончена!", canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = "18px Arial";
+      ctx.fillText("Нажми, чтобы начать снова", canvas.width / 2, canvas.height / 2 + 20);
+      ctx.textAlign = "start";
+    }
+
+    frame++;
+    requestAnimationFrame(draw);
+  }
+
+  function endGame() {
+    if (!gameOver) {
+      gameOver = true;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("flappy_highscore", highScore);
+        
+        // Отправка рекорда в Telegram (опционально)
+        if (tg.initDataUnsafe?.user) {
+          console.log("Новый рекорд игрока:", tg.initDataUnsafe.user.id, highScore);
+        }
+      }
+    }
+  }
+
+  draw();
+</script>
+</body>
+</html>
