@@ -3,468 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JS Craft Mobile HD</title>
+    <title>Zombie Survival Mobile</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
-        
-        #game-container { width: 100vw; height: 100vh; position: relative; }
-        canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
-
-        /* UI Меню */
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); color: white; z-index: 10; }
-        .hidden { display: none !important; }
-        h1 { font-size: 36px; margin-bottom: 20px; text-shadow: 3px 3px #000; color: #55FF55; letter-spacing: 2px; }
-        button { padding: 14px 28px; margin: 8px; font-size: 18px; background: #555; border: 3px solid #fff; color: white; font-weight: bold; width: 240px; border-radius: 4px; box-shadow: 0 4px #222; }
-        button:active { transform: translateY(2px); box-shadow: 0 2px #222; background: #444; }
-
-        /* HUD */
-        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-        .stats-bar { position: absolute; top: 12px; left: 12px; display: flex; gap: 15px; font-size: 18px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 8px 16px; border: 2px solid #555; border-radius: 6px; color: #fff; text-shadow: 1px 1px #000; }
-        #hotbar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; background: rgba(0,0,0,0.6); padding: 4px; border: 3px solid #333; border-radius: 4px; pointer-events: auto; }
-        .slot { width: 44px; height: 44px; border: 2px solid #777; margin: 0 3px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; background: rgba(0,0,0,0.4); font-size: 14px; position: relative; }
-        .slot.active { border-color: #fff; background: rgba(255,255,255,0.3); box-shadow: inset 0 0 5px #fff; }
-
-        /* Тач-управление на экране */
-        .controls { position: absolute; bottom: 15px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: auto; }
-        .btn-group { display: flex; gap: 12px; }
-        .touch-btn { width: 64px; height: 64px; background: rgba(0,0,0,0.5); border: 3px solid rgba(255,255,255,0.7); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: white; font-weight: bold; text-shadow: 1px 1px #000; box-shadow: 0 4px rgba(0,0,0,0.4); }
-        .touch-btn:active, .touch-btn.pressed { background: rgba(255,255,255,0.4); transform: translateY(2px); }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; user-select: none; }
+        canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-<div id="game-container">
-    <!-- Главное меню -->
-    <div id="main-menu" class="screen">
-        <h1>JS CRAFT MOBILE</h1>
-        <button onclick="showScreen('world-menu')">Одиночная игра</button>
-        <button onclick="showScreen('settings-menu')">Настройки</button>
-    </div>
-
-    <!-- Выбор мира -->
-    <div id="world-menu" class="screen hidden">
-        <h1>Создание мира</h1>
-        <button onclick="startGame('flat')">Плоский мир</button>
-        <button onclick="startGame('normal')">Обычный мир</button>
-        <button onclick="showScreen('main-menu')">Назад</button>
-    </div>
-
-    <!-- Настройки -->
-    <div id="settings-menu" class="screen hidden">
-        <h1>Настройки</h1>
-        <button onclick="toggleSound()" id="sound-btn">Звук: ВКЛ</button>
-        <button onclick="showScreen('main-menu')">Назад</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- Игровой HUD и контроллеры -->
-    <div id="hud" class="hidden">
-        <div class="stats-bar">
-            <span>❤️ <span id="hp">100</span></span>
-            <span>🍗 <span id="hunger">100</span></span>
-            <span>☀️ <span id="time">День</span></span>
-        </div>
-        
-        <div id="hotbar">
-            <div class="slot active" onclick="selectSlot(0)">🌿<br><small>1</small></div>
-            <div class="slot" onclick="selectSlot(1)">🪨<br><small>2</small></div>
-            <div class="slot" onclick="selectSlot(2)">🍖<br><small>3</small></div>
-        </div>
-
-        <div class="controls">
-            <div class="btn-group">
-                <div class="touch-btn" id="btn-left">◄</div>
-                <div class="touch-btn" id="btn-right">►</div>
-            </div>
-            <div class="btn-group">
-                <div class="touch-btn" id="btn-action">🔨</div>
-                <div class="touch-btn" id="btn-jump">▲</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-// --- Генератор текстур процедурным путем ---
-const textures = {};
-
-function createTextures() {
-    const createTex = (drawFn) => {
-        const cvs = document.createElement('canvas');
-        cvs.width = 16; cvs.height = 16;
-        const c = cvs.getContext('2d');
-        drawFn(c);
-        return cvs;
-    };
-
-    // 1. Блок земли с травой
-    textures.dirt_grass = createTex(c => {
-        c.fillStyle = '#8B5A2B'; c.fillRect(0,0,16,16); // Земля
-        c.fillStyle = '#55A825'; c.fillRect(0,0,16,5);  // Трава сверху
-        c.fillStyle = '#3E7A19'; 
-        c.fillRect(2,4,2,3); c.fillRect(7,4,3,2); c.fillRect(12,4,2,3); // Свисающие пиксели травы
-        c.fillStyle = '#67421F'; c.fillRect(3,9,2,2); c.fillRect(10,12,3,2); // Вкрапления в земле
-    });
-
-    // 2. Блок камня
-    textures.stone = createTex(c => {
-        c.fillStyle = '#737373'; c.fillRect(0,0,16,16);
-        c.fillStyle = '#525252'; c.fillRect(2,2,4,3); c.fillRect(8,9,5,3); c.fillRect(1,11,3,3);
-        c.fillStyle = '#9E9E9E'; c.fillRect(6,3,3,2); c.fillRect(2,7,4,2); c.fillRect(11,4,3,3);
-    });
-
-    // 3. Блок бедрока / глубокого камня
-    textures.bedrock = createTex(c => {
-        c.fillStyle = '#333'; c.fillRect(0,0,16,16);
-        c.fillStyle = '#111'; c.fillRect(1,1,6,6); c.fillRect(8,8,7,7);
-    });
-
-    // 4. Текстура свинки (Моб)
-    textures.pig = createTex(c => {
-        c.fillStyle = '#F08080'; c.fillRect(0,0,16,16); // Тело
-        c.fillStyle = '#FFB6C1'; c.fillRect(10,4,5,4);  // Пятачок
-        c.fillStyle = '#000'; c.fillRect(11,2,2,2);     // Глаз
-        c.fillStyle = '#D87093'; c.fillRect(2,12,3,4); c.fillRect(8,12,3,4); // Ножки
-    });
-}
-createTextures();
-
-// --- Аудио ---
-const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let soundEnabled = true;
-
-function playSound(freq, type, duration) {
-    if (!soundEnabled) return;
-    try {
-        let osc = AudioCtx.createOscillator();
-        let gain = AudioCtx.createGain();
-        osc.type = type;
-        osc.frequency.value = freq;
-        osc.connect(gain);
-        gain.connect(AudioCtx.destination);
-        osc.start();
-        gain.gain.setValueAtTime(0.2, AudioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + duration);
-        osc.stop(AudioCtx.currentTime + duration);
-    } catch(e) {}
-}
-
-function toggleSound() {
-    soundEnabled = !soundEnabled;
-    document.getElementById('sound-btn').innerText = "Звук: " + (soundEnabled ? "ВКЛ" : "ВЫКЛ");
-}
-
-// --- Игра и физика ---
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const BLOCK_SIZE = 32;
-let world = [];
-let worldWidth = 120;
-let worldHeight = 40;
-
-let player = {
-    x: 60 * BLOCK_SIZE,
-    y: 10 * BLOCK_SIZE,
-    vx: 0, vy: 0,
-    width: 20, height: 44,
-    grounded: false,
-    facing: 1, // 1 вправо, -1 влево
-    hp: 100, hunger: 100,
-    selectedSlot: 0,
-    inventory: [1, 2, 3]
-};
-
-let animals = [];
-let dayTime = 0;
-const DAY_CYCLE = 600;
-
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    if(id) document.getElementById(id).classList.remove('hidden');
-}
-
-function startGame(type) {
-    showScreen(null);
-    document.getElementById('hud').classList.remove('hidden');
-    resizeCanvas();
-    generateWorld(type);
-    spawnAnimals();
-    gameLoop();
-    
-    setInterval(() => {
-        if(player.hunger > 0) player.hunger--;
-        else if(player.hp > 0) player.hp -= 5;
-        updateHUD();
-    }, 4000);
-}
-
-function generateWorld(type) {
-    world = Array(worldHeight).fill(0).map(() => Array(worldWidth).fill(0));
-    for (let x = 0; x < worldWidth; x++) {
-        let groundLevel = type === 'flat' ? 26 : Math.floor(22 + Math.sin(x * 0.08) * 4 + Math.cos(x * 0.15) * 2);
-        for (let y = 0; y < worldHeight; y++) {
-            if (y >= worldHeight - 2) world[y][x] = 4; // Бедрок внизу
-            else if (y > groundLevel + 4) world[y][x] = 2; // Камень
-            else if (y >= groundLevel) world[y][x] = 1; // Земля
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
-    }
-}
+        window.addEventListener('resize', resize);
+        resize();
 
-function spawnAnimals() {
-    animals = [];
-    for(let i = 0; i < 6; i++) {
-        animals.push({
-            x: (30 + i * 12) * BLOCK_SIZE,
-            y: 10 * BLOCK_SIZE,
-            vx: 0.8, vy: 0,
-            width: 28, height: 22,
-            hp: 20, facing: 1
+        let gameOver = false;
+        let score = 0;
+        let lastSpawn = 0;
+        let lastShot = 0;
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 16,
+            hp: 100,
+            maxHp: 100,
+            speed: 3.5,
+            angle: 0
+        };
+
+        let zombies = [];
+        let bullets = [];
+
+        // Виртуальный джойстик
+        let joystick = {
+            active: false,
+            touchId: null,
+            baseX: 0,
+            baseY: 0,
+            currX: 0,
+            currY: 0,
+            dx: 0,
+            dy: 0
+        };
+
+        window.addEventListener('touchstart', (e) => {
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            for (let touch of e.changedTouches) {
+                if (!joystick.active) {
+                    joystick.active = true;
+                    joystick.touchId = touch.identifier;
+                    joystick.baseX = touch.clientX;
+                    joystick.baseY = touch.clientY;
+                    joystick.currX = touch.clientX;
+                    joystick.currY = touch.clientY;
+                }
+            }
         });
-    }
-}
 
-// --- Мультитач Управление ---
-let keys = { left: false, right: false, jump: false, action: false };
-
-function setupTouchControls() {
-    const buttons = [
-        { id: 'btn-left', key: 'left' },
-        { id: 'btn-right', key: 'right' },
-        { id: 'btn-jump', key: 'jump' },
-        { id: 'btn-action', key: 'action' }
-    ];
-
-    buttons.forEach(b => {
-        const el = document.getElementById(b.id);
-        
-        const start = (e) => {
-            e.preventDefault();
-            keys[b.key] = true;
-            el.classList.add('pressed');
-        };
-        
-        const end = (e) => {
-            e.preventDefault();
-            keys[b.key] = false;
-            el.classList.remove('pressed');
-        };
-
-        el.addEventListener('touchstart', start, { passive: false });
-        el.addEventListener('touchend', end, { passive: false });
-        el.addEventListener('mousedown', start);
-        el.addEventListener('mouseup', end);
-    });
-}
-setupTouchControls();
-
-function selectSlot(i) {
-    player.selectedSlot = i;
-    document.querySelectorAll('.slot').forEach((s, idx) => {
-        s.classList.toggle('active', idx === i);
-    });
-}
-
-// --- Игровая логика ---
-function update() {
-    // Бег
-    if (keys.left) { player.vx = -3.5; player.facing = -1; }
-    else if (keys.right) { player.vx = 3.5; player.facing = 1; }
-    else player.vx = 0;
-
-    // Прыжок
-    if (keys.jump && player.grounded) {
-        player.vy = -9.5;
-        player.grounded = false;
-        playSound(180, 'square', 0.08);
-    }
-
-    // Гравитация
-    player.vy += 0.45;
-
-    // Движение и Коллизия игрока
-    collideAndMove(player);
-
-    // Действие (Ломать / Строить)
-    if (keys.action) {
-        keys.action = false;
-        handleAction();
-    }
-
-    // Мобы
-    animals.forEach(a => {
-        a.vy += 0.45;
-        a.x += a.vx * a.facing;
-        if (Math.random() < 0.01) a.facing *= -1;
-        collideAndMove(a);
-    });
-
-    // Время суток
-    dayTime = (dayTime + 1/60) % DAY_CYCLE;
-    updateHUD();
-}
-
-function collideAndMove(obj) {
-    // По оси X
-    obj.x += obj.vx * (obj.facing || 1);
-    let tileX = Math.floor((obj.x + (obj.vx > 0 ? obj.width : 0)) / BLOCK_SIZE);
-    let tileY = Math.floor((obj.y + 4) / BLOCK_SIZE);
-    let tileYBottom = Math.floor((obj.y + obj.height - 4) / BLOCK_SIZE);
-
-    if (isSolid(tileX, tileY) || isSolid(tileX, tileYBottom)) {
-        obj.x -= obj.vx * (obj.facing || 1);
-        if (obj !== player) obj.facing *= -1; // Мобы поворачивают при стене
-    }
-
-    // По оси Y
-    obj.y += obj.vy;
-    let feetX1 = Math.floor((obj.x + 2) / BLOCK_SIZE);
-    let feetX2 = Math.floor((obj.x + obj.width - 2) / BLOCK_SIZE);
-    let feetY = Math.floor((obj.y + obj.height) / BLOCK_SIZE);
-    let headY = Math.floor(obj.y / BLOCK_SIZE);
-
-    if (obj.vy > 0 && (isSolid(feetX1, feetY) || isSolid(feetX2, feetY))) {
-        obj.y = feetY * BLOCK_SIZE - obj.height;
-        obj.vy = 0;
-        if (obj === player) player.grounded = true;
-    } else if (obj.vy < 0 && (isSolid(feetX1, headY) || isSolid(feetX2, headY))) {
-        obj.y = (headY + 1) * BLOCK_SIZE;
-        obj.vy = 0;
-    } else if (obj === player) {
-        player.grounded = false;
-    }
-}
-
-function isSolid(x, y) {
-    if (x < 0 || x >= worldWidth || y < 0 || y >= worldHeight) return false;
-    return world[y][x] !== 0;
-}
-
-function handleAction() {
-    let reach = player.facing * 36;
-    let targetX = Math.floor((player.x + player.width/2 + reach) / BLOCK_SIZE);
-    let targetY = Math.floor((player.y + player.height/2) / BLOCK_SIZE);
-
-    // Ударить моба
-    let hitMob = false;
-    animals.forEach((a, idx) => {
-        if (Math.abs(a.x - player.x) < 48 && Math.abs(a.y - player.y) < 32) {
-            a.hp -= 10;
-            hitMob = true;
-            playSound(260, 'sawtooth', 0.1);
-            if (a.hp <= 0) {
-                animals.splice(idx, 1);
-                player.hunger = Math.min(100, player.hunger + 25);
-                playSound(500, 'sine', 0.15);
+        window.addEventListener('touchmove', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystick.touchId) {
+                    joystick.currX = touch.clientX;
+                    joystick.currY = touch.clientY;
+                    let dx = joystick.currX - joystick.baseX;
+                    let dy = joystick.currY - joystick.baseY;
+                    let dist = Math.hypot(dx, dy);
+                    let maxDist = 50;
+                    if (dist > maxDist) {
+                        dx = (dx / dist) * maxDist;
+                        dy = (dy / dist) * maxDist;
+                    }
+                    joystick.dx = dx / maxDist;
+                    joystick.dy = dy / maxDist;
+                }
             }
+        });
+
+        function resetJoystick() {
+            joystick.active = false;
+            joystick.touchId = null;
+            joystick.dx = 0;
+            joystick.dy = 0;
         }
-    });
 
-    if (hitMob) return;
-
-    // Взаимодействие с блоками
-    if (targetY >= 0 && targetY < worldHeight && targetX >= 0 && targetX < worldWidth) {
-        if (world[targetY][targetX] !== 0) {
-            if (world[targetY][targetX] !== 4) { // Бедрок нельзя сломать
-                world[targetY][targetX] = 0;
-                playSound(120, 'triangle', 0.08);
+        window.addEventListener('touchend', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystick.touchId) resetJoystick();
             }
-        } else {
-            let selectedBlock = player.inventory[player.selectedSlot];
-            if (selectedBlock === 3) { // Съесть мясо
-                player.hunger = Math.min(100, player.hunger + 20);
-                playSound(440, 'sine', 0.1);
+        });
+        window.addEventListener('touchcancel', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystick.touchId) resetJoystick();
+            }
+        });
+
+        // Управление клавиатурой для ПК-теста
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        function spawnZombie() {
+            let x, y;
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -20 : canvas.width + 20;
+                y = Math.random() * canvas.height;
             } else {
-                world[targetY][targetX] = selectedBlock;
-                playSound(220, 'square', 0.05);
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -20 : canvas.height + 20;
             }
+            zombies.push({
+                x: x,
+                y: y,
+                radius: 14,
+                hp: 3,
+                speed: 1.2 + Math.random() * 0.8
+            });
         }
-    }
-}
 
-function updateHUD() {
-    document.getElementById('hp').innerText = player.hp;
-    document.getElementById('hunger').innerText = player.hunger;
-    document.getElementById('time').innerText = dayTime < DAY_CYCLE/2 ? "День" : "Ночь";
-}
-
-// --- Отрисовка Графики ---
-function render() {
-    // Динамическое небо (День/Ночь/Закат)
-    let ratio = dayTime / DAY_CYCLE;
-    if (ratio < 0.45) ctx.fillStyle = "#6EB1FF"; // День
-    else if (ratio < 0.5) ctx.fillStyle = "#E66B40"; // Закат
-    else if (ratio < 0.95) ctx.fillStyle = "#090C15"; // Ночь
-    else ctx.fillStyle = "#E66B40"; // Рассвет
-    
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.save();
-    // Камера следит за игроком
-    ctx.translate(
-        Math.floor(-player.x + canvas.width / 2),
-        Math.floor(-player.y + canvas.height / 2)
-    );
-
-    // Отрисовка мира с текстурами
-    for (let y = 0; y < worldHeight; y++) {
-        for (let x = 0; x < worldWidth; x++) {
-            let type = world[y][x];
-            if (type === 1) ctx.drawImage(textures.dirt_grass, x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-            else if (type === 2) ctx.drawImage(textures.stone, x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-            else if (type === 4) ctx.drawImage(textures.bedrock, x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-        }
-    }
-
-    // Отрисовка животных (Свинки)
-    animals.forEach(a => {
-        ctx.save();
-        if (a.facing < 0) {
-            ctx.translate(a.x + a.width, a.y);
-            ctx.scale(-1, 1);
-            ctx.drawImage(textures.pig, 0, 0, a.width, a.height);
-        } else {
-            ctx.drawImage(textures.pig, a.x, a.y, a.width, a.height);
-        }
-        ctx.restore();
-    });
-
-    // Отрисовка игрока (Стив)
-    ctx.save();
-    ctx.fillStyle = '#00AAAA'; // Рубашка Стива
-    ctx.fillRect(player.x, player.y + 12, player.width, 18);
-    ctx.fillStyle = '#0000AA'; // Джинсы
-    ctx.fillRect(player.x, player.y + 30, player.width, 14);
-    ctx.fillStyle = '#FFCDB2'; // Голова
-    ctx.fillRect(player.x + 2, player.y, 16, 12);
-    ctx.fillStyle = '#4A2E00'; // Волосы
-    ctx.fillRect(player.x + 2, player.y, 16, 4);
-    // Глаза смотрят в сторону движения
-    ctx.fillStyle = '#FFF'; 
-    let eyeOff = player.facing > 0 ? 10 : 2;
-    ctx.fillRect(player.x + eyeOff, player.y + 4, 4, 3);
-    ctx.fillStyle = '#00F';
-    ctx.fillRect(player.x + eyeOff + (player.facing > 0 ? 2 : 0), player.y + 4, 2, 3);
-    ctx.restore();
-
-    ctx.restore();
-}
-
-function gameLoop() {
-    update();
-    render();
-    requestAnimationFrame(gameLoop);
-}
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false; // Сохраняем пиксельный стиль без размытия
-}
-window.addEventListener('resize', resizeCanvas);
-</script>
-</body>
-</html>
-
+        function shoot() {
+            if (zombies.length === 0) return;
+            let nearest = null;
+            let minDist = 350; // радиус автоприцеливания
+            for (let z of zombies) {
+                let d = Math.hypot(z.x - player.x, z.y - player
