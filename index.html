@@ -3,29 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>MiniCraft - Браузерная 3D игра</title>
+    <title>Zombie Apocalypse - Выживание</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
-        <div id="crosshair">+</div>
-        <div id="toolbar">
-            <div class="tool active" data-block="grass">🌱</div>
-            <div class="tool" data-block="dirt">🟫</div>
-            <div class="tool" data-block="stone">🪨</div>
-            <div class="tool" data-block="wood">🪵</div>
-            <div class="tool" data-block="sand">🏖️</div>
-        </div>
-        <div id="info">
-            <div id="controls">
-                <p>WASD - движение</p>
-                <p>Пробел - прыжок</p>
-                <p>Клик - поставить/убрать блок</p>
-                <p>Правая кнопка - убрать блок</p>
+        <!-- HUD -->
+        <div id="hud">
+            <div id="health-bar">
+                <div id="health-fill"></div>
+                <span id="health-text">100 HP</span>
+            </div>
+            <div id="stamina-bar">
+                <div id="stamina-fill"></div>
+                <span id="stamina-text">100 SP</span>
+            </div>
+            <div id="ammo-display">
+                <span id="ammo-text">30/90</span>
+            </div>
+            <div id="score-display">
+                <span>Счет: <span id="score">0</span></span>
+            </div>
+            <div id="wave-display">
+                <span>Волна: <span id="wave">1</span></span>
             </div>
         </div>
+
+        <!-- Прицел -->
+        <div id="crosshair">+</div>
+
+        <!-- Инвентарь -->
+        <div id="inventory">
+            <div class="weapon-slot active" data-weapon="pistol">🔫</div>
+            <div class="weapon-slot" data-weapon="shotgun">🔫</div>
+            <div class="weapon-slot" data-weapon="rifle">🔫</div>
+            <div class="weapon-slot" data-weapon="medkit">💊</div>
+        </div>
+
+        <!-- Джойстик для телефона -->
+        <div id="joystick-container">
+            <div id="joystick-base">
+                <div id="joystick-thumb"></div>
+            </div>
+        </div>
+
+        <!-- Кнопки действий для телефона -->
+        <div id="action-buttons">
+            <button id="shoot-btn">🔫</button>
+            <button id="reload-btn">🔄</button>
+            <button id="jump-btn">⬆️</button>
+        </div>
+
+        <!-- Меню -->
+        <div id="start-menu">
+            <h1>ZOMBIE APOCALYPSE</h1>
+            <p>Выживи как можно дольше!</p>
+            <button id="start-btn">НАЧАТЬ ИГРУ</button>
+            <div id="controls-info">
+                <h3>Управление:</h3>
+                <p>WASD - движение</p>
+                <p>Мышь - осмотр</p>
+                <p>ЛКМ - выстрел</p>
+                <p>R - перезарядка</p>
+                <p>Пробел - прыжок</p>
+                <p>1-4 - выбор оружия</p>
+            </div>
+        </div>
+
+        <!-- Экран смерти -->
+        <div id="death-screen" style="display: none;">
+            <h1>ВЫ ПОГИБЛИ</h1>
+            <p>Счет: <span id="final-score">0</span></p>
+            <p>Волна: <span id="final-wave">1</span></p>
+            <button id="restart-btn">ИГРАТЬ СНОВА</button>
+        </div>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="world.js"></script>
+    <script src="weapons.js"></script>
+    <script src="zombies.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
