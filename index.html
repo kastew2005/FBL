@@ -11,6 +11,9 @@
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
         
         body {
@@ -21,13 +24,19 @@
             position: fixed;
             width: 100%;
             height: 100%;
+            margin: 0;
+            padding: 0;
         }
         
         #gameCanvas {
             display: block;
-            background: #2d5a27;
+            background: #4CAF50;
             cursor: grab;
-            image-rendering: pixelated;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
         
         #gameCanvas:active {
@@ -44,25 +53,11 @@
             z-index: 10;
         }
         
-        .panel {
-            position: fixed;
-            background: linear-gradient(135deg, rgba(30, 30, 50, 0.95), rgba(20, 20, 40, 0.95));
-            border: 2px solid #8b6914;
-            border-radius: 15px;
-            padding: 15px;
-            pointer-events: auto;
-            color: #fff;
-            max-height: 75vh;
-            overflow-y: auto;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        
         .top-bar {
             position: fixed;
-            top: 5px;
-            left: 5px;
-            right: 5px;
+            top: 10px;
+            left: 10px;
+            right: 10px;
             display: flex;
             gap: 5px;
             pointer-events: none;
@@ -71,192 +66,53 @@
         }
         
         .resource {
-            background: linear-gradient(135deg, rgba(40, 40, 60, 0.9), rgba(30, 30, 50, 0.9));
+            background: rgba(0, 0, 0, 0.7);
             border: 1px solid #666;
-            border-radius: 20px;
-            padding: 5px 12px;
-            font-size: 14px;
+            border-radius: 15px;
+            padding: 4px 10px;
+            font-size: 13px;
             color: #fff;
             pointer-events: auto;
             display: flex;
             align-items: center;
-            gap: 5px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s;
-        }
-        
-        .resource:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            gap: 4px;
         }
         
         .resource-icon {
-            font-size: 18px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+            font-size: 16px;
         }
         
         .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            border-radius: 25px;
-            padding: 12px 20px;
-            font-size: 14px;
+            border: 2px solid #fff;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
             cursor: pointer;
-            margin: 3px;
+            margin: 2px;
             transition: all 0.3s;
             pointer-events: auto;
-            min-height: 45px;
+            min-height: 35px;
             touch-action: manipulation;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .btn:active::after {
-            width: 200px;
-            height: 200px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         
         .btn:active {
             transform: scale(0.95);
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
         
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 12px;
-            min-height: 35px;
-            border-radius: 20px;
-        }
-        
-        .btn-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            cursor: pointer;
-            font-size: 20px;
-            pointer-events: auto;
-            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.5);
-            transition: all 0.3s;
-        }
-        
-        .btn-close:hover {
-            transform: rotate(90deg);
-            background: #c0392b;
-        }
-        
-        .building-item {
-            background: linear-gradient(135deg, rgba(60, 60, 80, 0.8), rgba(40, 40, 60, 0.8));
-            border: 1px solid #666;
-            border-radius: 12px;
-            padding: 12px;
-            margin: 8px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .building-item:hover {
-            border-color: #8b6914;
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        .worker-item {
-            background: linear-gradient(135deg, rgba(60, 60, 80, 0.8), rgba(40, 40, 60, 0.8));
-            border: 1px solid #666;
-            border-radius: 12px;
+        .panel {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #8b6914;
+            border-radius: 10px;
             padding: 10px;
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .worker-item:hover {
-            border-color: #8b6914;
-            transform: translateX(5px);
-        }
-        
-        .modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(30, 30, 50, 0.98), rgba(20, 20, 40, 0.98));
-            border: 3px solid #8b6914;
-            border-radius: 20px;
-            padding: 25px;
+            pointer-events: auto;
             color: #fff;
-            z-index: 100;
-            pointer-events: auto;
-            min-width: 300px;
-            max-width: 90%;
-            max-height: 85vh;
+            max-height: 60vh;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            animation: modalIn 0.3s ease-out;
-        }
-        
-        @keyframes modalIn {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-        
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 99;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
+            z-index: 30;
         }
         
         .hidden {
@@ -264,34 +120,30 @@
         }
         
         .title {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #ffd700;
             text-align: center;
-            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
-            letter-spacing: 1px;
         }
         
         .mini-map {
             position: fixed;
             bottom: 10px;
             right: 10px;
-            width: 150px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #8b6914;
-            border-radius: 15px;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #666;
+            border-radius: 10px;
             pointer-events: auto;
-            image-rendering: pixelated;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
             z-index: 15;
         }
         
         .zoom-controls {
             position: fixed;
             right: 10px;
-            bottom: 170px;
+            bottom: 120px;
             display: flex;
             flex-direction: column;
             gap: 5px;
@@ -300,80 +152,97 @@
         }
         
         .zoom-btn {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border: 2px solid #fff;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
-        .zoom-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        .building-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         
-        .zoom-btn:active {
-            transform: scale(0.9);
+        .worker-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         
         select {
-            background: linear-gradient(135deg, rgba(60, 60, 80, 0.9), rgba(40, 40, 60, 0.9));
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border: 1px solid #666;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 12px;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 11px;
             cursor: pointer;
             pointer-events: auto;
-            min-width: 120px;
         }
         
-        select:focus {
-            outline: none;
-            border-color: #8b6914;
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #8b6914;
+            border-radius: 10px;
+            padding: 15px;
+            color: #fff;
+            z-index: 100;
+            pointer-events: auto;
+            min-width: 250px;
+            max-width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
         }
         
         @media (max-width: 768px) {
             .resource {
                 font-size: 11px;
-                padding: 4px 8px;
+                padding: 3px 8px;
             }
             
             .btn {
-                padding: 10px 15px;
-                font-size: 12px;
-                min-height: 40px;
-            }
-            
-            .title {
-                font-size: 16px;
+                padding: 6px 10px;
+                font-size: 11px;
+                min-height: 30px;
             }
             
             .mini-map {
-                width: 100px;
-                height: 100px;
+                width: 80px;
+                height: 80px;
                 bottom: 5px;
                 right: 5px;
             }
             
             .zoom-controls {
-                bottom: 110px;
+                bottom: 90px;
                 right: 5px;
-            }
-            
-            .zoom-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 20px;
             }
         }
     </style>
@@ -385,68 +254,56 @@
         <div class="top-bar" id="resources">
             <div class="resource">
                 <span class="resource-icon">🌾</span>
-                <span id="food">0</span>
+                <span id="food">50</span>
             </div>
             <div class="resource">
                 <span class="resource-icon">🪵</span>
-                <span id="wood">0</span>
+                <span id="wood">30</span>
             </div>
             <div class="resource">
                 <span class="resource-icon">🪨</span>
-                <span id="stone">0</span>
+                <span id="stone">10</span>
             </div>
             <div class="resource">
                 <span class="resource-icon">💰</span>
-                <span id="gold">0</span>
+                <span id="gold">20</span>
             </div>
             <div class="resource">
                 <span class="resource-icon">👥</span>
-                <span id="population">0/5</span>
-            </div>
-            <div class="resource">
-                <span class="resource-icon">📅</span>
-                <span id="dayInfo">День 1</span>
-            </div>
-            <div class="resource">
-                <span class="resource-icon">🌤️</span>
-                <span id="weatherInfo">Солнечно</span>
+                <span id="population">3/5</span>
             </div>
         </div>
         
         <div class="mini-map" id="miniMap"></div>
         
         <div class="zoom-controls">
-            <button class="zoom-btn" onclick="zoomIn()">+</button>
-            <button class="zoom-btn" onclick="zoomOut()">−</button>
-            <button class="zoom-btn" onclick="resetZoom()">⟳</button>
+            <button class="zoom-btn" onclick="gameState.zoom = Math.min(2, gameState.zoom + 0.2); updateZoom();">+</button>
+            <button class="zoom-btn" onclick="gameState.zoom = Math.max(0.5, gameState.zoom - 0.2); updateZoom();">−</button>
         </div>
         
         <button class="btn" style="position: fixed; bottom: 10px; left: 10px;" onclick="toggleBuildMenu()">
             🏗️ Строить
         </button>
         
-        <button class="btn" style="position: fixed; bottom: 60px; left: 10px;" onclick="toggleWorkersMenu()">
+        <button class="btn" style="position: fixed; bottom: 50px; left: 10px;" onclick="toggleWorkersMenu()">
             👥 Рабочие
         </button>
         
-        <button class="btn" style="position: fixed; bottom: 110px; left: 10px;" onclick="toggleShopMenu()">
+        <button class="btn" style="position: fixed; bottom: 90px; left: 10px;" onclick="toggleShopMenu()">
             🛒 Магазин
         </button>
         
-        <div id="buildMenu" class="panel hidden" style="bottom: 160px; left: 10px; right: 10px;">
-            <button class="btn-close" onclick="toggleBuildMenu()">×</button>
+        <div id="buildMenu" class="panel hidden" style="bottom: 130px; left: 10px; right: 10px;">
             <div class="title">🏗️ Строительство</div>
             <div id="buildingsList"></div>
         </div>
         
-        <div id="workersMenu" class="panel hidden" style="bottom: 160px; left: 10px; right: 10px;">
-            <button class="btn-close" onclick="toggleWorkersMenu()">×</button>
+        <div id="workersMenu" class="panel hidden" style="bottom: 130px; left: 10px; right: 10px;">
             <div class="title">👥 Управление рабочими</div>
             <div id="workersList"></div>
         </div>
         
-        <div id="shopMenu" class="panel hidden" style="bottom: 160px; left: 10px; right: 10px;">
-            <button class="btn-close" onclick="toggleShopMenu()">×</button>
+        <div id="shopMenu" class="panel hidden" style="bottom: 130px; left: 10px; right: 10px;">
             <div class="title">🛒 Магазин улучшений</div>
             <div id="shopList"></div>
         </div>
@@ -454,7 +311,7 @@
         <div id="buildingInfo" class="modal hidden">
             <div class="title" id="buildingInfoTitle"></div>
             <div id="buildingInfoContent"></div>
-            <button class="btn" onclick="closeBuildingInfo()">Закрыть</button>
+            <button class="btn" onclick="document.getElementById('buildingInfo').classList.add('hidden')">Закрыть</button>
         </div>
         
         <div id="questModal" class="modal hidden">
@@ -469,13 +326,16 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Адаптация размера канваса
-        function resizeCanvas() {
+        // Инициализация canvas
+        function initCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        
+        initCanvas();
+        window.addEventListener('resize', initCanvas);
         
         // Состояние игры
         const gameState = {
@@ -490,23 +350,17 @@
             villagers: [],
             buildings: [],
             tiles: [],
-            selectedVillager: null,
-            selectedBuilding: null,
             camera: { x: 0, y: 0 },
             zoom: 1,
             minZoom: 0.5,
             maxZoom: 2,
-            worldSize: 100,
-            tileSize: 32,
+            worldSize: 50,
+            tileSize: 40,
             day: 1,
             time: 0,
-            quests: [],
             activeQuests: [],
             weather: 'sunny',
-            season: 'spring',
-            achievements: [],
-            particles: [],
-            animations: []
+            particles: []
         };
         
         // Типы тайлов
@@ -514,10 +368,7 @@
             GRASS: 'grass',
             FOREST: 'forest',
             STONE: 'stone',
-            WATER: 'water',
-            FARM: 'farm',
-            HOUSE: 'house',
-            ROAD: 'road'
+            WATER: 'water'
         };
         
         // Типы зданий
@@ -528,8 +379,7 @@
                 description: 'Увеличивает население на 2',
                 size: 2,
                 color: '#8B4513',
-                emoji: '🏠',
-                hp: 100
+                emoji: '🏠'
             },
             FARM: {
                 name: 'Ферма',
@@ -537,8 +387,7 @@
                 description: 'Производит еду',
                 size: 2,
                 color: '#228B22',
-                emoji: '🌾',
-                hp: 80
+                emoji: '🌾'
             },
             LUMBER_MILL: {
                 name: 'Лесопилка',
@@ -546,8 +395,7 @@
                 description: 'Ускоряет добычу дерева',
                 size: 2,
                 color: '#654321',
-                emoji: '🪚',
-                hp: 90
+                emoji: '🪚'
             },
             QUARRY: {
                 name: 'Каменоломня',
@@ -555,8 +403,7 @@
                 description: 'Ускоряет добычу камня',
                 size: 2,
                 color: '#808080',
-                emoji: '⛏️',
-                hp: 90
+                emoji: '⛏️'
             },
             MARKET: {
                 name: 'Рынок',
@@ -564,76 +411,85 @@
                 description: 'Увеличивает доход золота',
                 size: 3,
                 color: '#FFD700',
-                emoji: '🏪',
-                hp: 70
+                emoji: '🏪'
             }
         };
         
         // Типы работ
         const JOB_TYPES = {
-            IDLE: { name: 'Без работы', emoji: '😴', color: '#808080' },
-            WOODCUTTER: { name: 'Лесоруб', emoji: '🪓', color: '#8B4513' },
-            MINER: { name: 'Шахтёр', emoji: '⛏️', color: '#696969' },
-            FISHER: { name: 'Рыбак', emoji: '🎣', color: '#4169E1' },
-            FARMER: { name: 'Фермер', emoji: '🌾', color: '#228B22' },
-            BUILDER: { name: 'Строитель', emoji: '🔨', color: '#D2691E' }
+            IDLE: { name: 'Без работы', emoji: '😴' },
+            WOODCUTTER: { name: 'Лесоруб', emoji: '🪓' },
+            MINER: { name: 'Шахтёр', emoji: '⛏️' },
+            FISHER: { name: 'Рыбак', emoji: '🎣' },
+            FARMER: { name: 'Фермер', emoji: '🌾' },
+            BUILDER: { name: 'Строитель', emoji: '🔨' }
         };
         
-        // Генерация мира с улучшенной детализацией
+        // Генерация мира
         function generateWorld() {
             gameState.tiles = [];
+            
             for (let x = 0; x < gameState.worldSize; x++) {
                 gameState.tiles[x] = [];
                 for (let y = 0; y < gameState.worldSize; y++) {
                     let type = TILE_TYPES.GRASS;
-                    const noise = Math.random();
+                    const random = Math.random();
                     
-                    if (noise < 0.3) {
+                    if (random < 0.2) {
                         type = TILE_TYPES.FOREST;
-                    } else if (noise < 0.35) {
+                    } else if (random < 0.25) {
                         type = TILE_TYPES.STONE;
-                    } else if (noise < 0.4) {
+                    } else if (random < 0.3) {
                         type = TILE_TYPES.WATER;
                     }
                     
                     gameState.tiles[x][y] = {
                         type: type,
                         building: null,
-                        resource: noise < 0.3 ? 'tree' : noise < 0.35 ? 'stone' : null,
-                        variant: Math.floor(Math.random() * 3),
-                        decoration: Math.random() < 0.2 ? 'flower' : Math.random() < 0.1 ? 'rock' : null
+                        resource: random < 0.2 ? 'tree' : random < 0.25 ? 'stone' : null
                     };
                 }
             }
             
-            // Размещаем стартовые здания
+            // Очищаем центр для деревни
             const centerX = Math.floor(gameState.worldSize / 2);
             const centerY = Math.floor(gameState.worldSize / 2);
             
-            for (let i = 0; i < 2; i++) {
-                addBuilding(BUILDING_TYPES.HOUSE, centerX + i * 3, centerY);
+            for (let x = centerX - 5; x < centerX + 5; x++) {
+                for (let y = centerY - 5; y < centerY + 5; y++) {
+                    if (x >= 0 && x < gameState.worldSize && y >= 0 && y < gameState.worldSize) {
+                        gameState.tiles[x][y].type = TILE_TYPES.GRASS;
+                        gameState.tiles[x][y].resource = null;
+                    }
+                }
             }
-            addBuilding(BUILDING_TYPES.FARM, centerX, centerY + 3);
+            
+            // Размещаем стартовые здания
+            addBuilding(BUILDING_TYPES.HOUSE, centerX - 2, centerY - 2);
+            addBuilding(BUILDING_TYPES.HOUSE, centerX + 1, centerY - 2);
+            addBuilding(BUILDING_TYPES.FARM, centerX - 2, centerY + 2);
             
             // Создаём стартовых жителей
-            for (let i = 0; i < gameState.population; i++) {
+            for (let i = 0; i < 3; i++) {
                 gameState.villagers.push({
                     id: i,
                     name: `Житель ${i + 1}`,
                     job: JOB_TYPES.IDLE,
-                    x: centerX * gameState.tileSize + Math.random() * 100,
-                    y: centerY * gameState.tileSize + Math.random() * 100,
+                    x: (centerX + Math.random() * 2 - 1) * gameState.tileSize,
+                    y: (centerY + Math.random() * 2 - 1) * gameState.tileSize,
                     health: 100,
                     energy: 100,
                     happiness: 70,
                     inventory: { wood: 0, stone: 0, food: 0 },
-                    animation: Math.random() * Math.PI * 2,
-                    speed: 1 + Math.random() * 0.5
+                    animation: Math.random() * Math.PI * 2
                 });
             }
             
+            // Устанавливаем камеру на центр
             gameState.camera.x = centerX * gameState.tileSize - canvas.width / 2;
             gameState.camera.y = centerY * gameState.tileSize - canvas.height / 2;
+            
+            clampCamera();
         }
         
         function addBuilding(type, x, y) {
@@ -643,13 +499,14 @@
                 y: y,
                 level: 1,
                 workers: [],
-                production: 0,
-                hp: type.hp
+                production: 0
             };
             
             for (let dx = 0; dx < type.size; dx++) {
                 for (let dy = 0; dy < type.size; dy++) {
-                    gameState.tiles[x + dx][y + dy].building = building;
+                    if (x + dx < gameState.worldSize && y + dy < gameState.worldSize) {
+                        gameState.tiles[x + dx][y + dy].building = building;
+                    }
                 }
             }
             
@@ -662,182 +519,232 @@
             return building;
         }
         
-        // Функции масштабирования
-        function zoomIn() {
-            gameState.zoom = Math.min(gameState.maxZoom, gameState.zoom + 0.2);
-            updateZoom();
-        }
-        
-        function zoomOut() {
-            gameState.zoom = Math.max(gameState.minZoom, gameState.zoom - 0.2);
-            updateZoom();
-        }
-        
-        function resetZoom() {
-            gameState.zoom = 1;
-            updateZoom();
+        function clampCamera() {
+            const effectiveSize = gameState.tileSize * gameState.zoom;
+            const maxX = gameState.worldSize * effectiveSize - canvas.width;
+            const maxY = gameState.worldSize * effectiveSize - canvas.height;
+            
+            gameState.camera.x = Math.max(0, Math.min(maxX, gameState.camera.x));
+            gameState.camera.y = Math.max(0, Math.min(maxY, gameState.camera.y));
         }
         
         function updateZoom() {
-            // Пересчитываем позицию камеры при зуме
-            const centerX = gameState.camera.x + canvas.width / 2;
-            const centerY = gameState.camera.y + canvas.height / 2;
+            // Сохраняем центр экрана
+            const centerScreenX = canvas.width / 2;
+            const centerScreenY = canvas.height / 2;
+            const centerWorldX = gameState.camera.x + centerScreenX;
+            const centerWorldY = gameState.camera.y + centerScreenY;
             
-            gameState.camera.x = centerX - canvas.width / 2;
-            gameState.camera.y = centerY - canvas.height / 2;
+            // Обновляем позицию камеры
+            gameState.camera.x = centerWorldX - centerScreenX;
+            gameState.camera.y = centerWorldY - centerScreenY;
             
-            // Ограничение камеры
-            gameState.camera.x = Math.max(0, Math.min(
-                gameState.worldSize * gameState.tileSize * gameState.zoom - canvas.width,
-                gameState.camera.x
-            ));
-            gameState.camera.y = Math.max(0, Math.min(
-                gameState.worldSize * gameState.tileSize * gameState.zoom - canvas.height,
-                gameState.camera.y
-            ));
+            clampCamera();
         }
         
-        // Управление рабочими
-        function assignJob(villagerId, jobType) {
-            const villager = gameState.villagers.find(v => v.id === villagerId);
-            if (villager) {
-                villager.job = jobType;
-                updateUI();
+        // Отрисовка
+        function draw() {
+            // Очищаем canvas
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const effectiveSize = gameState.tileSize * gameState.zoom;
+            
+            // Вычисляем видимые тайлы
+            const startX = Math.max(0, Math.floor(gameState.camera.x / effectiveSize));
+            const startY = Math.max(0, Math.floor(gameState.camera.y / effectiveSize));
+            const endX = Math.min(gameState.worldSize, Math.ceil((gameState.camera.x + canvas.width) / effectiveSize));
+            const endY = Math.min(gameState.worldSize, Math.ceil((gameState.camera.y + canvas.height) / effectiveSize));
+            
+            // Отрисовка тайлов
+            for (let x = startX; x < endX; x++) {
+                for (let y = startY; y < endY; y++) {
+                    const tile = gameState.tiles[x][y];
+                    const screenX = Math.floor(x * effectiveSize - gameState.camera.x);
+                    const screenY = Math.floor(y * effectiveSize - gameState.camera.y);
+                    
+                    // Цвет тайла
+                    let color = '#7CB342';
+                    
+                    switch (tile.type) {
+                        case TILE_TYPES.FOREST:
+                            color = '#558B2F';
+                            break;
+                        case TILE_TYPES.STONE:
+                            color = '#9E9E9E';
+                            break;
+                        case TILE_TYPES.WATER:
+                            color = '#42A5F5';
+                            break;
+                    }
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(screenX, screenY, Math.ceil(effectiveSize) + 1, Math.ceil(effectiveSize) + 1);
+                    
+                    // Ресурсы
+                    if (tile.resource === 'tree') {
+                        // Дерево
+                        ctx.fillStyle = '#5D4037';
+                        ctx.fillRect(
+                            screenX + effectiveSize * 0.45,
+                            screenY + effectiveSize * 0.5,
+                            effectiveSize * 0.1,
+                            effectiveSize * 0.3
+                        );
+                        
+                        ctx.fillStyle = '#2E7D32';
+                        ctx.beginPath();
+                        ctx.arc(
+                            screenX + effectiveSize * 0.5,
+                            screenY + effectiveSize * 0.4,
+                            effectiveSize * 0.25,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                    } else if (tile.resource === 'stone') {
+                        // Камень
+                        ctx.fillStyle = '#757575';
+                        ctx.fillRect(
+                            screenX + effectiveSize * 0.3,
+                            screenY + effectiveSize * 0.5,
+                            effectiveSize * 0.4,
+                            effectiveSize * 0.3
+                        );
+                    }
+                }
             }
-        }
-        
-        // Производство ресурсов
-        function updateProduction() {
+            
+            // Отрисовка зданий
+            gameState.buildings.forEach(building => {
+                const screenX = building.x * effectiveSize - gameState.camera.x;
+                const screenY = building.y * effectiveSize - gameState.camera.y;
+                const buildingSize = building.type.size * effectiveSize;
+                
+                // Проверяем видимость
+                if (screenX + buildingSize < 0 || screenX > canvas.width ||
+                    screenY + buildingSize < 0 || screenY > canvas.height) {
+                    return;
+                }
+                
+                // Здание
+                ctx.fillStyle = building.type.color;
+                ctx.fillRect(screenX, screenY, buildingSize, buildingSize);
+                
+                // Граница
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(screenX, screenY, buildingSize, buildingSize);
+                
+                // Эмодзи
+                ctx.font = `${buildingSize * 0.5}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(
+                    building.type.emoji,
+                    screenX + buildingSize / 2,
+                    screenY + buildingSize / 2
+                );
+            });
+            
+            // Отрисовка жителей
             gameState.villagers.forEach(villager => {
-                switch (villager.job.name) {
-                    case 'Лесоруб':
-                        if (villager.energy > 0) {
-                            villager.inventory.wood += 2;
-                            villager.energy -= 5;
-                            villager.happiness -= 1;
-                            addParticle(villager.x, villager.y, '#8B4513', 'wood');
-                        }
-                        break;
-                    case 'Шахтёр':
-                        if (villager.energy > 0) {
-                            villager.inventory.stone += 1;
-                            villager.energy -= 8;
-                            villager.happiness -= 1;
-                            addParticle(villager.x, villager.y, '#808080', 'stone');
-                        }
-                        break;
-                    case 'Фермер':
-                        if (villager.energy > 0) {
-                            villager.inventory.food += 3;
-                            villager.energy -= 6;
-                            addParticle(villager.x, villager.y, '#228B22', 'food');
-                        }
-                        break;
-                    case 'Рыбак':
-                        if (villager.energy > 0) {
-                            villager.inventory.food += 2;
-                            villager.energy -= 4;
-                            villager.happiness += 2;
-                            addParticle(villager.x, villager.y, '#4169E1', 'fish');
-                        }
-                        break;
+                const screenX = villager.x * gameState.zoom - gameState.camera.x;
+                const screenY = villager.y * gameState.zoom - gameState.camera.y;
+                
+                // Проверяем видимость
+                if (screenX < -20 || screenX > canvas.width + 20 ||
+                    screenY < -20 || screenY > canvas.height + 20) {
+                    return;
                 }
                 
-                if (villager.job.name === 'Без работы') {
-                    villager.energy = Math.min(100, villager.energy + 5);
-                    villager.happiness = Math.min(100, villager.happiness + 3);
+                const size = gameState.tileSize * gameState.zoom;
+                const bounce = Math.sin(villager.animation) * size * 0.1;
+                
+                // Тень
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY + size * 0.4, size * 0.25, size * 0.1, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Тело
+                ctx.fillStyle = '#FFD54F';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY + bounce, size * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Голова
+                ctx.fillStyle = '#FFE0B2';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY - size * 0.3 + bounce, size * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Эмодзи работы
+                if (villager.job.emoji) {
+                    ctx.font = `${size * 0.3}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(villager.job.emoji, screenX, screenY - size * 0.5 + bounce);
                 }
                 
-                if (villager.inventory.wood > 0) {
-                    gameState.resources.wood += villager.inventory.wood;
-                    villager.inventory.wood = 0;
-                }
-                if (villager.inventory.stone > 0) {
-                    gameState.resources.stone += villager.inventory.stone;
-                    villager.inventory.stone = 0;
-                }
-                if (villager.inventory.food > 0) {
-                    gameState.resources.food += villager.inventory.food;
-                    villager.inventory.food = 0;
-                }
+                // Имя
+                ctx.fillStyle = '#FFF';
+                ctx.font = `${size * 0.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(villager.name, screenX, screenY + size * 0.5);
             });
             
-            const foodConsumption = gameState.population * 1;
-            gameState.resources.food -= foodConsumption;
-            if (gameState.resources.food < 0) {
-                gameState.resources.food = 0;
-                gameState.villagers.forEach(v => v.health -= 5);
+            // Мини-карта
+            drawMiniMap();
+        }
+        
+        function drawMiniMap() {
+            const miniMap = document.getElementById('miniMap');
+            const miniCtx = miniMap.getContext('2d');
+            const scale = miniMap.width / (gameState.worldSize * gameState.tileSize);
+            
+            miniCtx.fillStyle = '#4CAF50';
+            miniCtx.fillRect(0, 0, miniMap.width, miniMap.height);
+            
+            // Тайлы
+            for (let x = 0; x < gameState.worldSize; x += 2) {
+                for (let y = 0; y < gameState.worldSize; y += 2) {
+                    const tile = gameState.tiles[x][y];
+                    let color = '#4CAF50';
+                    
+                    if (tile.type === TILE_TYPES.FOREST) color = '#2E7D32';
+                    else if (tile.type === TILE_TYPES.WATER) color = '#2196F3';
+                    else if (tile.type === TILE_TYPES.STONE) color = '#9E9E9E';
+                    
+                    miniCtx.fillStyle = color;
+                    miniCtx.fillRect(
+                        x * gameState.tileSize * scale,
+                        y * gameState.tileSize * scale,
+                        gameState.tileSize * scale * 2,
+                        gameState.tileSize * scale * 2
+                    );
+                }
             }
             
-            const markets = gameState.buildings.filter(b => b.type === BUILDING_TYPES.MARKET);
-            gameState.resources.gold += markets.length * 5;
-        }
-        
-        // Система частиц
-        function addParticle(x, y, color, type) {
-            gameState.particles.push({
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 2,
-                vy: -Math.random() * 2,
-                life: 1,
-                color: color,
-                type: type,
-                size: Math.random() * 3 + 2
-            });
-        }
-        
-        function updateParticles() {
-            gameState.particles = gameState.particles.filter(p => p.life > 0);
-            gameState.particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.1;
-                p.life -= 0.02;
-            });
-        }
-        
-        // Квесты
-        function generateQuest() {
-            const quests = [
-                {
-                    title: 'Сбор древесины',
-                    description: 'Соберите 50 единиц дерева',
-                    requirement: { wood: 50 },
-                    reward: { gold: 30, food: 10 },
-                    duration: 60
-                },
-                {
-                    title: 'Каменный запас',
-                    description: 'Добудьте 30 единиц камня',
-                    requirement: { stone: 30 },
-                    reward: { gold: 40, wood: 10 },
-                    duration: 50
-                },
-                {
-                    title: 'Продовольствие',
-                    description: 'Произведите 40 единиц еды',
-                    requirement: { food: 40 },
-                    reward: { gold: 25, wood: 15 },
-                    duration: 45
-                },
-                {
-                    title: 'Строительный бум',
-                    description: 'Постройте 3 новых здания',
-                    requirement: { buildings: 3 },
-                    reward: { gold: 100, wood: 30, stone: 20 },
-                    duration: 90
-                }
-            ];
-            
-            const quest = quests[Math.floor(Math.random() * quests.length)];
-            gameState.activeQuests.push({
-                ...quest,
-                progress: 0,
-                startTime: gameState.time
+            // Здания
+            gameState.buildings.forEach(building => {
+                miniCtx.fillStyle = '#FFD700';
+                miniCtx.fillRect(
+                    building.x * gameState.tileSize * scale,
+                    building.y * gameState.tileSize * scale,
+                    building.type.size * gameState.tileSize * scale,
+                    building.type.size * gameState.tileSize * scale
+                );
             });
             
-            showQuestModal(quest);
+            // Камера
+            miniCtx.strokeStyle = '#FF0000';
+            miniCtx.lineWidth = 2;
+            miniCtx.strokeRect(
+                gameState.camera.x * scale,
+                gameState.camera.y * scale,
+                canvas.width * scale,
+                canvas.height * scale
+            );
         }
         
         // UI функции
@@ -847,11 +754,6 @@
             document.getElementById('stone').textContent = Math.floor(gameState.resources.stone);
             document.getElementById('gold').textContent = Math.floor(gameState.resources.gold);
             document.getElementById('population').textContent = `${gameState.population}/${gameState.maxPopulation}`;
-            document.getElementById('dayInfo').textContent = `День ${gameState.day}`;
-            
-            const weatherEmoji = gameState.weather === 'sunny' ? '☀️' : 
-                                gameState.weather === 'rainy' ? '🌧️' : '❄️';
-            document.getElementById('weatherInfo').textContent = weatherEmoji;
         }
         
         function toggleBuildMenu() {
@@ -893,9 +795,9 @@
                     <div>
                         <strong>${type.emoji} ${type.name}</strong><br>
                         <small>${type.description}</small><br>
-                        <small>Стоимость: ${formatCost(type.cost)}</small>
+                        <small>${formatCost(type.cost)}</small>
                     </div>
-                    <button class="btn btn-small" ${canAfford ? '' : 'style="opacity:0.5"'} 
+                    <button class="btn" ${canAfford ? '' : 'style="opacity:0.5"'} 
                         onclick="buildBuilding('${type.name}')">
                         Построить
                     </button>
@@ -914,10 +816,10 @@
                 item.innerHTML = `
                     <div>
                         <strong>${villager.name}</strong><br>
-                        <small>Работа: ${villager.job.emoji} ${villager.job.name}</small><br>
-                        <small>Энергия: ${villager.energy}% | Счастье: ${villager.happiness}%</small>
+                        <small>${villager.job.emoji} ${villager.job.name}</small><br>
+                        <small>Энергия: ${villager.energy}%</small>
                     </div>
-                    <select onchange="assignJob(${villager.id}, JOB_TYPES[this.value])">
+                    <select onchange="assignJob(${villager.id}, this.value)">
                         ${Object.entries(JOB_TYPES).map(([key, job]) => 
                             `<option value="${key}" ${villager.job.name === job.name ? 'selected' : ''}>
                                 ${job.emoji} ${job.name}
@@ -934,13 +836,12 @@
             list.innerHTML = '';
             
             const upgrades = [
-                { name: 'Улучшить дома', description: '+2 к населению для всех домов', cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } },
-                { name: 'Эффективные инструменты', description: '+50% к добыче ресурсов', cost: { gold: 80, stone: 30 }, effect: () => { /* Добавить множитель */ } },
-                { name: 'Праздник урожая', description: '+20 к счастью всех жителей', cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = Math.min(100, v.happiness + 20)); } },
-                { name: 'Нанять жителя', description: '+1 житель', cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } }
+                { name: 'Нанять жителя', cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } },
+                { name: 'Праздник', cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = 100); } },
+                { name: 'Улучшить дома', cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } }
             ];
             
-            upgrades.forEach(upgrade => {
+            upgrades.forEach((upgrade, index) => {
                 const canAfford = Object.entries(upgrade.cost).every(([resource, amount]) => 
                     gameState.resources[resource] >= amount
                 );
@@ -950,11 +851,10 @@
                 item.innerHTML = `
                     <div>
                         <strong>${upgrade.name}</strong><br>
-                        <small>${upgrade.description}</small><br>
-                        <small>Стоимость: ${formatCost(upgrade.cost)}</small>
+                        <small>${formatCost(upgrade.cost)}</small>
                     </div>
-                    <button class="btn btn-small" ${canAfford ? '' : 'style="opacity:0.5"'} 
-                        onclick="buyUpgrade(${upgrades.indexOf(upgrade)})">
+                    <button class="btn" ${canAfford ? '' : 'style="opacity:0.5"'} 
+                        onclick="buyUpgrade(${index})">
                         Купить
                     </button>
                 `;
@@ -963,14 +863,10 @@
         }
         
         function formatCost(cost) {
-            return Object.entries(cost).map(([resource, amount]) => 
-                `${getEmoji(resource)}${amount}`
-            ).join(' ');
-        }
-        
-        function getEmoji(resource) {
             const emojis = { wood: '🪵', stone: '🪨', gold: '💰', food: '🌾' };
-            return emojis[resource] || '📦';
+            return Object.entries(cost).map(([resource, amount]) => 
+                `${emojis[resource] || '📦'}${amount}`
+            ).join(' ');
         }
         
         function buildBuilding(typeName) {
@@ -987,16 +883,15 @@
                 gameState.resources[resource] -= amount;
             });
             
-            const centerX = Math.floor(gameState.camera.x / (gameState.tileSize * gameState.zoom)) + 
-                           Math.floor(canvas.width / (gameState.tileSize * gameState.zoom) / 2);
-            const centerY = Math.floor(gameState.camera.y / (gameState.tileSize * gameState.zoom)) + 
-                           Math.floor(canvas.height / (gameState.tileSize * gameState.zoom) / 2);
+            // Ищем место рядом с центром экрана
+            const centerTileX = Math.floor((gameState.camera.x + canvas.width / 2) / (gameState.tileSize * gameState.zoom));
+            const centerTileY = Math.floor((gameState.camera.y + canvas.height / 2) / (gameState.tileSize * gameState.zoom));
             
             let placed = false;
             for (let radius = 0; radius < 20 && !placed; radius++) {
-                for (let angle = 0; angle < Math.PI * 2 && !placed; angle += 0.5) {
-                    const x = Math.floor(centerX + Math.cos(angle) * radius);
-                    const y = Math.floor(centerY + Math.sin(angle) * radius);
+                for (let angle = 0; angle < Math.PI * 2 && !placed; angle += 0.3) {
+                    const x = Math.floor(centerTileX + Math.cos(angle) * radius);
+                    const y = Math.floor(centerTileY + Math.sin(angle) * radius);
                     
                     if (x > 0 && y > 0 && x + type.size < gameState.worldSize && y + type.size < gameState.worldSize) {
                         let canPlace = true;
@@ -1022,54 +917,54 @@
             updateBuildingsList();
         }
         
+        function assignJob(villagerId, jobKey) {
+            const villager = gameState.villagers.find(v => v.id === villagerId);
+            if (villager && JOB_TYPES[jobKey]) {
+                villager.job = JOB_TYPES[jobKey];
+                updateUI();
+            }
+        }
+        
         function hireVillager() {
             if (gameState.population >= gameState.maxPopulation) {
-                alert('Достигнут лимит населения! Постройте больше домов.');
+                alert('Достигнут лимит населения!');
                 return;
             }
             
-            const cost = { gold: 40, food: 20 };
-            const canAfford = Object.entries(cost).every(([resource, amount]) => 
-                gameState.resources[resource] >= amount
-            );
-            
-            if (!canAfford) {
-                alert('Недостаточно ресурсов для найма!');
+            if (gameState.resources.gold < 40 || gameState.resources.food < 20) {
+                alert('Недостаточно ресурсов!');
                 return;
             }
             
-            Object.entries(cost).forEach(([resource, amount]) => {
-                gameState.resources[resource] -= amount;
-            });
+            gameState.resources.gold -= 40;
+            gameState.resources.food -= 20;
             
-            const newVillager = {
+            const centerTileX = Math.floor((gameState.camera.x + canvas.width / 2) / (gameState.tileSize * gameState.zoom));
+            const centerTileY = Math.floor((gameState.camera.y + canvas.height / 2) / (gameState.tileSize * gameState.zoom));
+            
+            gameState.villagers.push({
                 id: gameState.villagers.length,
                 name: `Житель ${gameState.villagers.length + 1}`,
                 job: JOB_TYPES.IDLE,
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
+                x: centerTileX * gameState.tileSize,
+                y: centerTileY * gameState.tileSize,
                 health: 100,
                 energy: 100,
                 happiness: 70,
                 inventory: { wood: 0, stone: 0, food: 0 },
-                animation: Math.random() * Math.PI * 2,
-                speed: 1 + Math.random() * 0.5
-            };
+                animation: Math.random() * Math.PI * 2
+            });
             
-            gameState.villagers.push(newVillager);
             gameState.population++;
-            
             updateUI();
-            updateWorkersList();
             updateShopList();
         }
         
         function buyUpgrade(index) {
             const upgrades = [
-                { cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } },
-                { cost: { gold: 80, stone: 30 }, effect: () => { /* Улучшение инструментов */ } },
-                { cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = Math.min(100, v.happiness + 20)); } },
-                { cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } }
+                { cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } },
+                { cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = 100); } },
+                { cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } }
             ];
             
             const upgrade = upgrades[index];
@@ -1090,16 +985,6 @@
             updateShopList();
         }
         
-        function showQuestModal(quest) {
-            document.getElementById('questContent').innerHTML = `
-                <h3>${quest.title}</h3>
-                <p>${quest.description}</p>
-                <p><strong>Награда:</strong> ${formatCost(quest.reward)}</p>
-                <p><strong>Время:</strong> ${quest.duration} секунд</p>
-            `;
-            document.getElementById('questModal').classList.remove('hidden');
-        }
-        
         function acceptQuest() {
             document.getElementById('questModal').classList.add('hidden');
         }
@@ -1109,493 +994,82 @@
             document.getElementById('questModal').classList.add('hidden');
         }
         
-        function showBuildingInfo(building) {
-            document.getElementById('buildingInfoTitle').textContent = 
-                `${building.type.emoji} ${building.type.name} (Уровень ${building.level})`;
-            
-            let content = `<p>${building.type.description}</p>`;
-            content += `<p>Рабочих: ${building.workers.length}</p>`;
-            content += `<p>Производство: ${building.production}</p>`;
-            content += `<p>Прочность: ${building.hp}/${building.type.hp}</p>`;
-            
-            if (building.workers.length < 3) {
-                content += `<button class="btn" onclick="assignWorkerToBuilding(${building.x}, ${building.y})">Назначить рабочего</button>`;
-            }
-            
-            document.getElementById('buildingInfoContent').innerHTML = content;
-            document.getElementById('buildingInfo').classList.remove('hidden');
-        }
-        
-        function closeBuildingInfo() {
-            document.getElementById('buildingInfo').classList.add('hidden');
-        }
-        
-        function assignWorkerToBuilding(x, y) {
-            const building = gameState.tiles[x][y].building;
-            const idleVillager = gameState.villagers.find(v => v.job.name === 'Без работы');
-            
-            if (building && idleVillager) {
-                building.workers.push(idleVillager.id);
-                idleVillager.job = building.type === BUILDING_TYPES.FARM ? JOB_TYPES.FARMER : JOB_TYPES.BUILDER;
-                closeBuildingInfo();
-                updateWorkersList();
-            }
-        }
-        
-        // Улучшенная отрисовка
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Фон с градиентом
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(1, '#4CAF50');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            const effectiveTileSize = gameState.tileSize * gameState.zoom;
-            
-            const startX = Math.floor(gameState.camera.x / effectiveTileSize);
-            const startY = Math.floor(gameState.camera.y / effectiveTileSize);
-            const endX = Math.ceil((gameState.camera.x + canvas.width) / effectiveTileSize);
-            const endY = Math.ceil((gameState.camera.y + canvas.height) / effectiveTileSize);
-            
-            for (let x = Math.max(0, startX); x < Math.min(gameState.worldSize, endX); x++) {
-                for (let y = Math.max(0, startY); y < Math.min(gameState.worldSize, endY); y++) {
-                    const tile = gameState.tiles[x][y];
-                    const screenX = (x * effectiveTileSize - gameState.camera.x);
-                    const screenY = (y * effectiveTileSize - gameState.camera.y);
-                    
-                    // Отрисовка тайла с детализацией
-                    drawTile(tile, screenX, screenY, effectiveTileSize, x, y);
-                    
-                    // Отрисовка зданий
-                    if (tile.building && tile.building.x === x && tile.building.y === y) {
-                        drawBuilding(tile.building, screenX, screenY, effectiveTileSize);
-                    }
-                }
-            }
-            
-            // Отрисовка частиц
-            gameState.particles.forEach(p => {
-                const screenX = p.x - gameState.camera.x;
-                const screenY = p.y - gameState.camera.y;
-                
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, p.size * gameState.zoom, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            });
-            
-            // Отрисовка жителей
+        // Производство ресурсов
+        function updateProduction() {
             gameState.villagers.forEach(villager => {
-                const screenX = (villager.x - gameState.camera.x);
-                const screenY = (villager.y - gameState.camera.y);
-                
-                if (screenX > -20 && screenX < canvas.width + 20 && 
-                    screenY > -20 && screenY < canvas.height + 20) {
-                    drawVillager(villager, screenX, screenY);
+                switch (villager.job.name) {
+                    case 'Лесоруб':
+                        if (villager.energy > 0) {
+                            gameState.resources.wood += 2;
+                            villager.energy -= 5;
+                        }
+                        break;
+                    case 'Шахтёр':
+                        if (villager.energy > 0) {
+                            gameState.resources.stone += 1;
+                            villager.energy -= 8;
+                        }
+                        break;
+                    case 'Фермер':
+                        if (villager.energy > 0) {
+                            gameState.resources.food += 3;
+                            villager.energy -= 6;
+                        }
+                        break;
+                    case 'Рыбак':
+                        if (villager.energy > 0) {
+                            gameState.resources.food += 2;
+                            villager.energy -= 4;
+                        }
+                        break;
+                    case 'Без работы':
+                        villager.energy = Math.min(100, villager.energy + 5);
+                        break;
                 }
             });
             
-            // Отрисовка эффектов погоды
-            drawWeather();
+            // Потребление еды
+            gameState.resources.food -= gameState.population;
+            if (gameState.resources.food < 0) {
+                gameState.resources.food = 0;
+                gameState.villagers.forEach(v => v.health -= 5);
+            }
             
-            // Мини-карта
-            drawMiniMap();
+            // Доход от рынков
+            const markets = gameState.buildings.filter(b => b.type === BUILDING_TYPES.MARKET);
+            gameState.resources.gold += markets.length * 5;
         }
         
-        function drawTile(tile, x, y, size, tileX, tileY) {
-            // Базовая заливка
-            let color = '#4CAF50';
-            
-            switch (tile.type) {
-                case TILE_TYPES.FOREST:
-                    color = '#2E7D32';
-                    break;
-                case TILE_TYPES.STONE:
-                    color = '#9E9E9E';
-                    break;
-                case TILE_TYPES.WATER:
-                    color = '#2196F3';
-                    break;
-                case TILE_TYPES.FARM:
-                    color = '#8BC34A';
-                    break;
-            }
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, size, size);
-            
-            // Детализация тайла
-            if (tile.type === TILE_TYPES.GRASS) {
-                // Травинки
-                ctx.strokeStyle = '#388E3C';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 3; i++) {
-                    const bx = x + (i + 0.5) * (size / 3);
-                    const by = y + size - 2;
-                    ctx.beginPath();
-                    ctx.moveTo(bx, by);
-                    ctx.lineTo(bx + 2, by - 3);
-                    ctx.stroke();
-                }
-            }
-            
-            // Декорации
-            if (tile.decoration === 'flower') {
-                ctx.fillStyle = '#FF69B4';
-                ctx.beginPath();
-                ctx.arc(x + size * 0.7, y + size * 0.3, size * 0.08, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (tile.decoration === 'rock') {
-                ctx.fillStyle = '#757575';
-                ctx.fillRect(x + size * 0.6, y + size * 0.6, size * 0.2, size * 0.15);
-            }
-            
-            // Ресурсы
-            if (tile.resource === 'tree') {
-                // Ствол
-                ctx.fillStyle = '#5D4037';
-                ctx.fillRect(x + size * 0.45, y + size * 0.5, size * 0.1, size * 0.3);
-                
-                // Крона
-                ctx.fillStyle = '#2E7D32';
-                ctx.beginPath();
-                ctx.arc(x + size * 0.5, y + size * 0.4, size * 0.25, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Блики на кроне
-                ctx.fillStyle = '#4CAF50';
-                ctx.beginPath();
-                ctx.arc(x + size * 0.45, y + size * 0.35, size * 0.15, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (tile.resource === 'stone') {
-                // Камень
-                ctx.fillStyle = '#757575';
-                ctx.beginPath();
-                ctx.moveTo(x + size * 0.3, y + size * 0.7);
-                ctx.lineTo(x + size * 0.4, y + size * 0.3);
-                ctx.lineTo(x + size * 0.6, y + size * 0.35);
-                ctx.lineTo(x + size * 0.7, y + size * 0.7);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Тень
-                ctx.fillStyle = '#616161';
-                ctx.fillRect(x + size * 0.3, y + size * 0.6, size * 0.4, size * 0.1);
-            }
-        }
-        
-        function drawBuilding(building, x, y, size) {
-            const buildingSize = building.type.size * size;
-            
-            // Тень
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillRect(x + size * 0.1, y + size * 0.1, buildingSize, buildingSize);
-            
-            // Основание
-            const gradient = ctx.createLinearGradient(x, y, x, y + buildingSize);
-            gradient.addColorStop(0, building.type.color);
-            gradient.addColorStop(1, darkenColor(building.type.color, 30));
-            ctx.fillStyle = gradient;
-            ctx.fillRect(x, y, buildingSize, buildingSize);
-            
-            // Крыша
-            ctx.fillStyle = darkenColor(building.type.color, 50);
-            ctx.beginPath();
-            ctx.moveTo(x - size * 0.1, y);
-            ctx.lineTo(x + buildingSize / 2, y - size * 0.3);
-            ctx.lineTo(x + buildingSize + size * 0.1, y);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Окна
-            ctx.fillStyle = '#FFE082';
-            for (let wx = 0; wx < building.type.size; wx++) {
-                for (let wy = 0; wy < building.type.size; wy++) {
-                    ctx.fillRect(
-                        x + size * (0.2 + wx * 0.4),
-                        y + size * (0.3 + wy * 0.4),
-                        size * 0.2,
-                        size * 0.2
-                    );
-                }
-            }
-            
-            // Эмодзи
-            ctx.font = `${buildingSize * 0.5}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(
-                building.type.emoji,
-                x + buildingSize / 2,
-                y + buildingSize / 2
-            );
-            
-            // Индикатор уровня
-            ctx.fillStyle = '#FFF';
-            ctx.font = `${size * 0.3}px Arial`;
-            ctx.textAlign = 'right';
-            ctx.fillText(`Ур.${building.level}`, x + buildingSize - size * 0.1, y + size * 0.3);
-        }
-        
-        function drawVillager(villager, x, y) {
-            const size = gameState.tileSize * gameState.zoom;
-            
-            // Анимация покачивания
-            const bounce = Math.sin(villager.animation) * size * 0.1;
-            
-            // Тень
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.beginPath();
-            ctx.ellipse(x, y + size * 0.4, size * 0.3, size * 0.1, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Тело
-            const bodyGradient = ctx.createRadialGradient(x, y - size * 0.1, 0, x, y, size * 0.3);
-            bodyGradient.addColorStop(0, '#FFE082');
-            bodyGradient.addColorStop(1, '#FFA726');
-            ctx.fillStyle = bodyGradient;
-            ctx.beginPath();
-            ctx.arc(x, y + bounce, size * 0.25, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Голова
-            ctx.fillStyle = '#FFCC80';
-            ctx.beginPath();
-            ctx.arc(x, y - size * 0.3 + bounce, size * 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Глаза
-            ctx.fillStyle = '#000';
-            ctx.fillRect(x - size * 0.08, y - size * 0.35 + bounce, size * 0.04, size * 0.04);
-            ctx.fillRect(x + size * 0.04, y - size * 0.35 + bounce, size * 0.04, size * 0.04);
-            
-            // Рот
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(x, y - size * 0.25 + bounce, size * 0.08, 0, Math.PI);
-            ctx.stroke();
-            
-            // Индикатор работы
-            if (villager.job.emoji) {
-                ctx.font = `${size * 0.3}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.fillText(villager.job.emoji, x, y - size * 0.5 + bounce);
-            }
-            
-            // Имя
-            ctx.fillStyle = '#FFF';
-            ctx.font = `${size * 0.2}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText(villager.name, x, y + size * 0.5);
-            
-            // Индикатор энергии
-            const energyWidth = size * 0.3;
-            ctx.fillStyle = '#333';
-            ctx.fillRect(x - energyWidth / 2, y + size * 0.55, energyWidth, size * 0.08);
-            ctx.fillStyle = villager.energy > 50 ? '#4CAF50' : '#FF5722';
-            ctx.fillRect(x - energyWidth / 2, y + size * 0.55, energyWidth * (villager.energy / 100), size * 0.08);
-        }
-        
-        function drawWeather() {
-            if (gameState.weather === 'rainy') {
-                ctx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 50; i++) {
-                    const x = Math.random() * canvas.width;
-                    const y = Math.random() * canvas.height;
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x - 2, y + 10);
-                    ctx.stroke();
-                }
-            } else if (gameState.weather === 'snowy') {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                for (let i = 0; i < 50; i++) {
-                    const x = Math.random() * canvas.width;
-                    const y = Math.random() * canvas.height;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-        
-        function drawMiniMap() {
-            const miniMap = document.getElementById('miniMap');
-            const miniCtx = miniMap.getContext('2d');
-            const scale = miniMap.width / (gameState.worldSize * gameState.tileSize);
-            
-            miniCtx.clearRect(0, 0, miniMap.width, miniMap.height);
-            
-            // Фон
-            miniCtx.fillStyle = '#2d5a27';
-            miniCtx.fillRect(0, 0, miniMap.width, miniMap.height);
-            
-            // Отрисовка мира
-            for (let x = 0; x < gameState.worldSize; x++) {
-                for (let y = 0; y < gameState.worldSize; y++) {
-                    const tile = gameState.tiles[x][y];
-                    let color = '#4CAF50';
-                    
-                    if (tile.type === TILE_TYPES.FOREST) color = '#2E7D32';
-                    else if (tile.type === TILE_TYPES.WATER) color = '#2196F3';
-                    else if (tile.type === TILE_TYPES.STONE) color = '#9E9E9E';
-                    
-                    miniCtx.fillStyle = color;
-                    miniCtx.fillRect(
-                        x * gameState.tileSize * scale,
-                        y * gameState.tileSize * scale,
-                        gameState.tileSize * scale,
-                        gameState.tileSize * scale
-                    );
-                }
-            }
-            
-            // Здания
-            gameState.buildings.forEach(building => {
-                miniCtx.fillStyle = '#FFD700';
-                miniCtx.fillRect(
-                    building.x * gameState.tileSize * scale,
-                    building.y * gameState.tileSize * scale,
-                    building.type.size * gameState.tileSize * scale,
-                    building.type.size * gameState.tileSize * scale
-                );
-            });
-            
-            // Позиция камеры
-            miniCtx.strokeStyle = '#FF0000';
-            miniCtx.lineWidth = 2;
-            miniCtx.strokeRect(
-                gameState.camera.x * scale,
-                gameState.camera.y * scale,
-                canvas.width * scale,
-                canvas.height * scale
-            );
-        }
-        
-        function darkenColor(hex, amount) {
-            let r = parseInt(hex.slice(1, 3), 16);
-            let g = parseInt(hex.slice(3, 5), 16);
-            let b = parseInt(hex.slice(5, 7), 16);
-            
-            r = Math.max(0, r - amount);
-            g = Math.max(0, g - amount);
-            b = Math.max(0, b - amount);
-            
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-        
-        // Игровой цикл
-        let lastTime = 0;
-        let questTimer = 0;
-        let weatherTimer = 0;
-        
-        function gameLoop(timestamp) {
-            const deltaTime = lastTime ? (timestamp - lastTime) / 1000 : 0;
-            lastTime = timestamp;
-            
-            // Обновление времени
-            gameState.time += deltaTime;
-            
-            // Смена дня
-            if (Math.floor(gameState.time / 60) > gameState.day - 1) {
-                gameState.day++;
-                updateUI();
-            }
-            
-            // Обновление производства (каждые 5 секунд)
-            if (Math.floor(gameState.time) % 5 === 0 && Math.floor(gameState.time) !== Math.floor(gameState.time - deltaTime)) {
-                updateProduction();
-                updateUI();
-            }
-            
-            // Обновление погоды (каждые 30 секунд)
-            weatherTimer += deltaTime;
-            if (weatherTimer > 30) {
-                weatherTimer = 0;
-                const weathers = ['sunny', 'rainy', 'snowy'];
-                gameState.weather = weathers[Math.floor(Math.random() * weathers.length)];
-                updateUI();
-            }
-            
-            // Генерация квестов (каждые 60 секунд)
-            questTimer += deltaTime;
-            if (questTimer > 60) {
-                questTimer = 0;
-                if (gameState.activeQuests.length < 3) {
-                    generateQuest();
-                }
-            }
-            
-            // Движение жителей
-            gameState.villagers.forEach(villager => {
-                villager.animation += 0.05;
-                
-                if (Math.random() < 0.02) {
-                    const dx = (Math.random() - 0.5) * 50 * villager.speed;
-                    const dy = (Math.random() - 0.5) * 50 * villager.speed;
-                    
-                    villager.x += dx;
-                    villager.y += dy;
-                    
-                    // Ограничение по миру
-                    villager.x = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize, villager.x));
-                    villager.y = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize, villager.y));
-                }
-            });
-            
-            // Обновление частиц
-            updateParticles();
-            
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-        
-        // Управление с клавиатуры
+        // Управление
         const keys = {};
+        let isDragging = false;
+        let lastX = 0;
+        let lastY = 0;
         
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
-            
-            // Масштабирование с клавиатуры
-            if (e.key === '+' || e.key === '=') {
-                zoomIn();
-            } else if (e.key === '-') {
-                zoomOut();
-            }
         });
         
         document.addEventListener('keyup', (e) => {
             keys[e.key.toLowerCase()] = false;
         });
         
-        // Управление мышью
-        let isDragging = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
-        
         canvas.addEventListener('mousedown', (e) => {
             isDragging = true;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
+            lastX = e.clientX;
+            lastY = e.clientY;
         });
         
         canvas.addEventListener('mousemove', (e) => {
             if (isDragging) {
-                const dx = e.clientX - lastMouseX;
-                const dy = e.clientY - lastMouseY;
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
                 
                 gameState.camera.x -= dx;
                 gameState.camera.y -= dy;
                 
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
+                lastX = e.clientX;
+                lastY = e.clientY;
                 
                 clampCamera();
             }
@@ -1609,27 +1083,31 @@
             isDragging = false;
         });
         
-        // Управление колесом мыши
+        // Колесо мыши для масштабирования
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             
-            const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
-            gameState.zoom = Math.max(gameState.minZoom, Math.min(gameState.maxZoom, gameState.zoom + zoomDelta));
+            const oldZoom = gameState.zoom;
             
-            // Зум к курсору
+            if (e.deltaY > 0) {
+                gameState.zoom = Math.max(gameState.minZoom, gameState.zoom - 0.1);
+            } else {
+                gameState.zoom = Math.min(gameState.maxZoom, gameState.zoom + 0.1);
+            }
+            
+            // Масштабирование к курсору
             const mouseX = e.clientX;
             const mouseY = e.clientY;
-            const worldX = mouseX + gameState.camera.x;
-            const worldY = mouseY + gameState.camera.y;
             
-            gameState.camera.x = worldX - mouseX;
-            gameState.camera.y = worldY - mouseY;
+            gameState.camera.x = (gameState.camera.x + mouseX) * (gameState.zoom / oldZoom) - mouseX;
+            gameState.camera.y = (gameState.camera.y + mouseY) * (gameState.zoom / oldZoom) - mouseY;
             
             clampCamera();
         });
         
         // Мобильное управление
         let touches = [];
+        let pinchDistance = 0;
         
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -1637,10 +1115,9 @@
             
             if (touches.length === 1) {
                 isDragging = true;
-                lastMouseX = touches[0].clientX;
-                lastMouseY = touches[0].clientY;
+                lastX = touches[0].clientX;
+                lastY = touches[0].clientY;
             } else if (touches.length === 2) {
-                // Начало масштабирования
                 const dx = touches[0].clientX - touches[1].clientX;
                 const dy = touches[0].clientY - touches[1].clientY;
                 pinchDistance = Math.sqrt(dx * dx + dy * dy);
@@ -1648,42 +1125,39 @@
             }
         });
         
-        let pinchDistance = 0;
-        
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             touches = e.touches;
             
             if (touches.length === 1 && isDragging) {
-                const dx = touches[0].clientX - lastMouseX;
-                const dy = touches[0].clientY - lastMouseY;
+                const dx = touches[0].clientX - lastX;
+                const dy = touches[0].clientY - lastY;
                 
                 gameState.camera.x -= dx;
                 gameState.camera.y -= dy;
                 
-                lastMouseX = touches[0].clientX;
-                lastMouseY = touches[0].clientY;
+                lastX = touches[0].clientX;
+                lastY = touches[0].clientY;
                 
                 clampCamera();
             } else if (touches.length === 2) {
-                // Масштабирование
                 const dx = touches[0].clientX - touches[1].clientX;
                 const dy = touches[0].clientY - touches[1].clientY;
                 const newDistance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (pinchDistance > 0) {
                     const scale = newDistance / pinchDistance;
+                    const oldZoom = gameState.zoom;
                     gameState.zoom = Math.max(gameState.minZoom, Math.min(gameState.maxZoom, gameState.zoom * scale));
                     
-                    // Центр между пальцами
+                    // Масштабирование к центру
                     const centerX = (touches[0].clientX + touches[1].clientX) / 2;
                     const centerY = (touches[0].clientY + touches[1].clientY) / 2;
                     
-                    const worldX = centerX + gameState.camera.x;
-                    const worldY = centerY + gameState.camera.y;
+                    gameState.camera.x = (gameState.camera.x + centerX) * (gameState.zoom / oldZoom) - centerX;
+                    gameState.camera.y = (gameState.camera.y + centerY) * (gameState.zoom / oldZoom) - centerY;
                     
-                    gameState.camera.x = worldX - centerX;
-                    gameState.camera.y = worldY - centerY;
+                    clampCamera();
                 }
                 
                 pinchDistance = newDistance;
@@ -1696,34 +1170,18 @@
             pinchDistance = 0;
         });
         
-        function clampCamera() {
-            const maxX = gameState.worldSize * gameState.tileSize * gameState.zoom - canvas.width;
-            const maxY = gameState.worldSize * gameState.tileSize * gameState.zoom - canvas.height;
-            
-            gameState.camera.x = Math.max(0, Math.min(maxX, gameState.camera.x));
-            gameState.camera.y = Math.max(0, Math.min(maxY, gameState.camera.y));
-        }
+        // Игровой цикл
+        let lastTime = 0;
         
-        // Клик по зданию
-        canvas.addEventListener('click', (e) => {
-            if (isDragging) return;
+        function gameLoop(timestamp) {
+            const deltaTime = lastTime ? (timestamp - lastTime) / 1000 : 0;
+            lastTime = timestamp;
             
-            const worldX = e.clientX / gameState.zoom + gameState.camera.x;
-            const worldY = e.clientY / gameState.zoom + gameState.camera.y;
-            const tileX = Math.floor(worldX / gameState.tileSize);
-            const tileY = Math.floor(worldY / gameState.tileSize);
+            // Обновление времени
+            gameState.time += deltaTime;
             
-            if (tileX >= 0 && tileX < gameState.worldSize && tileY >= 0 && tileY < gameState.worldSize) {
-                const tile = gameState.tiles[tileX][tileY];
-                if (tile.building) {
-                    showBuildingInfo(tile.building);
-                }
-            }
-        });
-        
-        // Перемещение камеры с клавиатуры
-        function moveCamera() {
-            const speed = 10 / gameState.zoom;
+            // Перемещение камеры клавишами
+            const speed = 5 / gameState.zoom;
             
             if (keys['arrowleft'] || keys['a']) gameState.camera.x -= speed;
             if (keys['arrowright'] || keys['d']) gameState.camera.x += speed;
@@ -1731,26 +1189,40 @@
             if (keys['arrowdown'] || keys['s']) gameState.camera.y += speed;
             
             clampCamera();
+            
+            // Обновление производства каждые 5 секунд
+            if (Math.floor(gameState.time) % 5 === 0 && 
+                Math.floor(gameState.time) !== Math.floor(gameState.time - deltaTime)) {
+                updateProduction();
+                updateUI();
+            }
+            
+            // Анимация жителей
+            gameState.villagers.forEach(villager => {
+                villager.animation += 0.05;
+                
+                if (Math.random() < 0.02) {
+                    villager.x += (Math.random() - 0.5) * 20;
+                    villager.y += (Math.random() - 0.5) * 20;
+                }
+            });
+            
+            // Отрисовка
+            draw();
+            
+            requestAnimationFrame(gameLoop);
         }
         
         // Инициализация
         generateWorld();
         updateUI();
         
-        // Запуск игрового цикла
+        // Запуск игры
         requestAnimationFrame(gameLoop);
         
-        // Обновление камеры
-        setInterval(moveCamera, 16);
-        
-        // Показ первого квеста через 10 секунд
-        setTimeout(() => {
-            generateQuest();
-        }, 10000);
-        
-        console.log('🎮 Игра "Деревня: Эпоха Процветания" загружена!');
-        console.log('📱 Управление: перетаскивание для перемещения, пинч для масштабирования');
-        console.log('⌨️ Клавиши: WASD/стрелки для перемещения, +/- для масштабирования');
+        console.log('✅ Игра запущена успешно!');
+        console.log('📱 Управление: свайп для перемещения, пинч для масштабирования');
+        console.log('🖱️ Мышь: перетаскивание и колесо для масштабирования');
     </script>
 </body>
 </html>
