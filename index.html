@@ -3,82 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zombie Survival Mobile</title>
+    <title>Zombie Survival Mobile Deluxe</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0a0a0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
+        // Буферный холст для персистентных следов крови (декали)
+        const decalCanvas = document.createElement('canvas');
+        const decalCtx = decalCanvas.getContext('2d');
+
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            decalCanvas.width = canvas.width;
+            decalCanvas.height = canvas.height;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        let gameOver = false;
+        // --- ЗВУКОВАЯ СИСТЕМА (Web Audio API) ---
+        const Sound = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playShoot() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.05;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1200, t);
+                filter.frequency.exponentialRampToValueAtTime(200, t + 0.05);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.25, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(t);
+            },
+            playHit() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(160, t);
+                osc.frequency.exponentialRampToValueAtTime(40, t + 0.08);
+                gain.gain.setValueAtTime(0.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.08);
+            },
+            playHurt() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, t);
+                osc.frequency.linearRampToValueAtTime(40, t + 0.15);
+                gain.gain.setValueAtTime(0.3, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.15);
+            },
+            playZombieDeath() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(80, t);
+                osc.frequency.exponentialRampToValueAtTime(20, t + 0.2);
+                gain.gain.setValueAtTime(0.25, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.2);
+            }
+        };
+
+        // --- СОСТОЯНИЕ ИГРЫ ---
+        let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
         let score = 0;
+        let kills = 0;
         let lastSpawn = 0;
         let lastShot = 0;
+        let damageFlash = 0;
+
+        // Камера и тряска
+        let shakeTime = 0;
+        let shakeIntensity = 0;
+
+        function addShake(intensity, duration) {
+            shakeIntensity = intensity;
+            shakeTime = duration;
+        }
 
         const player = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
+            x: 0,
+            y: 0,
             radius: 16,
             hp: 100,
             maxHp: 100,
-            speed: 3.5,
-            angle: 0
+            speed: 220, // px per sec
+            angle: 0,
+            recoil: 0
         };
 
         let zombies = [];
         let bullets = [];
+        let particles = [];
 
         // Виртуальный джойстик
-        let joystick = {
+        const joystick = {
             active: false,
             touchId: null,
             baseX: 0,
             baseY: 0,
-            currX: 0,
-            currY: 0,
             dx: 0,
             dy: 0
         };
 
-        window.addEventListener('touchstart', (e) => {
-            if (gameOver) {
+        // --- ЧАСТИЦЫ И ЭФФЕКТЫ ---
+        class Particle {
+            constructor(x, y, vx, vy, color, size, life) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.size = size;
+                this.life = life;
+                this.maxLife = life;
+            }
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= dt;
+            }
+            draw(c) {
+                c.fillStyle = this.color;
+                c.globalAlpha = Math.max(0, this.life / this.maxLife);
+                c.beginPath();
+                c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                c.fill();
+                c.globalAlpha = 1.0;
+            }
+        }
+
+        function createBloodSplatter(x, y, amount = 8) {
+            // Рисуем постоянное пятно крови на нижнем холсте
+            decalCtx.fillStyle = '#6b0909';
+            for (let i = 0; i < amount; i++) {
+                let r = Math.random() * 12 + 4;
+                let ox = (Math.random() - 0.5) * 35;
+                let oy = (Math.random() - 0.5) * 35;
+                decalCtx.beginPath();
+                decalCtx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
+                decalCtx.fill();
+            }
+
+            // Динамические летающие брызги
+            for (let i = 0; i < amount * 2; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 180 + 20;
+                particles.push(new Particle(
+                    x, y,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    '#b31212',
+                    Math.random() * 3 + 2,
+                    Math.random() * 0.4 + 0.2
+                ));
+            }
+        }
+
+        function createMuzzleFlash(x, y, angle) {
+            for (let i = 0; i < 6; i++) {
+                let spread = (Math.random() - 0.5) * 0.6;
+                let speed = Math.random() * 200 + 100;
+                particles.push(new Particle(
+                    x, y,
+                    Math.cos(angle + spread) * speed,
+                    Math.sin(angle + spread) * speed,
+                    '#ffea00',
+                    Math.random() * 3 + 2,
+                    0.08
+                ));
+            }
+        }
+
+        // --- УПРАВЛЕНИЕ (TOUCH & KEYBOARD) ---
+        function handleTouchStart(e) {
+            e.preventDefault();
+            Sound.init();
+
+            if (gameState !== 'PLAYING') {
                 resetGame();
                 return;
             }
+
             for (let touch of e.changedTouches) {
                 if (!joystick.active) {
                     joystick.active = true;
                     joystick.touchId = touch.identifier;
                     joystick.baseX = touch.clientX;
                     joystick.baseY = touch.clientY;
-                    joystick.currX = touch.clientX;
-                    joystick.currY = touch.clientY;
+                    joystick.dx = 0;
+                    joystick.dy = 0;
                 }
             }
-        });
+        }
 
-        window.addEventListener('touchmove', (e) => {
+        function handleTouchMove(e) {
+            e.preventDefault();
             for (let touch of e.changedTouches) {
                 if (touch.identifier === joystick.touchId) {
-                    joystick.currX = touch.clientX;
-                    joystick.currY = touch.clientY;
-                    let dx = joystick.currX - joystick.baseX;
-                    let dy = joystick.currY - joystick.baseY;
+                    let dx = touch.clientX - joystick.baseX;
+                    let dy = touch.clientY - joystick.baseY;
                     let dist = Math.hypot(dx, dy);
-                    let maxDist = 50;
+                    let maxDist = 55;
                     if (dist > maxDist) {
                         dx = (dx / dist) * maxDist;
                         dy = (dy / dist) * maxDist;
@@ -87,52 +262,454 @@
                     joystick.dy = dy / maxDist;
                 }
             }
-        });
-
-        function resetJoystick() {
-            joystick.active = false;
-            joystick.touchId = null;
-            joystick.dx = 0;
-            joystick.dy = 0;
         }
 
-        window.addEventListener('touchend', (e) => {
+        function handleTouchEnd(e) {
+            e.preventDefault();
             for (let touch of e.changedTouches) {
-                if (touch.identifier === joystick.touchId) resetJoystick();
+                if (touch.identifier === joystick.touchId) {
+                    joystick.active = false;
+                    joystick.touchId = null;
+                    joystick.dx = 0;
+                    joystick.dy = 0;
+                }
             }
-        });
-        window.addEventListener('touchcancel', (e) => {
-            for (let touch of e.changedTouches) {
-                if (touch.identifier === joystick.touchId) resetJoystick();
-            }
-        });
+        }
 
-        // Управление клавиатурой для ПК-теста
+        window.addEventListener('touchstart', handleTouchStart, { passive: false });
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd, { passive: false });
+        window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
         const keys = {};
-        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keydown', e => { Sound.init(); keys[e.key] = true; });
         window.addEventListener('keyup', e => keys[e.key] = false);
 
+        // --- СПАВН ЗОМБИ ---
         function spawnZombie() {
             let x, y;
             if (Math.random() < 0.5) {
-                x = Math.random() < 0.5 ? -20 : canvas.width + 20;
+                x = Math.random() < 0.5 ? -30 : canvas.width + 30;
                 y = Math.random() * canvas.height;
             } else {
                 x = Math.random() * canvas.width;
-                y = Math.random() < 0.5 ? -20 : canvas.height + 20;
+                y = Math.random() < 0.5 ? -30 : canvas.height + 30;
             }
-            zombies.push({
-                x: x,
-                y: y,
-                radius: 14,
-                hp: 3,
-                speed: 1.2 + Math.random() * 0.8
-            });
+
+            let typeRoll = Math.random();
+            let zombie = { x, y, vx: 0, vy: 0 };
+
+            if (typeRoll < 0.2 && score > 150) { // Бегун
+                zombie.type = 'runner';
+                zombie.radius = 13;
+                zombie.hp = 2;
+                zombie.maxHp = 2;
+                zombie.speed = 140;
+                zombie.color = '#8e24aa';
+            } else if (typeRoll > 0.85 && score > 300) { // Танк
+                zombie.type = 'tank';
+                zombie.radius = 24;
+                zombie.hp = 10;
+                zombie.maxHp = 10;
+                zombie.speed = 55;
+                zombie.color = '#2e7d32';
+            } else { // Обычный
+                zombie.type = 'walker';
+                zombie.radius = 16;
+                zombie.hp = 4;
+                zombie.maxHp = 4;
+                zombie.speed = 85 + Math.random() * 20;
+                zombie.color = '#43a047';
+            }
+
+            zombies.push(zombie);
         }
 
+        // --- СТРЕЛЬБА ---
         function shoot() {
             if (zombies.length === 0) return;
+
             let nearest = null;
-            let minDist = 350; // радиус автоприцеливания
+            let minDist = 380;
+
             for (let z of zombies) {
-                let d = Math.hypot(z.x - player.x, z.y - player
+                let d = Math.hypot(z.x - player.x, z.y - player.y);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = z;
+                }
+            }
+
+            if (nearest) {
+                let angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+                player.angle = angle;
+                player.recoil = 6;
+
+                let bulletX = player.x + Math.cos(angle) * 20;
+                let bulletY = player.y + Math.sin(angle) * 20;
+
+                bullets.push({
+                    x: bulletX,
+                    y: bulletY,
+                    vx: Math.cos(angle) * 750,
+                    vy: Math.sin(angle) * 750,
+                    damage: 1.5
+                });
+
+                createMuzzleFlash(bulletX, bulletY, angle);
+                addShake(2, 0.05);
+                Sound.playShoot();
+            }
+        }
+
+        function resetGame() {
+            decalCtx.clearRect(0, 0, decalCanvas.width, decalCanvas.height);
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.hp = player.maxHp;
+            zombies = [];
+            bullets = [];
+            particles = [];
+            score = 0;
+            kills = 0;
+            damageFlash = 0;
+            gameState = 'PLAYING';
+        }
+
+        // --- ОБНОВЛЕНИЕ ФИЗИКИ (delta time) ---
+        let lastTime = performance.now();
+
+        function update(now) {
+            let dt = (now - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1; // защита от скачков при смене вкладок
+            lastTime = now;
+
+            if (gameState === 'PLAYING') {
+                // Движение игрока
+                let moveX = joystick.dx;
+                let moveY = joystick.dy;
+
+                if (keys['w'] || keys['W'] || keys['ArrowUp']) moveY = -1;
+                if (keys['s'] || keys['S'] || keys['ArrowDown']) moveY = 1;
+                if (keys['a'] || keys['A'] || keys['ArrowLeft']) moveX = -1;
+                if (keys['d'] || keys['D'] || keys['ArrowRight']) moveX = 1;
+
+                let len = Math.hypot(moveX, moveY);
+                if (len > 1) { moveX /= len; moveY /= len; }
+
+                player.x += moveX * player.speed * dt;
+                player.y += moveY * player.speed * dt;
+
+                // Ограничение по границам
+                player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+                player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+                if (len > 0) {
+                    player.angle = Math.atan2(moveY, moveX);
+                }
+
+                // Взятие отдачи
+                if (player.recoil > 0) player.recoil -= dt * 30;
+
+                // Автострельба
+                if (now - lastShot > 180) {
+                    shoot();
+                    lastShot = now;
+                }
+
+                // Спавн зомби
+                let spawnInterval = Math.max(250, 1000 - score * 3);
+                if (now - lastSpawn > spawnInterval) {
+                    spawnZombie();
+                    lastSpawn = now;
+                }
+
+                // Физика разделения зомби (чтобы не сливались в одну точку)
+                for (let i = 0; i < zombies.length; i++) {
+                    for (let j = i + 1; j < zombies.length; j++) {
+                        let z1 = zombies[i];
+                        let z2 = zombies[j];
+                        let dx = z2.x - z1.x;
+                        let dy = z2.y - z1.y;
+                        let dist = Math.hypot(dx, dy);
+                        let minDist = z1.radius + z2.radius;
+
+                        if (dist < minDist && dist > 0) {
+                            let overlap = (minDist - dist) / 2;
+                            let nx = dx / dist;
+                            let ny = dy / dist;
+                            z1.x -= nx * overlap;
+                            z1.y -= ny * overlap;
+                            z2.x += nx * overlap;
+                            z2.y += ny * overlap;
+                        }
+                    }
+                }
+
+                // Обновление зомби
+                for (let i = zombies.length - 1; i >= 0; i--) {
+                    let z = zombies[i];
+                    let angle = Math.atan2(player.y - z.y, player.x - z.x);
+
+                    z.x += Math.cos(angle) * z.speed * dt;
+                    z.y += Math.sin(angle) * z.speed * dt;
+
+                    // Урон игроку
+                    if (Math.hypot(player.x - z.x, player.y - z.y) < player.radius + z.radius) {
+                        player.hp -= 15 * dt;
+                        damageFlash = 0.4;
+                        addShake(4, 0.1);
+                        Sound.playHurt();
+
+                        if (player.hp <= 0) {
+                            player.hp = 0;
+                            gameState = 'GAMEOVER';
+                            addShake(12, 0.4);
+                        }
+                    }
+                }
+
+                // Обновление пуль и попадания (с отталкиванием)
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    let b = bullets[i];
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+
+                    if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                        bullets.splice(i, 1);
+                        continue;
+                    }
+
+                    for (let j = zombies.length - 1; j >= 0; j--) {
+                        let z = zombies[j];
+                        if (Math.hypot(b.x - z.x, b.y - z.y) < z.radius + 4) {
+                            z.hp -= b.damage;
+
+                            // Импульс отталкивания
+                            z.x += (b.vx / 750) * 8;
+                            z.y += (b.vy / 750) * 8;
+
+                            createBloodSplatter(z.x, z.y, 3);
+                            Sound.playHit();
+                            bullets.splice(i, 1);
+
+                            if (z.hp <= 0) {
+                                createBloodSplatter(z.x, z.y, 12);
+                                Sound.playZombieDeath();
+                                zombies.splice(j, 1);
+                                score += (z.type === 'tank' ? 30 : (z.type === 'runner' ? 20 : 10));
+                                kills++;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Обновление частиц
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.update(dt);
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+
+                if (damageFlash > 0) damageFlash -= dt;
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        // --- РЕНДЕРИНГ И ГРАФИКА ---
+        function draw() {
+            ctx.save();
+
+            // Тряска камеры
+            if (shakeTime > 0) {
+                shakeTime -= 0.016;
+                let rx = (Math.random() - 0.5) * shakeIntensity;
+                let ry = (Math.random() - 0.5) * shakeIntensity;
+                ctx.translate(rx, ry);
+            }
+
+            // Фон и сетка
+            ctx.fillStyle = '#12131a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            // Отрисовка запеченных следов крови (декалей)
+            ctx.drawImage(decalCanvas, 0, 0);
+
+            // Пули
+            ctx.fillStyle = '#ffee55';
+            for (let b of bullets) {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Зомби
+            for (let z of zombies) {
+                ctx.save();
+                ctx.translate(z.x, z.y);
+                let a = Math.atan2(player.y - z.y, player.x - z.x);
+                ctx.rotate(a);
+
+                // Тело
+                ctx.fillStyle = z.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#1b5e20';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Руки
+                ctx.fillStyle = z.color;
+                ctx.fillRect(z.radius - 2, -z.radius + 2, 10, 5);
+                ctx.fillRect(z.radius - 2, z.radius - 7, 10, 5);
+
+                // Глаза
+                ctx.fillStyle = '#ff1744';
+                ctx.beginPath();
+                ctx.arc(z.radius / 2, -4, 2.5, 0, Math.PI * 2);
+                ctx.arc(z.radius / 2, 4, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Полоска HP для танков
+                if (z.type === 'tank' && z.hp < z.maxHp) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(z.x - 15, z.y - z.radius - 10, 30, 4);
+                    ctx.fillStyle = '#4caf50';
+                    ctx.fillRect(z.x - 15, z.y - z.radius - 10, (z.hp / z.maxHp) * 30, 4);
+                }
+            }
+
+            // Динамические частицы
+            for (let p of particles) p.draw(ctx);
+
+            // Игрок
+            if (gameState === 'PLAYING' || gameState === 'GAMEOVER') {
+                ctx.save();
+                ctx.translate(player.x, player.y);
+                ctx.rotate(player.angle);
+
+                // Руки и оружие
+                ctx.fillStyle = '#37474f';
+                ctx.fillRect(10 - player.recoil, 4, 14, 4); // Дуло
+
+                ctx.fillStyle = '#ffb74d';
+                ctx.beginPath();
+                ctx.arc(6, -8, 4, 0, Math.PI * 2);
+                ctx.arc(6, 8, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Тело
+                ctx.fillStyle = '#1e88e5';
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#0d47a1';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Тьма и освещение (Виньетка)
+            let fogGrad = ctx.createRadialGradient(
+                player.x, player.y, 60,
+                player.x, player.y, Math.max(canvas.width, canvas.height) * 0.7
+            );
+            fogGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            fogGrad.addColorStop(0.6, 'rgba(5, 5, 10, 0.5)');
+            fogGrad.addColorStop(1, 'rgba(2, 2, 5, 0.93)');
+            ctx.fillStyle = fogGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Вспышка уронa
+            if (damageFlash > 0) {
+                ctx.fillStyle = `rgba(211, 47, 47, ${damageFlash})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Визуализация джойстика
+            if (joystick.active) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(joystick.baseX, joystick.baseY, 55, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.beginPath();
+                ctx.arc(
+                    joystick.baseX + joystick.dx * 55,
+                    joystick.baseY + joystick.dy * 55,
+                    22, 0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            ctx.restore();
+
+            // Интерфейс (HUD)
+            if (gameState === 'PLAYING') {
+                // Полоса HP
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(20, 20, 180, 18);
+                let hpRatio = Math.max(0, player.hp / player.maxHp);
+                ctx.fillStyle = hpRatio > 0.3 ? '#43a047' : '#e53935';
+                ctx.fillRect(22, 22, hpRatio * 176, 14);
+
+                // Текст статистики
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '600 16px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`ОЧКИ: ${score}`, 20, 62);
+                ctx.fillText(`УБИТО: ${kills}`, 20, 82);
+            }
+
+            // Экраны меню
+            if (gameState === 'START') {
+                drawOverlay('ZOMBIE SURVIVAL', 'Коснитесь экрана для начала боя');
+            } else if (gameState === 'GAMEOVER') {
+                drawOverlay('ВЫ ПОГИБЛИ', `Счет: ${score}  |  Убито: ${kills}`, 'Коснитесь для перезапуска');
+            }
+        }
+
+        function drawOverlay(title, sub, hint = '') {
+            ctx.fillStyle = 'rgba(5, 5, 10, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#e53935';
+            ctx.font = '900 36px sans-serif';
+            ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 40);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '500 18px sans-serif';
+            ctx.fillText(sub, canvas.width / 2, canvas.height / 2 + 10);
+
+            if (hint) {
+                ctx.fillStyle = '#888888';
+                ctx.font = '400 14px sans-serif';
+                ctx.fillText(hint, canvas.width / 2, canvas.height / 2 + 50);
+            }
+        }
+
+        // Запуск игрового цикла
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
