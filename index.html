@@ -19,7 +19,7 @@
                 <span id="stamina-text">100 SP</span>
             </div>
             <div id="ammo-display">
-                <span id="ammo-text">30/90</span>
+                <span id="ammo-text">12/48</span>
             </div>
             <div id="score-display">
                 <span>Счет: <span id="score">0</span></span>
@@ -41,14 +41,14 @@
         </div>
 
         <!-- Джойстик для телефона -->
-        <div id="joystick-container">
+        <div id="joystick-container" style="display: none;">
             <div id="joystick-base">
                 <div id="joystick-thumb"></div>
             </div>
         </div>
 
         <!-- Кнопки действий для телефона -->
-        <div id="action-buttons">
+        <div id="action-buttons" style="display: none;">
             <button id="shoot-btn">🔫</button>
             <button id="reload-btn">🔄</button>
             <button id="jump-btn">⬆️</button>
@@ -58,7 +58,7 @@
         <div id="start-menu">
             <h1>ZOMBIE APOCALYPSE</h1>
             <p>Выживи как можно дольше!</p>
-            <button id="start-btn">НАЧАТЬ ИГРУ</button>
+            <button id="start-btn" onclick="initGame()">НАЧАТЬ ИГРУ</button>
             <div id="controls-info">
                 <h3>Управление:</h3>
                 <p>WASD - движение</p>
@@ -75,14 +75,14 @@
             <h1>ВЫ ПОГИБЛИ</h1>
             <p>Счет: <span id="final-score">0</span></p>
             <p>Волна: <span id="final-wave">1</span></p>
-            <button id="restart-btn">ИГРАТЬ СНОВА</button>
+            <button id="restart-btn" onclick="initGame()">ИГРАТЬ СНОВА</button>
         </div>
     </div>
 
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="world.js"></script>
-    <script src="weapons.js"></script>
-    <script src="zombies.js"></script>
+    
+    <!-- Единый файл игры -->
     <script src="game.js"></script>
 </body>
 </html>
