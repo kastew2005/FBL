@@ -2,429 +2,1714 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pixel Zombie Outbreak</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OUTBREAK: SURVIVAL - Top-Down Action</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: monospace; }
-        #game-container { width: 100vw; height: 100vh; }
-        
-        /* Мобильный интерфейс управления */
-        #joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; pointer-events: auto; }
-        #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.4); border-radius: 50%; }
-        #btn-shoot { position: absolute; bottom: 30px; right: 30px; width: 80px; height: 80px; background: rgba(255, 50, 50, 0.5); border: 3px solid #ff5555; border-radius: 50%; color: white; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; pointer-events: auto; }
-        #btn-shoot:active { background: rgba(255, 50, 50, 0.8); transform: scale(0.95); }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0f12;
+            color: #fff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1d24;
+        }
+
+        /* --- MAIN MENU --- */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(10,12,16,0.95) 0%, rgba(20,26,35,0.85) 100%),
+                        radial-gradient(circle at center, rgba(180, 40, 40, 0.15) 0%, transparent 70%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .menu-title-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .menu-title {
+            font-size: 64px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #ff3e3e;
+            text-shadow: 0 0 20px rgba(255, 62, 62, 0.6), 0 0 40px rgba(0, 0, 0, 0.8);
+            text-transform: uppercase;
+        }
+
+        .menu-subtitle {
+            font-size: 18px;
+            color: #a0aab8;
+            letter-spacing: 4px;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 320px;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #1f2733 0%, #2a3545 100%);
+            border: 1px solid #3d4f66;
+            color: #e2e8f0;
+            padding: 16px 24px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(90deg, #2b384a 0%, #3a4a61 100%);
+            border-color: #ff4d4d;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 77, 77, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #b91c1c 0%, #dc2626 100%);
+            border-color: #ef4444;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #dc2626 0%, #f87171 100%);
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+        }
+
+        .hud-panel {
+            position: absolute;
+            background: rgba(15, 20, 28, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(6px);
+            border-radius: 8px;
+            padding: 12px 18px;
+            pointer-events: auto;
+        }
+
+        .status-bars {
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bar-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-label {
+            font-size: 12px;
+            font-weight: 800;
+            width: 50px;
+            letter-spacing: 1px;
+            color: #94a3b8;
+        }
+
+        .bar-bg {
+            flex-grow: 1;
+            height: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s ease-out;
+            border-radius: 7px;
+        }
+
+        #health-fill { background: linear-gradient(90deg, #dc2626, #ef4444); }
+        #armor-fill { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+        #stamina-fill { background: linear-gradient(90deg, #16a34a, #22c55e); }
+
+        .weapon-hud {
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            min-width: 220px;
+        }
+
+        .weapon-icon-box {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ammo-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ammo-count {
+            font-size: 32px;
+            font-weight: 900;
+            color: #f8fafc;
+            line-height: 1;
+        }
+
+        .weapon-name {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .interact-prompt {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #38bdf8;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #e0f2fe;
+            display: none;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+            pointer-events: none;
+        }
+
+        .key-badge {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            margin-right: 6px;
+        }
+
+        /* --- MODALS & INVENTORY --- */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 20, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .modal-window {
+            background: #151d28;
+            border: 1px solid #2d3b4e;
+            border-radius: 12px;
+            width: 820px;
+            max-width: 95vw;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            background: #1a2433;
+            border-bottom: 1px solid #2d3b4e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover { color: #f8fafc; }
+
+        .inventory-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .equipment-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .equip-slot-card {
+            background: #1c2738;
+            border: 1px dashed #3a4d66;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .equip-slot-card:hover {
+            border-color: #38bdf8;
+            background: #223045;
+        }
+
+        .equip-slot-icon {
+            width: 48px;
+            height: 48px;
+            background: #131b26;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #64748b;
+        }
+
+        .equip-slot-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .equip-slot-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .equip-slot-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 2px;
+        }
+
+        .grid-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat( auto-fill, minmax(80px, 1fr) );
+            gap: 10px;
+            background: #101622;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #222f42;
+            min-height: 280px;
+        }
+
+        .item-card {
+            aspect-ratio: 1;
+            background: #1c2738;
+            border: 1px solid #2d3f57;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            padding: 6px;
+        }
+
+        .item-card:hover {
+            border-color: #38bdf8;
+            transform: scale(1.04);
+            z-index: 2;
+        }
+
+        .item-icon {
+            font-size: 26px;
+            margin-bottom: 4px;
+        }
+
+        .item-name {
+            font-size: 10px;
+            text-align: center;
+            color: #cbd5e1;
+            line-clamp: 2;
+            overflow: hidden;
+        }
+
+        .item-qty {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            color: #38bdf8;
+            background: rgba(0,0,0,0.6);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        /* Tooltip */
+        #item-tooltip {
+            position: fixed;
+            background: #0f172a;
+            border: 1px solid #38bdf8;
+            padding: 12px 16px;
+            border-radius: 8px;
+            pointer-events: none;
+            display: none;
+            z-index: 200;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            max-width: 240px;
+        }
+
+        .tt-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 4px;
+        }
+
+        .tt-type {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .tt-stat {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .container-loot-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 24px;
+        }
+
+        .controls-list {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            color: #cbd5e1;
+            font-size: 15px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #1c2738;
+            border-radius: 6px;
+        }
+
+        .key-tag {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        /* Minimap */
+        #minimap-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 140px;
+            height: 140px;
+            background: rgba(10, 15, 22, 0.85);
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            overflow: hidden;
+            pointer-events: auto;
+        }
+
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Quick Notification */
+        #notify-box {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .notify-msg {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #22c55e;
+            color: #f0fdf4;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            animation: fadeInOut 2.5s forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
     </style>
 </head>
 <body>
-    <div id="game-container"></div>
-    
-    <!-- Сенсорное управление -->
-    <div id="joystick-zone"><div id="joystick-stick"></div></div>
-    <div id="btn-shoot">FIRE</div>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
 
-<script>
-// ==========================================
-// ГЕНЕРАТОР ПИКСЕЛЬНЫХ ТЕКСТУР (Procedural Assets)
-// ==========================================
-function generatePixelAssets(scene) {
-    const createTex = (key, w, h, drawFn) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        drawFn(ctx);
-        scene.textures.addCanvas(key, canvas);
-    };
+        <!-- MAIN MENU -->
+        <div id="main-menu">
+            <div class="menu-title-container">
+                <div class="menu-title">SURVIVAL: OUTBREAK</div>
+                <div class="menu-subtitle">Top-Down Shooter & Loot Simulator</div>
+            </div>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" id="btn-start">🎮 НАЧАТЬ ИГРУ</button>
+                <button class="btn" id="btn-controls">⌨️ УПРАВЛЕНИЕ</button>
+            </div>
+        </div>
 
-    // 1. Игрок
-    createTex('player', 16, 16, ctx => {
-        ctx.fillStyle = '#ffcc99'; ctx.fillRect(4, 2, 8, 5); // Голова
-        ctx.fillStyle = '#2255bb'; ctx.fillRect(3, 7, 10, 6); // Куртка
-        ctx.fillStyle = '#111111'; ctx.fillRect(4, 13, 3, 3); ctx.fillRect(9, 13, 3, 3); // Ноги
-        ctx.fillStyle = '#555'; ctx.fillRect(11, 8, 5, 3); // Оружие
-    });
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-panel status-bars">
+                <div class="bar-container">
+                    <span class="bar-label">HP</span>
+                    <div class="bar-bg"><div class="bar-fill" id="health-fill"></div></div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label">ARMOR</span>
+                    <div class="bar-bg"><div class="bar-fill" id="armor-fill"></div></div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label">STAMINA</span>
+                    <div class="bar-bg"><div class="bar-fill" id="stamina-fill"></div></div>
+                </div>
+            </div>
 
-    // 2. Зомби
-    createTex('zombie', 16, 16, ctx => {
-        ctx.fillStyle = '#3f6a3a'; ctx.fillRect(4, 2, 8, 5); // Зеленая голова
-        ctx.fillStyle = '#cc0000'; ctx.fillRect(6, 4, 2, 2); // Красный глаз
-        ctx.fillStyle = '#556644'; ctx.fillRect(3, 7, 10, 6); // Ободранная одежда
-        ctx.fillStyle = '#222'; ctx.fillRect(4, 13, 3, 3); ctx.fillRect(9, 13, 3, 3);
-    });
+            <div id="minimap-container">
+                <canvas id="minimap-canvas" width="140" height="140"></canvas>
+            </div>
 
-    // 3. Дерево 1 (Дуб)
-    createTex('tree_oak', 32, 32, ctx => {
-        ctx.fillStyle = '#5a3d28'; ctx.fillRect(13, 20, 6, 12); // Ствол
-        ctx.fillStyle = '#1e5922'; ctx.beginPath(); ctx.arc(16, 14, 12, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#2a752e'; ctx.beginPath(); ctx.arc(14, 11, 8, 0, Math.PI*2); ctx.fill();
-    });
+            <div class="hud-panel weapon-hud">
+                <div class="weapon-icon-box" id="hud-weapon-icon">🔫</div>
+                <div class="ammo-info">
+                    <div class="ammo-count" id="hud-ammo-text">12 / 60</div>
+                    <div class="weapon-name" id="hud-weapon-name">ПИСТОЛЕТ</div>
+                </div>
+            </div>
 
-    // 4. Дерево 2 (Сосна)
-    createTex('tree_pine', 32, 40, ctx => {
-        ctx.fillStyle = '#3a271d'; ctx.fillRect(14, 28, 4, 12);
-        ctx.fillStyle = '#0f381e';
-        ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(4, 16); ctx.lineTo(28, 16); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(16, 10); ctx.lineTo(2, 28); ctx.lineTo(30, 28); ctx.fill();
-    });
+            <div class="interact-prompt" id="interact-prompt">
+                <span class="key-badge">E</span> <span id="interact-text">Обыскать контейнер</span>
+            </div>
 
-    // 5. Куст (Скрытие)
-    createTex('bush', 24, 24, ctx => {
-        ctx.fillStyle = '#2d8a4e'; ctx.beginPath(); ctx.arc(12, 12, 10, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#3bb065'; ctx.beginPath(); ctx.arc(9, 9, 6, 0, Math.PI*2); ctx.fill();
-    });
+            <div id="notify-box"></div>
+        </div>
 
-    // 6. Плитка травы
-    createTex('grass', 32, 32, ctx => {
-        ctx.fillStyle = '#224422'; ctx.fillRect(0,0,32,32);
-        ctx.fillStyle = '#1a361a'; ctx.fillRect(4,8,2,2); ctx.fillRect(20,22,2,4);
-        ctx.fillStyle = '#2c542c'; ctx.fillRect(14,4,3,3); ctx.fillRect(8,24,2,2);
-    });
+        <!-- INVENTORY MODAL -->
+        <div class="modal-overlay" id="inventory-modal">
+            <div class="modal-window">
+                <div class="modal-header">
+                    <div class="modal-title">🎒 СНАРЯЖЕНИЕ И ИНВЕНТАРЬ</div>
+                    <button class="close-btn" id="close-inv">&times;</button>
+                </div>
+                <div class="inventory-layout">
+                    <div class="equipment-section">
+                        <div class="grid-section-title">Экипировка</div>
+                        <div class="equip-slot-card" id="slot-weapon">
+                            <div class="equip-slot-icon">🔫</div>
+                            <div class="equip-slot-info">
+                                <span class="equip-slot-label">Оружие</span>
+                                <span class="equip-slot-name" id="eq-weapon-name">Пистолет M1911</span>
+                            </div>
+                        </div>
+                        <div class="equip-slot-card" id="slot-armor">
+                            <div class="equip-slot-icon">🛡️</div>
+                            <div class="equip-slot-info">
+                                <span class="equip-slot-label">Броня</span>
+                                <span class="equip-slot-name" id="eq-armor-name">Нет брони</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="grid-section-title">Рюкзак</div>
+                        <div class="inventory-grid" id="inv-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    // 7. Стена здания
-    createTex('wall', 32, 32, ctx => {
-        ctx.fillStyle = '#444444'; ctx.fillRect(0,0,32,32);
-        ctx.fillStyle = '#333333'; ctx.fillRect(0,0,32,2); ctx.fillRect(0,16,32,2); ctx.fillRect(16,0,2,16); ctx.fillRect(8,16,2,16);
-    });
+        <!-- CONTAINER LOOT MODAL -->
+        <div class="modal-overlay" id="container-modal">
+            <div class="modal-window">
+                <div class="modal-header">
+                    <div class="modal-title" id="container-title">📦 ХРАНИЛИЩЕ</div>
+                    <button class="close-btn" id="close-container">&times;</button>
+                </div>
+                <div class="container-loot-layout">
+                    <div>
+                        <div class="grid-section-title">Содержимое контейнера</div>
+                        <div class="inventory-grid" id="container-grid"></div>
+                        <button class="btn btn-primary" id="btn-take-all" style="margin-top: 15px; width: 100%;">Забрать всё</button>
+                    </div>
+                    <div>
+                        <div class="grid-section-title">Ваш рюкзак</div>
+                        <div class="inventory-grid" id="player-loot-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    // 8. Дверь
-    createTex('door', 32, 32, ctx => {
-        ctx.fillStyle = '#663300'; ctx.fillRect(0,0,32,32);
-        ctx.fillStyle = '#ffcc00'; ctx.fillRect(24,14,4,4); // Ручка
-    });
+        <!-- CONTROLS MODAL -->
+        <div class="modal-overlay" id="controls-modal">
+            <div class="modal-window" style="width: 500px;">
+                <div class="modal-header">
+                    <div class="modal-title">⌨️ Управление</div>
+                    <button class="close-btn" id="close-controls">&times;</button>
+                </div>
+                <div class="controls-list">
+                    <div class="control-row"><span>Перемещение</span><span class="key-tag">W A S D</span></div>
+                    <div class="control-row"><span>Бег (Спринт)</span><span class="key-tag">SHIFT</span></div>
+                    <div class="control-row"><span>Атака / Стрельба</span><span class="key-tag">ЛКМ (Mouse 1)</span></div>
+                    <div class="control-row"><span>Прицеливание</span><span class="key-tag">Курсор мыши</span></div>
+                    <div class="control-row"><span>Взаимодействие / Лут</span><span class="key-tag">E</span></div>
+                    <div class="control-row"><span>Инвентарь</span><span class="key-tag">I / TAB</span></div>
+                    <div class="control-row"><span>Перезарядка</span><span class="key-tag">R</span></div>
+                </div>
+            </div>
+        </div>
 
-    // 9. Крыша / Туман войны для зданий
-    createTex('roof', 32, 32, ctx => {
-        ctx.fillStyle = '#111116'; ctx.fillRect(0,0,32,32);
-    });
+        <!-- ITEM TOOLTIP -->
+        <div id="item-tooltip">
+            <div class="tt-title" id="tt-title">Название</div>
+            <div class="tt-type" id="tt-type">Тип предмета</div>
+            <div id="tt-stats"></div>
+        </div>
+    </div>
 
-    // 10. Пуля
-    createTex('bullet', 6, 6, ctx => {
-        ctx.fillStyle = '#ffff00'; ctx.fillRect(0,0,6,6);
-    });
+    <script>
+        // --- SOUND ENGINE (Web Audio API) ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
 
-    // 11. Масштабный элемент: Разрушенный Танк
-    createTex('tank', 64, 48, ctx => {
-        ctx.fillStyle = '#2b3023'; ctx.fillRect(4, 4, 56, 40); // Корпус
-        ctx.fillStyle = '#181c13'; ctx.fillRect(0, 2, 64, 8); ctx.fillRect(0, 38, 64, 8); // Гусеницы
-        ctx.fillStyle = '#3d4532'; ctx.beginPath(); ctx.arc(28, 24, 12, 0, Math.PI*2); ctx.fill(); // Башня
-        ctx.fillStyle = '#151515'; ctx.fillRect(28, 22, 32, 4); // Пушка
-    });
-}
+            playShoot(type) {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime;
 
-// ==========================================
-// ОСНОВНАЯ ЛОГИКА ИГРЫ
-// ==========================================
-class MainScene extends Phaser.Scene {
-    constructor() { super('MainScene'); }
-
-    preload() {
-        generatePixelAssets(this);
-    }
-
-    create() {
-        const MAP_W = 3000, MAP_H = 3000;
-        this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
-
-        // Тайловый фон травы
-        this.add.tileSprite(MAP_W/2, MAP_H/2, MAP_W, MAP_H, 'grass');
-
-        // Группы объектов
-        this.lakes = this.physics.add.staticGroup();
-        this.trees = this.physics.add.staticGroup();
-        this.bushes = this.add.group();
-        this.walls = this.physics.add.staticGroup();
-        this.doors = this.physics.add.staticGroup();
-        this.roofs = this.add.group();
-        this.zombies = this.physics.add.group();
-        this.bullets = this.physics.add.group();
-
-        // 1. ГЕНЕРАЦИЯ ОЗЕР (Запретные для плавания зоны)
-        const lakeGraphics = this.add.graphics();
-        lakeGraphics.fillStyle(0x1a4568, 1);
-        lakeGraphics.lineStyle(4, 0x296494, 1);
-        
-        for (let i = 0; i < 8; i++) {
-            let lx = Phaser.Math.Between(300, MAP_W - 300);
-            let ly = Phaser.Math.Between(300, MAP_H - 300);
-            let rx = Phaser.Math.Between(80, 180);
-            let ry = Phaser.Math.Between(60, 120);
-
-            lakeGraphics.fillEllipse(lx, ly, rx * 2, ry * 2);
-            lakeGraphics.strokeEllipse(lx, ly, rx * 2, ry * 2);
-
-            let lakeZone = this.add.ellipse(lx, ly, rx * 2, ry * 2);
-            this.physics.add.existing(lakeZone, true);
-            lakeZone.body.setCircle(Math.min(rx, ry));
-            this.lakes.add(lakeZone);
-        }
-
-        // 2. ГЕНЕРАЦИЯ ЗДАНИЙ С ДВЕРЯМИ И ТУМАНОМ ВНУТРИ
-        this.buildingsData = [];
-        const createBuilding = (x, y, wUnits, hUnits) => {
-            const unit = 32;
-            const w = wUnits * unit;
-            const h = hUnits * unit;
-            let roofTiles = [];
-
-            for (let bx = 0; bx < wUnits; bx++) {
-                for (let by = 0; by < hUnits; by++) {
-                    let px = x + bx * unit;
-                    let py = y + by * unit;
-
-                    // Стена по периметру, кроме двери
-                    if (bx === 0 || bx === wUnits - 1 || by === 0 || by === hUnits - 1) {
-                        if (bx === Math.floor(wUnits / 2) && by === hUnits - 1) {
-                            // Дверь снизу по центру
-                            let door = this.doors.create(px + 16, py + 16, 'door');
-                        } else {
-                            let wall = this.walls.create(px + 16, py + 16, 'wall');
-                        }
+                if (type === 'shotgun') {
+                    for(let i=0; i<3; i++) {
+                        let osc = this.ctx.createOscillator();
+                        let gain = this.ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(150 - i*30, now);
+                        osc.frequency.exponentialRampToValueAtTime(20, now + 0.25);
+                        gain.gain.setValueAtTime(0.4, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
                     }
-                    
-                    // Крыша (скрывает интерьер)
-                    let roof = this.add.image(px + 16, py + 16, 'roof').setDepth(10);
-                    this.roofs.add(roof);
-                    roofTiles.push(roof);
+                } else if (type === 'sniper') {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
                 }
             }
 
-            this.buildingsData.push({
-                bounds: new Phaser.Geom.Rectangle(x, y, w, h),
-                roofs: roofTiles
-            });
+            playHit() {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playLoot() {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        // --- ITEMS DATABASE ---
+        const ITEM_TYPES = {
+            WEAPON: 'weapon',
+            AMMO: 'ammo',
+            ARMOR: 'armor',
+            MED: 'med'
         };
 
-        // Спавн нескольких зданий
-        createBuilding(400, 400, 8, 6);
-        createBuilding(1200, 800, 10, 8);
-        createBuilding(800, 1800, 7, 7);
-        createBuilding(2000, 1200, 12, 9);
-
-        // 3. МАСШТАБНАЯ ДОСТОПРИМЕЧАТЕЛЬНОСТЬ (Военная база с танком)
-        this.add.image(1600, 2000, 'tank').setDepth(2);
-        let tankObstacle = this.add.zone(1600, 2000, 60, 40);
-        this.physics.add.existing(tankObstacle, true);
-        this.walls.add(tankObstacle);
-
-        // 4. ДЕРЕВЬЯ И КУСТЫ
-        for (let i = 0; i < 200; i++) {
-            let tx = Phaser.Math.Between(100, MAP_W - 100);
-            let ty = Phaser.Math.Between(100, MAP_H - 100);
-            let type = Math.random() > 0.5 ? 'tree_oak' : 'tree_pine';
-            let tree = this.trees.create(tx, ty, type);
-            tree.body.setCircle(10, 6, 12);
-            tree.setDepth(5);
-        }
-
-        for (let i = 0; i < 150; i++) {
-            let bx = Phaser.Math.Between(100, MAP_W - 100);
-            let by = Phaser.Math.Between(100, MAP_H - 100);
-            let bush = this.add.image(bx, by, 'bush').setDepth(1);
-            this.bushes.add(bush);
-        }
-
-        // 5. ИГРОК И КАМЕРА
-        this.player = this.physics.add.sprite(1500, 1500, 'player');
-        this.player.setCollideWorldBounds(true);
-        this.player.setDepth(3);
-        this.player.hp = 100;
-        this.player.isHidden = false;
-
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.cameras.main.setBounds(0, 0, MAP_W, MAP_H);
-        this.cameras.main.setZoom(1.5);
-
-        // 6. СПАВН ЗОМБИ
-        for (let i = 0; i < 100; i++) {
-            let zx = Phaser.Math.Between(100, MAP_W - 100);
-            let zy = Phaser.Math.Between(100, MAP_H - 100);
-            if (Phaser.Math.Distance.Between(zx, zy, 1500, 1500) > 300) {
-                let z = this.zombies.create(zx, zy, 'zombie');
-                z.setCollideWorldBounds(true);
-                z.setDepth(3);
-            }
-        }
-
-        // КОЛЛИЗИИ
-        this.physics.add.collider(this.player, this.walls);
-        this.physics.add.collider(this.player, this.trees);
-        this.physics.add.collider(this.player, this.lakes);
-        this.physics.add.collider(this.zombies, this.walls);
-        this.physics.add.collider(this.zombies, this.trees);
-        this.physics.add.collider(this.zombies, this.lakes);
-        this.physics.add.collider(this.zombies, this.zombies);
-
-        // Попадание пули в зомби
-        this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
-            bullet.destroy();
-            this.createBloodParticles(zombie.x, zombie.y);
-            zombie.destroy();
-        });
-
-        // Попадание пули в стену
-        this.physics.add.collider(this.bullets, this.walls, (bullet) => bullet.destroy());
-
-        // Атака зомби
-        this.physics.add.overlap(this.player, this.zombies, (player, zombie) => {
-            player.hp -= 0.3;
-            this.cameras.main.shake(100, 0.005);
-            if (player.hp <= 0) {
-                this.scene.restart();
-            }
-        });
-
-        // Управление через Джойстик и Клавиатуру
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.setupTouchControls();
-
-        // UI Здоровья
-        this.hpText = this.add.text(16, 16, '', { font: '16px monospace', fill: '#00ff00' })
-            .setScrollFactor(0).setDepth(100);
-    }
-
-    createBloodParticles(x, y) {
-        // Простой пиксельный эффект крови при попадании
-        for (let i = 0; i < 8; i++) {
-            let p = this.add.rectangle(x, y, 3, 3, 0xaa0000).setDepth(4);
-            this.physics.add.existing(p);
-            p.body.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
-            this.tweens.add({ targets: p, alpha: 0, duration: 300, onComplete: () => p.destroy() });
-        }
-    }
-
-    setupTouchControls() {
-        this.joyVector = { x: 0, y: 0 };
-        const zone = document.getElementById('joystick-zone');
-        const stick = document.getElementById('joystick-stick');
-        let touchId = null;
-
-        zone.addEventListener('touchstart', e => {
-            touchId = e.changedTouches[0].identifier;
-            updateStick(e.changedTouches[0]);
-        });
-
-        window.addEventListener('touchmove', e => {
-            for (let t of e.changedTouches) {
-                if (t.identifier === touchId) updateStick(t);
-            }
-        });
-
-        const resetStick = e => {
-            for (let t of e.changedTouches) {
-                if (t.identifier === touchId) {
-                    touchId = null;
-                    stick.style.transform = `translate(0px, 0px)`;
-                    this.joyVector = { x: 0, y: 0 };
-                }
-            }
-        };
-
-        window.addEventListener('touchend', resetStick);
-
-        const updateStick = touch => {
-            const rect = zone.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            let dx = touch.clientX - centerX;
-            let dy = touch.clientY - centerY;
-            const dist = Math.min(Math.hypot(dx, dy), 40);
-            const angle = Math.atan2(dy, dx);
+        const ITEMS = {
+            pistol: { id: 'pistol', name: 'Пистолет M1911', type: ITEM_TYPES.WEAPON, icon: '🔫', damage: 22, rate: 250, range: 450, spread: 0.08, ammoType: '9mm', clipSize: 12, desc: 'Легкий и надежный полуавтоматический пистолет.' },
+            shotgun: { id: 'shotgun', name: 'Дробовик M870', type: ITEM_TYPES.WEAPON, icon: '💥', damage: 14, pellets: 6, rate: 850, range: 300, spread: 0.28, ammoType: '12gauge', clipSize: 6, desc: 'Сокрушительный урон на близкой дистанции.' },
+            rifle: { id: 'rifle', name: 'Автомат AK-47', type: ITEM_TYPES.WEAPON, icon: '⚡', damage: 32, rate: 120, range: 550, spread: 0.12, ammoType: '556mm', clipSize: 30, desc: 'Штурмовая винтовка с высокой скорострельностью.' },
+            sniper: { id: 'sniper', name: 'Снайперская AWM', type: ITEM_TYPES.WEAPON, icon: '🎯', damage: 95, rate: 1200, range: 900, spread: 0.01, ammoType: '762mm', clipSize: 5, desc: 'Огромный урон и предельная точность.' },
             
-            dx = Math.cos(angle) * dist;
-            dy = Math.sin(angle) * dist;
+            ammo_9mm: { id: 'ammo_9mm', name: 'Патроны 9mm', type: ITEM_TYPES.AMMO, icon: '📦', count: 30, desc: 'Подходят для пистолета.' },
+            ammo_12g: { id: 'ammo_12g', name: 'Патроны 12 Gauge', type: ITEM_TYPES.AMMO, icon: '📦', count: 12, desc: 'Подходят для дробовика.' },
+            ammo_556: { id: 'ammo_556', name: 'Патроны 5.56mm', type: ITEM_TYPES.AMMO, icon: '📦', count: 45, desc: 'Подходят для автомата.' },
+            ammo_762: { id: 'ammo_762', name: 'Патроны 7.62mm', type: ITEM_TYPES.AMMO, icon: '📦', count: 10, desc: 'Подходят для снайперской винтовки.' },
 
-            stick.style.transform = `translate(${dx}px, ${dy}px)`;
-            this.joyVector = { x: dx / 40, y: dy / 40 };
+            armor_light: { id: 'armor_light', name: 'Легкий бронежилет', type: ITEM_TYPES.ARMOR, icon: '🎽', defense: 0.25, dur: 100, desc: 'Защищает от легких ранений (25% защиты).' },
+            armor_heavy: { id: 'armor_heavy', name: 'Тяжелая броня SWAT', type: ITEM_TYPES.ARMOR, icon: '🛡️', defense: 0.55, dur: 200, desc: 'Максимальный класс защиты (55% защиты).' },
+
+            bandage: { id: 'bandage', name: 'Бинт', type: ITEM_TYPES.MED, icon: '🩹', heal: 25, desc: 'Восстанавливает 25 HP.' },
+            medkit: { id: 'medkit', name: 'Аптечка', type: ITEM_TYPES.MED, icon: '🧰', heal: 75, desc: 'Восстанавливает 75 HP.' }
         };
 
-        // Кнопка стрельбы
-        const fireBtn = document.getElementById('btn-shoot');
-        fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.shoot(); });
-        fireBtn.addEventListener('mousedown', (e) => { e.preventDefault(); this.shoot(); });
-    }
+        // --- GAME STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimap-canvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
-    shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bullet');
-        let angle = this.player.rotation;
-        bullet.setDepth(3);
-        this.physics.velocityFromRotation(angle, 400, bullet.body.velocity);
-    }
+        let gameActive = false;
+        let lastTime = performance.now();
 
-    update() {
-        // 1. УПРАВЛЕНИЕ ДВИЖЕНИЕМ
-        let vx = 0, vy = 0;
-        const speed = 120;
+        const camera = { x: 0, y: 0 };
+        const mouse = { x: 0, y: 0, worldX: 0, worldY: 0 };
 
-        if (this.cursors.left.isDown) vx = -1;
-        else if (this.cursors.right.isDown) vx = 1;
-        if (this.cursors.up.isDown) vy = -1;
-        else if (this.cursors.down.isDown) vy = 1;
+        // Player object
+        const player = {
+            x: 1000,
+            y: 1000,
+            radius: 20,
+            speed: 3.5,
+            sprintSpeed: 5.5,
+            health: 100,
+            maxHealth: 100,
+            armor: 0,
+            maxArmor: 100,
+            stamina: 100,
+            maxStamina: 100,
+            angle: 0,
+            inventory: [],
+            equippedWeapon: null,
+            equippedArmor: null,
+            ammoReserve: { '9mm': 60, '12gauge': 24, '556mm': 90, '762mm': 20 },
+            currentClip: 12,
+            lastShotTime: 0
+        };
 
-        if (this.joyVector.x !== 0 || this.joyVector.y !== 0) {
-            vx = this.joyVector.x;
-            vy = this.joyVector.y;
-        }
+        // World maps structures
+        let buildings = [];
+        let containers = [];
+        let enemies = [];
+        let bullets = [];
+        let particles = [];
 
-        this.player.body.setVelocity(vx * speed, vy * speed);
+        // --- BUILDING DEFINITIONS ---
+        // Building Types: Hospital, Store, Cafe, House
+        function generateWorld() {
+            buildings = [];
+            containers = [];
+            enemies = [];
 
-        if (vx !== 0 || vy !== 0) {
-            this.player.rotation = Math.atan2(vy, vx);
-        }
+            // 1. Hospital (Large)
+            createBuilding({
+                x: 400, y: 300, w: 450, h: 320,
+                type: 'hospital',
+                title: 'Больница Святого Луки',
+                color: '#1e293b', wallColor: '#334155', roofColor: '#0f172a',
+                doors: [{ side: 'bottom', offset: 200, width: 60 }]
+            });
 
-        // Клавиша Пробел для ПК-стрельбы
-        if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
-            this.shoot();
-        }
+            // 2. Supermarket (Medium-Large)
+            createBuilding({
+                x: 1050, y: 300, w: 380, h: 300,
+                type: 'store',
+                title: 'Продуктовый Маркет',
+                color: '#1e293b', wallColor: '#0284c7', roofColor: '#0369a1',
+                doors: [{ side: 'bottom', offset: 160, width: 60 }]
+            });
 
-        // 2. ПРОВЕРКА УКРЫТИЯ В КУСТАХ
-        this.player.isHidden = false;
-        this.bushes.getChildren().forEach(bush => {
-            if (Phaser.Math.Distance.Between(this.player.x, this.player.y, bush.x, bush.y) < 15) {
-                this.player.isHidden = true;
+            // 3. Cafe (Medium)
+            createBuilding({
+                x: 400, y: 800, w: 320, h: 260,
+                type: 'cafe',
+                title: 'Кафе "У Дона"',
+                color: '#1e293b', wallColor: '#d97706', roofColor: '#b45309',
+                doors: [{ side: 'right', offset: 100, width: 50 }]
+            });
+
+            // 4. House (Small)
+            createBuilding({
+                x: 850, y: 800, w: 260, h: 220,
+                type: 'house',
+                title: 'Жилой Дом №12',
+                color: '#1e293b', wallColor: '#16a34a', roofColor: '#15803d',
+                doors: [{ side: 'top', offset: 110, width: 44 }]
+            });
+
+            // Spawn Zombies around
+            for (let i = 0; i < 28; i++) {
+                spawnZombie();
             }
-        });
+        }
 
-        this.player.setAlpha(this.player.isHidden ? 0.5 : 1.0);
+        function createBuilding(cfg) {
+            const b = {
+                x: cfg.x, y: cfg.y, w: cfg.w, h: cfg.h,
+                type: cfg.type, title: cfg.title,
+                wallColor: cfg.wallColor, roofColor: cfg.roofColor,
+                doors: cfg.doors,
+                furniture: []
+            };
 
-        // 3. ЗДАНИЯ И ТУМАН ВОЙНЫ (Вход в помещения)
-        this.buildingsData.forEach(b => {
-            let inside = b.bounds.contains(this.player.x, this.player.y);
-            b.roofs.forEach(roof => roof.setVisible(!inside));
-        });
+            // Calculate interior rooms / walls with entrance breaks
+            // Furniture and Loot Containers generation based on type
+            if (cfg.type === 'hospital') {
+                // Beds, shelves, cabinets
+                b.furniture.push({ x: cfg.x + 30, y: cfg.y + 40, w: 50, h: 80, type: 'bed', color: '#e2e8f0' });
+                b.furniture.push({ x: cfg.x + 100, y: cfg.y + 40, w: 50, h: 80, type: 'bed', color: '#e2e8f0' });
+                b.furniture.push({ x: cfg.x + 170, y: cfg.y + 40, w: 50, h: 80, type: 'bed', color: '#e2e8f0' });
+                
+                // Containers
+                addContainer(cfg.x + 360, cfg.y + 40, 50, 40, 'Медицинский Шкаф', 'cabinet', ['medkit', 'bandage', 'ammo_9mm']);
+                addContainer(cfg.x + 360, cfg.y + 110, 50, 40, 'Аптечный Стеллаж', 'shelf', ['medkit', 'medkit', 'bandage']);
+                addContainer(cfg.x + 40, cfg.y + 240, 60, 40, 'Ящик с медикаментами', 'box', ['bandage', 'armor_light']);
+            } 
+            else if (cfg.type === 'store') {
+                // Store Shelves
+                b.furniture.push({ x: cfg.x + 40, y: cfg.y + 60, w: 180, h: 35, type: 'shelf_row', color: '#64748b' });
+                b.furniture.push({ x: cfg.x + 40, y: cfg.y + 130, w: 180, h: 35, type: 'shelf_row', color: '#64748b' });
+                
+                // Containers
+                addContainer(cfg.x + 280, cfg.y + 50, 60, 40, 'Сторджа-Стеллаж', 'shelf', ['ammo_9mm', 'ammo_556', 'bandage']);
+                addContainer(cfg.x + 280, cfg.y + 120, 60, 40, 'Оружейный Сейф', 'cabinet', ['shotgun', 'ammo_12g']);
+                addContainer(cfg.x + 40, cfg.y + 220, 50, 40, 'Кассовый Ящик', 'box', ['ammo_9mm', 'pistol']);
+            }
+            else if (cfg.type === 'cafe') {
+                // Tables & Bar
+                b.furniture.push({ x: cfg.x + 40, y: cfg.y + 40, w: 120, h: 30, type: 'bar', color: '#78350f' });
+                b.furniture.push({ x: cfg.x + 50, y: cfg.y + 120, w: 40, h: 40, type: 'table', color: '#92400e' });
+                b.furniture.push({ x: cfg.x + 130, y: cfg.y + 120, w: 40, h: 40, type: 'table', color: '#92400e' });
 
-        // 4. ИНТЕЛЛЕКТ ЗОМБИ (Пресделование только если игрок не скрыт)
-        this.zombies.getChildren().forEach(zombie => {
-            let dist = Phaser.Math.Distance.Between(zombie.x, zombie.y, this.player.x, this.player.y);
-            if (dist < 250 && !this.player.isHidden) {
-                let angle = Phaser.Math.Angle.Between(zombie.x, zombie.y, this.player.x, this.player.y);
-                this.physics.velocityFromRotation(angle, 60, zombie.body.velocity);
-                zombie.rotation = angle;
+                addContainer(cfg.x + 230, cfg.y + 40, 50, 40, 'Кухонный Шкаф', 'cabinet', ['bandage', 'ammo_9mm']);
+                addContainer(cfg.x + 230, cfg.y + 180, 50, 40, 'Ящик Запасов', 'box', ['rifle', 'ammo_556']);
+            }
+            else if (cfg.type === 'house') {
+                // Sofa & Bed
+                b.furniture.push({ x: cfg.x + 30, y: cfg.y + 30, w: 70, h: 40, type: 'sofa', color: '#1e3a8a' });
+                b.furniture.push({ x: cfg.x + 160, y: cfg.y + 30, w: 60, h: 70, type: 'bed', color: '#312e81' });
+
+                addContainer(cfg.x + 30, cfg.y + 140, 50, 40, 'Платяной Шкаф', 'cabinet', ['armor_heavy', 'ammo_762']);
+                addContainer(cfg.x + 170, cfg.y + 140, 50, 40, 'Снайперский Кейс', 'box', ['sniper', 'ammo_762']);
+            }
+
+            buildings.push(b);
+        }
+
+        function addContainer(x, y, w, h, name, style, lootItemIds) {
+            const loot = [];
+            lootItemIds.forEach(id => {
+                if (ITEMS[id]) {
+                    loot.push({ ...ITEMS[id] });
+                }
+            });
+
+            containers.push({
+                x, y, w, h, name, style, loot, searched: false
+            });
+        }
+
+        function spawnZombie() {
+            let zx = Math.random() * 1800 + 100;
+            let zy = Math.random() * 1400 + 100;
+            // Ensure zombie isn't spawned inside buildings
+            enemies.push({
+                x: zx,
+                y: zy,
+                radius: 18,
+                speed: 1.2 + Math.random() * 0.8,
+                health: 80,
+                maxHealth: 80,
+                damage: 15,
+                angle: Math.random() * Math.PI * 2,
+                color: '#22c55e'
+            });
+        }
+
+        // --- INITIALIZATION & CONTROLS ---
+        function initGame() {
+            // Setup Starting Items
+            player.inventory = [
+                { ...ITEMS.pistol },
+                { ...ITEMS.ammo_9mm },
+                { ...ITEMS.bandage }
+            ];
+            equipItem(player.inventory[0]);
+
+            generateWorld();
+            setupEventListeners();
+            
+            gameActive = true;
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        const keys = {};
+
+        function setupEventListeners() {
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+
+                if (e.code === 'KeyI' || e.code === 'Tab') {
+                    e.preventDefault();
+                    toggleModal('inventory-modal');
+                }
+                if (e.code === 'KeyE') {
+                    interactNearbyContainer();
+                }
+                if (e.code === 'KeyR') {
+                    reloadWeapon();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+
+            window.addEventListener('mousedown', (e) => {
+                if (e.button === 0 && gameActive && !isAnyModalOpen()) {
+                    shootWeapon();
+                }
+            });
+
+            // UI Buttons
+            document.getElementById('btn-start').onclick = () => initGame();
+            document.getElementById('btn-controls').onclick = () => toggleModal('controls-modal', true);
+            document.getElementById('close-controls').onclick = () => toggleModal('controls-modal', false);
+            document.getElementById('close-inv').onclick = () => toggleModal('inventory-modal', false);
+            document.getElementById('close-container').onclick = () => toggleModal('container-modal', false);
+
+            document.getElementById('btn-take-all').onclick = takeAllContainerLoot;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function isAnyModalOpen() {
+            return document.getElementById('inventory-modal').style.display === 'flex' ||
+                   document.getElementById('container-modal').style.display === 'flex' ||
+                   document.getElementById('controls-modal').style.display === 'flex';
+        }
+
+        function toggleModal(id, forceState) {
+            const modal = document.getElementById(id);
+            const currentState = modal.style.display === 'flex';
+            const nextState = forceState !== undefined ? forceState : !currentState;
+
+            modal.style.display = nextState ? 'flex' : 'none';
+
+            if (nextState) {
+                if (id === 'inventory-modal') renderInventoryUI();
+            }
+        }
+
+        // --- GAME LOOP & UPDATES ---
+        function gameLoop(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (gameActive) {
+                update(dt);
+                render();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            if (isAnyModalOpen()) return;
+
+            // Movement & Sprint
+            let isSprinting = keys['ShiftLeft'] || keys['ShiftRight'];
+            let currentSpeed = player.speed;
+
+            if (isSprinting && player.stamina > 5) {
+                currentSpeed = player.sprintSpeed;
+                player.stamina = Math.max(0, player.stamina - dt * 25);
             } else {
-                zombie.body.setVelocity(0, 0);
+                player.stamina = Math.min(player.maxStamina, player.stamina + dt * 15);
             }
-        });
 
-        // 5. ОБНОВЛЕНИЕ UI
-        this.hpText.setText(`HP: ${Math.ceil(this.player.hp)}% ${this.player.isHidden ? '[СКРЫТ]' : ''}`);
-        this.hpText.setColor(this.player.hp > 30 ? '#00ff00' : '#ff0000');
-    }
-}
+            let dx = 0, dy = 0;
+            if (keys['KeyW'] || keys['ArrowUp']) dy -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) dy += 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) dx -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
 
-// Конфигурация Phaser
-const config = {
-    type: Phaser.AUTO,
-    parent: 'game-container',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    pixelArt: true, // Включает пиксельную четкость
-    physics: { default: 'arcade', arcade: { debug: false } },
-    scene: MainScene
-};
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
 
-const game = new Phaser.Game(config);
-window.addEventListener('resize', () => game.scale.resize(window.innerWidth, window.innerHeight));
-</script>
+            // Player position update & Wall collisions
+            let nextX = player.x + dx * currentSpeed;
+            let nextY = player.y + dy * currentSpeed;
+
+            if (!checkBuildingCollision(nextX, player.y, player.radius)) player.x = nextX;
+            if (!checkBuildingCollision(player.x, nextY, player.radius)) player.y = nextY;
+
+            // Player Aim Rotation
+            mouse.worldX = mouse.x + camera.x;
+            mouse.worldY = mouse.y + camera.y;
+            player.angle = Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+
+            // Camera follow player
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+
+            // Automatic shooting for automatic weapons
+            if (keys['Mouse0'] && player.equippedWeapon && player.equippedWeapon.id === 'rifle') {
+                shootWeapon();
+            }
+
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.distanceTraveled += Math.hypot(b.vx, b.vy);
+
+                // Bullet hit wall check
+                if (checkBuildingCollision(b.x, b.y, 2)) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Bullet hit enemy
+                let hitEnemy = false;
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    let dist = Math.hypot(e.x - b.x, e.y - b.y);
+                    if (dist < e.radius + 2) {
+                        e.health -= b.damage;
+                        createBloodParticles(b.x, b.y);
+                        sounds.playHit();
+
+                        if (e.health <= 0) {
+                            enemies.splice(j, 1);
+                            showNotification('Враг уничтожен!');
+                        }
+                        hitEnemy = true;
+                        break;
+                    }
+                }
+
+                if (hitEnemy || b.distanceTraveled >= b.range) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Update Zombies AI
+            enemies.forEach(e => {
+                let distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer < 500) {
+                    e.angle = Math.atan2(player.y - e.y, player.x - e.x);
+                    let ezx = e.x + Math.cos(e.angle) * e.speed;
+                    let ezy = e.y + Math.sin(e.angle) * e.speed;
+
+                    if (!checkBuildingCollision(ezx, e.y, e.radius)) e.x = ezx;
+                    if (!checkBuildingCollision(e.x, ezy, e.radius)) e.y = ezy;
+
+                    // Attack Player
+                    if (distToPlayer < player.radius + e.radius) {
+                        damagePlayer(e.damage * dt);
+                    }
+                }
+            });
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= dt;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Interaction Prompts Check
+            checkNearContainers();
+            updateHUD();
+        }
+
+        function checkBuildingCollision(x, y, r) {
+            for (let b of buildings) {
+                // If point is inside outer bounds
+                if (x + r > b.x && x - r < b.x + b.w && y + r > b.y && y - r < b.y + b.h) {
+                    // Check if player is standing inside door opening
+                    let insideDoor = false;
+                    for (let d of b.doors) {
+                        if (d.side === 'bottom' && Math.abs(y - (b.y + b.h)) < r + 5 && x > b.x + d.offset && x < b.x + d.offset + d.width) insideDoor = true;
+                        if (d.side === 'top' && Math.abs(y - b.y) < r + 5 && x > b.x + d.offset && x < b.x + d.offset + d.width) insideDoor = true;
+                        if (d.side === 'right' && Math.abs(x - (b.x + b.w)) < r + 5 && y > b.y + d.offset && y < b.y + d.offset + d.width) insideDoor = true;
+                        if (d.side === 'left' && Math.abs(x - b.x) < r + 5 && y > b.y + d.offset && y < b.y + d.offset + d.width) insideDoor = true;
+                    }
+                    if (!insideDoor) return true;
+                }
+            }
+            return false;
+        }
+
+        function damagePlayer(dmg) {
+            let finalDmg = dmg;
+            if (player.equippedArmor) {
+                finalDmg *= (1 - player.equippedArmor.defense);
+                player.armor = Math.max(0, player.armor - dmg * 0.5);
+            }
+            player.health = Math.max(0, player.health - finalDmg);
+
+            if (player.health <= 0) {
+                alert('ВЫ ПОГИБЛИ! Игра начнётся заново.');
+                document.location.reload();
+            }
+        }
+
+        function shootWeapon() {
+            const w = player.equippedWeapon;
+            if (!w) return;
+
+            const now = performance.now();
+            if (now - player.lastShotTime < w.rate) return;
+
+            if (player.currentClip <= 0) {
+                reloadWeapon();
+                return;
+            }
+
+            player.currentClip--;
+            player.lastShotTime = now;
+
+            sounds.playShoot(w.id);
+
+            // Muzzle flash particle
+            particles.push({
+                x: player.x + Math.cos(player.angle) * 30,
+                y: player.y + Math.sin(player.angle) * 30,
+                vx: 0, vy: 0, life: 0.05, size: 15, color: '#fef08a'
+            });
+
+            // Bullet spread calculation
+            let pelletCount = w.pellets || 1;
+            for (let i = 0; i < pelletCount; i++) {
+                let spreadAngle = player.angle + (Math.random() - 0.5) * w.spread;
+                let bSpeed = 16;
+                bullets.push({
+                    x: player.x + Math.cos(player.angle) * 20,
+                    y: player.y + Math.sin(player.angle) * 20,
+                    vx: Math.cos(spreadAngle) * bSpeed,
+                    vy: Math.sin(spreadAngle) * bSpeed,
+                    damage: w.damage,
+                    range: w.range,
+                    distanceTraveled: 0
+                });
+            }
+        }
+
+        function reloadWeapon() {
+            const w = player.equippedWeapon;
+            if (!w) return;
+
+            let reserve = player.ammoReserve[w.ammoType] || 0;
+            if (reserve <= 0 || player.currentClip === w.clipSize) return;
+
+            let needed = w.clipSize - player.currentClip;
+            let loaded = Math.min(needed, reserve);
+
+            player.currentClip += loaded;
+            player.ammoReserve[w.ammoType] -= loaded;
+            showNotification('Оружие перезаряжено!');
+        }
+
+        let currentActiveContainer = null;
+
+        function checkNearContainers() {
+            const prompt = document.getElementById('interact-prompt');
+            currentActiveContainer = null;
+
+            for (let c of containers) {
+                let dist = Math.hypot(player.x - (c.x + c.w/2), player.y - (c.y + c.h/2));
+                if (dist < 70) {
+                    currentActiveContainer = c;
+                    document.getElementById('interact-text').innerText = `${c.name} [Нажмите E]`;
+                    prompt.style.display = 'block';
+                    return;
+                }
+            }
+            prompt.style.display = 'none';
+        }
+
+        function interactNearbyContainer() {
+            if (currentActiveContainer) {
+                openContainerModal(currentActiveContainer);
+            }
+        }
+
+        function openContainerModal(c) {
+            document.getElementById('container-title').innerText = `📦 ${c.name}`;
+            renderContainerUI(c);
+            toggleModal('container-modal', true);
+            sounds.playLoot();
+        }
+
+        function renderContainerUI(c) {
+            const cGrid = document.getElementById('container-grid');
+            const pGrid = document.getElementById('player-loot-grid');
+            cGrid.innerHTML = '';
+            pGrid.innerHTML = '';
+
+            c.loot.forEach((item, idx) => {
+                cGrid.appendChild(createItemCard(item, () => {
+                    // Take item
+                    player.inventory.push(item);
+                    c.loot.splice(idx, 1);
+                    renderContainerUI(c);
+                    showNotification(`Взято: ${item.name}`);
+                }));
+            });
+
+            player.inventory.forEach((item, idx) => {
+                pGrid.appendChild(createItemCard(item, () => {
+                    // Put item into container
+                    c.loot.push(item);
+                    player.inventory.splice(idx, 1);
+                    renderContainerUI(c);
+                }));
+            });
+        }
+
+        function takeAllContainerLoot() {
+            if (currentActiveContainer && currentActiveContainer.loot.length > 0) {
+                currentActiveContainer.loot.forEach(item => {
+                    if (item.type === ITEM_TYPES.AMMO) {
+                        let ammoKey = item.id.replace('ammo_', '');
+                        if (ammoKey === '12g') ammoKey = '12gauge';
+                        player.ammoReserve[ammoKey] = (player.ammoReserve[ammoKey] || 0) + item.count;
+                    } else {
+                        player.inventory.push(item);
+                    }
+                });
+                currentActiveContainer.loot = [];
+                renderContainerUI(currentActiveContainer);
+                showNotification('Всё содержимое собрано!');
+            }
+        }
+
+        function createItemCard(item, onClick) {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="item-name">${item.name}</div>
+                ${item.count ? `<div class="item-qty">x${item.count}</div>` : ''}
+            `;
+            card.onclick = onClick;
+
+            card.onmouseenter = (e) => showTooltip(e, item);
+            card.onmouseleave = hideTooltip;
+
+            return card;
+        }
+
+        function showTooltip(e, item) {
+            const tt = document.getElementById('item-tooltip');
+            document.getElementById('tt-title').innerText = item.name;
+            document.getElementById('tt-type').innerText = item.type;
+            
+            let statsHtml = `<p style="font-size:11px; color:#94a3b8; margin-bottom:6px;">${item.desc}</p>`;
+            if (item.damage) statsHtml += `<div class="tt-stat"><span>Урон:</span><strong>${item.damage}</strong></div>`;
+            if (item.range) statsHtml += `<div class="tt-stat"><span>Дальность:</span><strong>${item.range}m</strong></div>`;
+            if (item.defense) statsHtml += `<div class="tt-stat"><span>Защита:</span><strong>${item.defense * 100}%</strong></div>`;
+            if (item.heal) statsHtml += `<div class="tt-stat"><span>Лечение:</span><strong>+${item.heal} HP</strong></div>`;
+
+            document.getElementById('tt-stats').innerHTML = statsHtml;
+            tt.style.display = 'block';
+            tt.style.left = `${e.clientX + 15}px`;
+            tt.style.top = `${e.clientY + 15}px`;
+        }
+
+        function hideTooltip() {
+            document.getElementById('item-tooltip').style.display = 'none';
+        }
+
+        function renderInventoryUI() {
+            const invGrid = document.getElementById('inv-grid');
+            invGrid.innerHTML = '';
+
+            document.getElementById('eq-weapon-name').innerText = player.equippedWeapon ? player.equippedWeapon.name : 'Нет';
+            document.getElementById('eq-armor-name').innerText = player.equippedArmor ? player.equippedArmor.name : 'Нет';
+
+            player.inventory.forEach((item, idx) => {
+                invGrid.appendChild(createItemCard(item, () => {
+                    useOrEquipItem(item, idx);
+                }));
+            });
+        }
+
+        function useOrEquipItem(item, idx) {
+            if (item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR) {
+                equipItem(item);
+            } else if (item.type === ITEM_TYPES.MED) {
+                player.health = Math.min(player.maxHealth, player.health + item.heal);
+                player.inventory.splice(idx, 1);
+                showNotification(`Использовано: ${item.name} (+${item.heal} HP)`);
+            } else if (item.type === ITEM_TYPES.AMMO) {
+                let ammoKey = item.id.replace('ammo_', '');
+                if (ammoKey === '12g') ammoKey = '12gauge';
+                player.ammoReserve[ammoKey] = (player.ammoReserve[ammoKey] || 0) + item.count;
+                player.inventory.splice(idx, 1);
+                showNotification(`Добавлены патроны в запас!`);
+            }
+            renderInventoryUI();
+        }
+
+        function equipItem(item) {
+            if (item.type === ITEM_TYPES.WEAPON) {
+                player.equippedWeapon = item;
+                player.currentClip = item.clipSize;
+                showNotification(`Экипировано: ${item.name}`);
+            } else if (item.type === ITEM_TYPES.ARMOR) {
+                player.equippedArmor = item;
+                player.armor = player.maxArmor;
+                showNotification(`Надета броня: ${item.name}`);
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('health-fill').style.width = `${(player.health / player.maxHealth) * 100}%`;
+            document.getElementById('armor-fill').style.width = `${(player.armor / player.maxArmor) * 100}%`;
+            document.getElementById('stamina-fill').style.width = `${(player.stamina / player.maxStamina) * 100}%`;
+
+            if (player.equippedWeapon) {
+                const w = player.equippedWeapon;
+                document.getElementById('hud-weapon-icon').innerText = w.icon;
+                document.getElementById('hud-weapon-name').innerText = w.name;
+                let reserve = player.ammoReserve[w.ammoType] || 0;
+                document.getElementById('hud-ammo-text').innerText = `${player.currentClip} / ${reserve}`;
+            } else {
+                document.getElementById('hud-weapon-icon').innerText = '👊';
+                document.getElementById('hud-weapon-name').innerText = 'КУЛАКИ';
+                document.getElementById('hud-ammo-text').innerText = '∞';
+            }
+        }
+
+        function showNotification(msg) {
+            const box = document.getElementById('notify-box');
+            const el = document.createElement('div');
+            el.className = 'notify-msg';
+            el.innerText = msg;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), 2500);
+        }
+
+        function createBloodParticles(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 0.4,
+                    size: 4 + Math.random() * 4,
+                    color: '#dc2626'
+                });
+            }
+        }
+
+        // --- RENDERING CANVAS ENGINE ---
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // Draw Ground Grid Pattern
+            drawGroundGrid();
+
+            // Draw Buildings (Interior & Exteriors)
+            buildings.forEach(b => drawBuilding(b));
+
+            // Draw Loot Containers
+            containers.forEach(c => drawContainer(c));
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Bullets
+            ctx.fillStyle = '#fef08a';
+            bullets.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Enemies (Top-Down Zombies with detailed textures)
+            enemies.forEach(e => drawZombie(e));
+
+            // Draw Player (Enhanced Top-Down Character)
+            drawPlayer();
+
+            ctx.restore();
+
+            // Draw Minimap
+            renderMinimap();
+        }
+
+        function drawGroundGrid() {
+            ctx.strokeStyle = '#232a36';
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            const startX = Math.floor(camera.x / gridSize) * gridSize;
+            const startY = Math.floor(camera.y / gridSize) * gridSize;
+
+            for (let x = startX; x < startX + canvas.width + gridSize; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, camera.y);
+                ctx.lineTo(x, camera.y + canvas.height);
+                ctx.stroke();
+            }
+            for (let y = startY; y < startY + canvas.height + gridSize; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(camera.x, y);
+                ctx.lineTo(camera.x + canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawBuilding(b) {
+            // Check if player is inside building
+            const playerInside = player.x > b.x && player.x < b.x + b.w && player.y > b.y && player.y < b.y + b.h;
+
+            // Interior Floor
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+
+            // Draw Furniture
+            b.furniture.forEach(f => {
+                ctx.fillStyle = f.color;
+                ctx.fillRect(f.x, f.y, f.w, f.h);
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.strokeRect(f.x, f.y, f.w, f.h);
+            });
+
+            // Draw Walls with Door Openings
+            ctx.fillStyle = b.wallColor;
+            const wallThick = 10;
+
+            // Outer Walls
+            ctx.fillRect(b.x, b.y, b.w, wallThick); // Top
+            ctx.fillRect(b.x, b.y + b.h - wallThick, b.w, wallThick); // Bottom
+            ctx.fillRect(b.x, b.y, wallThick, b.h); // Left
+            ctx.fillRect(b.x + b.w - wallThick, b.y, wallThick, b.h); // Right
+
+            // Clear doors & draw entrance markers visible from OUTSIDE!
+            b.doors.forEach(d => {
+                ctx.fillStyle = b.color; // clear wall gap
+                let dx = b.x, dy = b.y, dw = 0, dh = 0;
+
+                if (d.side === 'bottom') { dx = b.x + d.offset; dy = b.y + b.h - wallThick; dw = d.width; dh = wallThick; }
+                if (d.side === 'top') { dx = b.x + d.offset; dy = b.y; dw = d.width; dh = wallThick; }
+                if (d.side === 'right') { dx = b.x + b.w - wallThick; dy = b.y + d.offset; dw = wallThick; dh = d.width; }
+                if (d.side === 'left') { dx = b.x; dy = b.y + d.offset; dw = wallThick; dh = d.width; }
+
+                ctx.fillRect(dx, dy, dw, dh);
+
+                // Entry Mat / Glow Line indicating ENTRANCE
+                ctx.fillStyle = '#f59e0b';
+                if (d.side === 'bottom') ctx.fillRect(dx, dy + wallThick, dw, 6);
+                if (d.side === 'top') ctx.fillRect(dx, dy - 6, dw, 6);
+                if (d.side === 'right') ctx.fillRect(dx + wallThick, dy, 6, dh);
+                if (d.side === 'left') ctx.fillRect(dx - 6, dy, 6, dh);
+            });
+
+            // Roof overlay when player is OUTSIDE
+            if (!playerInside) {
+                ctx.fillStyle = b.roofColor;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+
+                // Building Title Tag on Roof
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(b.title, b.x + b.w/2, b.y + b.h/2);
+            }
+        }
+
+        function drawContainer(c) {
+            ctx.fillStyle = c.searched ? '#475569' : '#0284c7';
+            ctx.fillRect(c.x, c.y, c.w, c.h);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(c.x, c.y, c.w, c.h);
+
+            // Container label icon
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('📦', c.x + c.w/2, c.y + c.h/2 + 4);
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            // Flashlight Cone
+            const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 320);
+            grad.addColorStop(0, 'rgba(254, 240, 138, 0.25)');
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, 320, -Math.PI / 5, Math.PI / 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Hands holding weapon
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath();
+            ctx.arc(14, 10, 5, 0, Math.PI * 2); // Right hand
+            ctx.arc(14, -10, 5, 0, Math.PI * 2); // Left hand
+            ctx.fill();
+
+            // Weapon Top-Down Sprite
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(8, 6, 18, 5); // Gun barrel
+
+            // Shoulders & Body
+            ctx.fillStyle = player.equippedArmor ? '#1e40af' : '#0284c7'; // Armor body color
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 14, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tactical Helmet / Head
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawZombie(e) {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            ctx.rotate(e.angle);
+
+            // Outstretched Zombie Arms
+            ctx.fillStyle = '#15803d';
+            ctx.beginPath();
+            ctx.arc(16, 8, 5, 0, Math.PI * 2);
+            ctx.arc(16, -8, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Body
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 13, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head with blood detail
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(0, 0, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Health bar above zombie
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(e.x - 16, e.y - 28, 32, 5);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(e.x - 16, e.y - 28, (e.health / e.maxHealth) * 32, 5);
+        }
+
+        function renderMinimap() {
+            minimapCtx.clearRect(0, 0, 140, 140);
+            minimapCtx.save();
+            minimapCtx.scale(0.06, 0.06);
+            minimapCtx.translate(-player.x + 1160, -player.y + 1160);
+
+            // Draw Minimap Buildings
+            buildings.forEach(b => {
+                minimapCtx.fillStyle = '#0284c7';
+                minimapCtx.fillRect(b.x, b.y, b.w, b.h);
+            });
+
+            // Draw Minimap Enemies
+            minimapCtx.fillStyle = '#ef4444';
+            enemies.forEach(e => {
+                minimapCtx.beginPath();
+                minimapCtx.arc(e.x, e.y, 25, 0, Math.PI*2);
+                minimapCtx.fill();
+            });
+
+            // Draw Player Icon
+            minimapCtx.fillStyle = '#22c55e';
+            minimapCtx.beginPath();
+            minimapCtx.arc(player.x, player.y, 35, 0, Math.PI*2);
+            minimapCtx.fill();
+
+            minimapCtx.restore();
+        }
+    </script>
 </body>
 </html>
