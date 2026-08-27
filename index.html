@@ -2,207 +2,429 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Zombie Open World 3D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Zombie Outbreak</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; user-select: none; background: #000; }
-        #canvas-container { width: 100vw; height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: monospace; }
+        #game-container { width: 100vw; height: 100vh; }
         
-        /* Экранный джойстик для мобильных устройств */
-        #ui { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; }
-        .btn { width: 70px; height: 70px; background: rgba(255, 255, 255, 0.2); border: 2px solid #fff; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; touch-action: manipulation; }
-        .btn:active { background: rgba(255, 255, 255, 0.5); }
-        #hud { position: absolute; top: 10px; left: 10px; color: #00ff00; font-family: monospace; font-size: 16px; text-shadow: 1px 1px 2px black; }
+        /* Мобильный интерфейс управления */
+        #joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; pointer-events: auto; }
+        #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.4); border-radius: 50%; }
+        #btn-shoot { position: absolute; bottom: 30px; right: 30px; width: 80px; height: 80px; background: rgba(255, 50, 50, 0.5); border: 3px solid #ff5555; border-radius: 50%; color: white; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        #btn-shoot:active { background: rgba(255, 50, 50, 0.8); transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <div id="hud">Зомби вокруг: <span id="zombie-count">0</span> | Здоровье: <span id="hp">100</span>%</div>
-    <div id="canvas-container"></div>
+    <div id="game-container"></div>
     
-    <!-- Мобильное управление -->
-    <div id="ui">
-        <div style="display: flex; gap: 10px;">
-            <div class="btn" id="btn-left">◄</div>
-            <div class="btn" id="btn-right">►</div>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <div class="btn" id="btn-gas">▲</div>
-            <div class="btn" id="btn-brake">▼</div>
-        </div>
-    </div>
+    <!-- Сенсорное управление -->
+    <div id="joystick-zone"><div id="joystick-stick"></div></div>
+    <div id="btn-shoot">FIRE</div>
 
-    <!-- Three.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ==========================================
+// ГЕНЕРАТОР ПИКСЕЛЬНЫХ ТЕКСТУР (Procedural Assets)
+// ==========================================
+function generatePixelAssets(scene) {
+    const createTex = (key, w, h, drawFn) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        drawFn(ctx);
+        scene.textures.addCanvas(key, canvas);
+    };
 
-    <script>
-        // Инициализация сцены, камеры и рендерера
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508);
-        scene.fog = new THREE.FogExp2(0x050508, 0.015); // Туман апокалипсиса
+    // 1. Игрок
+    createTex('player', 16, 16, ctx => {
+        ctx.fillStyle = '#ffcc99'; ctx.fillRect(4, 2, 8, 5); // Голова
+        ctx.fillStyle = '#2255bb'; ctx.fillRect(3, 7, 10, 6); // Куртка
+        ctx.fillStyle = '#111111'; ctx.fillRect(4, 13, 3, 3); ctx.fillRect(9, 13, 3, 3); // Ноги
+        ctx.fillStyle = '#555'; ctx.fillRect(11, 8, 5, 3); // Оружие
+    });
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+    // 2. Зомби
+    createTex('zombie', 16, 16, ctx => {
+        ctx.fillStyle = '#3f6a3a'; ctx.fillRect(4, 2, 8, 5); // Зеленая голова
+        ctx.fillStyle = '#cc0000'; ctx.fillRect(6, 4, 2, 2); // Красный глаз
+        ctx.fillStyle = '#556644'; ctx.fillRect(3, 7, 10, 6); // Ободранная одежда
+        ctx.fillStyle = '#222'; ctx.fillRect(4, 13, 3, 3); ctx.fillRect(9, 13, 3, 3);
+    });
 
-        // Освещение (ночной апокалипсис)
-        const ambientLight = new THREE.AmbientLight(0x222233);
-        scene.add(ambientLight);
+    // 3. Дерево 1 (Дуб)
+    createTex('tree_oak', 32, 32, ctx => {
+        ctx.fillStyle = '#5a3d28'; ctx.fillRect(13, 20, 6, 12); // Ствол
+        ctx.fillStyle = '#1e5922'; ctx.beginPath(); ctx.arc(16, 14, 12, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2a752e'; ctx.beginPath(); ctx.arc(14, 11, 8, 0, Math.PI*2); ctx.fill();
+    });
 
-        const dirLight = new THREE.DirectionalLight(0x444466, 0.8);
-        dirLight.position.set(100, 150, 50);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
+    // 4. Дерево 2 (Сосна)
+    createTex('tree_pine', 32, 40, ctx => {
+        ctx.fillStyle = '#3a271d'; ctx.fillRect(14, 28, 4, 12);
+        ctx.fillStyle = '#0f381e';
+        ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(4, 16); ctx.lineTo(28, 16); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(16, 10); ctx.lineTo(2, 28); ctx.lineTo(30, 28); ctx.fill();
+    });
 
-        // Генерация Открытого Мира (Земля)
-        const WORLD_SIZE = 400;
-        const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x111511, roughness: 0.9 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
+    // 5. Куст (Скрытие)
+    createTex('bush', 24, 24, ctx => {
+        ctx.fillStyle = '#2d8a4e'; ctx.beginPath(); ctx.arc(12, 12, 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#3bb065'; ctx.beginPath(); ctx.arc(9, 9, 6, 0, Math.PI*2); ctx.fill();
+    });
 
-        // Разрушенные здания (Декорации мира)
-        const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
-        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-        for (let i = 0; i < 40; i++) {
-            const b = new THREE.Mesh(buildingGeo, buildingMat);
-            const w = 10 + Math.random() * 15;
-            const h = 5 + Math.random() * 25;
-            const d = 10 + Math.random() * 15;
-            b.scale.set(w, h, d);
-            b.position.set((Math.random() - 0.5) * (WORLD_SIZE - 40), h / 2, (Math.random() - 0.5) * (WORLD_SIZE - 40));
-            b.castShadow = true;
-            b.receiveShadow = true;
-            scene.add(b);
-        }
+    // 6. Плитка травы
+    createTex('grass', 32, 32, ctx => {
+        ctx.fillStyle = '#224422'; ctx.fillRect(0,0,32,32);
+        ctx.fillStyle = '#1a361a'; ctx.fillRect(4,8,2,2); ctx.fillRect(20,22,2,4);
+        ctx.fillStyle = '#2c542c'; ctx.fillRect(14,4,3,3); ctx.fillRect(8,24,2,2);
+    });
 
-        // Игрок (Машина)
-        const carGroup = new THREE.Group();
-        const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
-        const carBody = new THREE.Mesh(bodyGeo, bodyMat);
-        carBody.position.y = 0.5;
-        carBody.castShadow = true;
-        carGroup.add(carBody);
+    // 7. Стена здания
+    createTex('wall', 32, 32, ctx => {
+        ctx.fillStyle = '#444444'; ctx.fillRect(0,0,32,32);
+        ctx.fillStyle = '#333333'; ctx.fillRect(0,0,32,2); ctx.fillRect(0,16,32,2); ctx.fillRect(16,0,2,16); ctx.fillRect(8,16,2,16);
+    });
 
-        // Фары машины
-        const headlight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5);
-        headlight.position.set(0, 0.8, -1.8);
-        headlight.target.position.set(0, 0, -10);
-        carGroup.add(headlight);
-        carGroup.add(headlight.target);
+    // 8. Дверь
+    createTex('door', 32, 32, ctx => {
+        ctx.fillStyle = '#663300'; ctx.fillRect(0,0,32,32);
+        ctx.fillStyle = '#ffcc00'; ctx.fillRect(24,14,4,4); // Ручка
+    });
 
-        scene.add(carGroup);
+    // 9. Крыша / Туман войны для зданий
+    createTex('roof', 32, 32, ctx => {
+        ctx.fillStyle = '#111116'; ctx.fillRect(0,0,32,32);
+    });
 
-        // Зомби
-        const zombies = [];
-        const zombieMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e });
-        const zombieGeo = new THREE.BoxGeometry(1, 2, 1);
+    // 10. Пуля
+    createTex('bullet', 6, 6, ctx => {
+        ctx.fillStyle = '#ffff00'; ctx.fillRect(0,0,6,6);
+    });
 
-        function spawnZombies(count) {
-            for (let i = 0; i < count; i++) {
-                const z = new THREE.Mesh(zombieGeo, zombieMat);
-                z.position.set((Math.random() - 0.5) * (WORLD_SIZE - 20), 1, (Math.random() - 0.5) * (WORLD_SIZE - 20));
-                z.castShadow = true;
-                scene.add(z);
-                zombies.push(z);
-            }
-            document.getElementById('zombie-count').innerText = zombies.length;
-        }
-        spawnZombies(60);
+    // 11. Масштабный элемент: Разрушенный Танк
+    createTex('tank', 64, 48, ctx => {
+        ctx.fillStyle = '#2b3023'; ctx.fillRect(4, 4, 56, 40); // Корпус
+        ctx.fillStyle = '#181c13'; ctx.fillRect(0, 2, 64, 8); ctx.fillRect(0, 38, 64, 8); // Гусеницы
+        ctx.fillStyle = '#3d4532'; ctx.beginPath(); ctx.arc(28, 24, 12, 0, Math.PI*2); ctx.fill(); // Башня
+        ctx.fillStyle = '#151515'; ctx.fillRect(28, 22, 32, 4); // Пушка
+    });
+}
 
-        // Управление (Клавиатура + Тачскрин)
-        const input = { forward: 0, turn: 0 };
+// ==========================================
+// ОСНОВНАЯ ЛОГИКА ИГРЫ
+// ==========================================
+class MainScene extends Phaser.Scene {
+    constructor() { super('MainScene'); }
+
+    preload() {
+        generatePixelAssets(this);
+    }
+
+    create() {
+        const MAP_W = 3000, MAP_H = 3000;
+        this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
+
+        // Тайловый фон травы
+        this.add.tileSprite(MAP_W/2, MAP_H/2, MAP_W, MAP_H, 'grass');
+
+        // Группы объектов
+        this.lakes = this.physics.add.staticGroup();
+        this.trees = this.physics.add.staticGroup();
+        this.bushes = this.add.group();
+        this.walls = this.physics.add.staticGroup();
+        this.doors = this.physics.add.staticGroup();
+        this.roofs = this.add.group();
+        this.zombies = this.physics.add.group();
+        this.bullets = this.physics.add.group();
+
+        // 1. ГЕНЕРАЦИЯ ОЗЕР (Запретные для плавания зоны)
+        const lakeGraphics = this.add.graphics();
+        lakeGraphics.fillStyle(0x1a4568, 1);
+        lakeGraphics.lineStyle(4, 0x296494, 1);
         
-        // Обработка кнопки мыши/тачей
-        const bindBtn = (id, action, val) => {
-            const el = document.getElementById(id);
-            const start = (e) => { e.preventDefault(); input[action] = val; };
-            const end = (e) => { e.preventDefault(); input[action] = 0; };
-            el.addEventListener('touchstart', start);
-            el.addEventListener('touchend', end);
-            el.addEventListener('mousedown', start);
-            el.addEventListener('mouseup', end);
+        for (let i = 0; i < 8; i++) {
+            let lx = Phaser.Math.Between(300, MAP_W - 300);
+            let ly = Phaser.Math.Between(300, MAP_H - 300);
+            let rx = Phaser.Math.Between(80, 180);
+            let ry = Phaser.Math.Between(60, 120);
+
+            lakeGraphics.fillEllipse(lx, ly, rx * 2, ry * 2);
+            lakeGraphics.strokeEllipse(lx, ly, rx * 2, ry * 2);
+
+            let lakeZone = this.add.ellipse(lx, ly, rx * 2, ry * 2);
+            this.physics.add.existing(lakeZone, true);
+            lakeZone.body.setCircle(Math.min(rx, ry));
+            this.lakes.add(lakeZone);
+        }
+
+        // 2. ГЕНЕРАЦИЯ ЗДАНИЙ С ДВЕРЯМИ И ТУМАНОМ ВНУТРИ
+        this.buildingsData = [];
+        const createBuilding = (x, y, wUnits, hUnits) => {
+            const unit = 32;
+            const w = wUnits * unit;
+            const h = hUnits * unit;
+            let roofTiles = [];
+
+            for (let bx = 0; bx < wUnits; bx++) {
+                for (let by = 0; by < hUnits; by++) {
+                    let px = x + bx * unit;
+                    let py = y + by * unit;
+
+                    // Стена по периметру, кроме двери
+                    if (bx === 0 || bx === wUnits - 1 || by === 0 || by === hUnits - 1) {
+                        if (bx === Math.floor(wUnits / 2) && by === hUnits - 1) {
+                            // Дверь снизу по центру
+                            let door = this.doors.create(px + 16, py + 16, 'door');
+                        } else {
+                            let wall = this.walls.create(px + 16, py + 16, 'wall');
+                        }
+                    }
+                    
+                    // Крыша (скрывает интерьер)
+                    let roof = this.add.image(px + 16, py + 16, 'roof').setDepth(10);
+                    this.roofs.add(roof);
+                    roofTiles.push(roof);
+                }
+            }
+
+            this.buildingsData.push({
+                bounds: new Phaser.Geom.Rectangle(x, y, w, h),
+                roofs: roofTiles
+            });
         };
 
-        bindBtn('btn-gas', 'forward', 1);
-        bindBtn('btn-brake', 'forward', -1);
-        bindBtn('btn-left', 'turn', 1);
-        bindBtn('btn-right', 'turn', -1);
+        // Спавн нескольких зданий
+        createBuilding(400, 400, 8, 6);
+        createBuilding(1200, 800, 10, 8);
+        createBuilding(800, 1800, 7, 7);
+        createBuilding(2000, 1200, 12, 9);
 
-        // Физика и состояние
-        let speed = 0;
-        let health = 100;
-        const carStats = { maxSpeed: 0.6, accel: 0.02, turnSpeed: 0.03, friction: 0.96 };
+        // 3. МАСШТАБНАЯ ДОСТОПРИМЕЧАТЕЛЬНОСТЬ (Военная база с танком)
+        this.add.image(1600, 2000, 'tank').setDepth(2);
+        let tankObstacle = this.add.zone(1600, 2000, 60, 40);
+        this.physics.add.existing(tankObstacle, true);
+        this.walls.add(tankObstacle);
 
-        // Игровой цикл
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Движение машины
-            if (input.forward !== 0) {
-                speed = THREE.MathUtils.clamp(speed + input.forward * carStats.accel, -carStats.maxSpeed / 2, carStats.maxSpeed);
-            } else {
-                speed *= carStats.friction;
-            }
-
-            if (Math.abs(speed) > 0.001) {
-                carGroup.rotation.y += input.turn * carStats.turnSpeed * Math.sign(speed);
-            }
-
-            carGroup.translateZ(-speed);
-
-            // Ограничение границами мира
-            const border = WORLD_SIZE / 2 - 2;
-            carGroup.position.x = THREE.MathUtils.clamp(carGroup.position.x, -border, border);
-            carGroup.position.z = THREE.MathUtils.clamp(carGroup.position.z, -border, border);
-
-            // Камера следит за машиной
-            const cameraOffset = new THREE.Vector3(0, 5, 12).applyMatrix4(carGroup.matrixWorld);
-            camera.position.lerp(cameraOffset, 0.1);
-            camera.lookAt(carGroup.position.x, carGroup.position.y + 1, carGroup.position.z);
-
-            // Поведение зомби
-            zombies.forEach((z, index) => {
-                // Идти к машине
-                const dir = new THREE.Vector3().subVectors(carGroup.position, z.position);
-                dir.y = 0;
-                if (dir.length() < 50) { // Видят игрока неподалеку
-                    dir.normalize();
-                    z.position.addScaledVector(dir, 0.08);
-                    z.lookAt(carGroup.position.x, 1, carGroup.position.z);
-                }
-
-                // Проверка столкновения
-                const dist = z.position.distanceTo(carGroup.position);
-                if (dist < 2) {
-                    if (Math.abs(speed) > 0.2) {
-                        // Сбить зомби на скорости
-                        scene.remove(z);
-                        zombies.splice(index, 1);
-                        document.getElementById('zombie-count').innerText = zombies.length;
-                    } else {
-                        // Зомби атакуют стоячую машину
-                        health = Math.max(0, health - 0.1);
-                        document.getElementById('hp').innerText = Math.floor(health);
-                    }
-                }
-            });
-
-            renderer.render(scene, camera);
+        // 4. ДЕРЕВЬЯ И КУСТЫ
+        for (let i = 0; i < 200; i++) {
+            let tx = Phaser.Math.Between(100, MAP_W - 100);
+            let ty = Phaser.Math.Between(100, MAP_H - 100);
+            let type = Math.random() > 0.5 ? 'tree_oak' : 'tree_pine';
+            let tree = this.trees.create(tx, ty, type);
+            tree.body.setCircle(10, 6, 12);
+            tree.setDepth(5);
         }
 
-        // Адаптация под размер экрана
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        for (let i = 0; i < 150; i++) {
+            let bx = Phaser.Math.Between(100, MAP_W - 100);
+            let by = Phaser.Math.Between(100, MAP_H - 100);
+            let bush = this.add.image(bx, by, 'bush').setDepth(1);
+            this.bushes.add(bush);
+        }
+
+        // 5. ИГРОК И КАМЕРА
+        this.player = this.physics.add.sprite(1500, 1500, 'player');
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(3);
+        this.player.hp = 100;
+        this.player.isHidden = false;
+
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.cameras.main.setBounds(0, 0, MAP_W, MAP_H);
+        this.cameras.main.setZoom(1.5);
+
+        // 6. СПАВН ЗОМБИ
+        for (let i = 0; i < 100; i++) {
+            let zx = Phaser.Math.Between(100, MAP_W - 100);
+            let zy = Phaser.Math.Between(100, MAP_H - 100);
+            if (Phaser.Math.Distance.Between(zx, zy, 1500, 1500) > 300) {
+                let z = this.zombies.create(zx, zy, 'zombie');
+                z.setCollideWorldBounds(true);
+                z.setDepth(3);
+            }
+        }
+
+        // КОЛЛИЗИИ
+        this.physics.add.collider(this.player, this.walls);
+        this.physics.add.collider(this.player, this.trees);
+        this.physics.add.collider(this.player, this.lakes);
+        this.physics.add.collider(this.zombies, this.walls);
+        this.physics.add.collider(this.zombies, this.trees);
+        this.physics.add.collider(this.zombies, this.lakes);
+        this.physics.add.collider(this.zombies, this.zombies);
+
+        // Попадание пули в зомби
+        this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
+            bullet.destroy();
+            this.createBloodParticles(zombie.x, zombie.y);
+            zombie.destroy();
         });
 
-        animate();
-    </script>
+        // Попадание пули в стену
+        this.physics.add.collider(this.bullets, this.walls, (bullet) => bullet.destroy());
+
+        // Атака зомби
+        this.physics.add.overlap(this.player, this.zombies, (player, zombie) => {
+            player.hp -= 0.3;
+            this.cameras.main.shake(100, 0.005);
+            if (player.hp <= 0) {
+                this.scene.restart();
+            }
+        });
+
+        // Управление через Джойстик и Клавиатуру
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.setupTouchControls();
+
+        // UI Здоровья
+        this.hpText = this.add.text(16, 16, '', { font: '16px monospace', fill: '#00ff00' })
+            .setScrollFactor(0).setDepth(100);
+    }
+
+    createBloodParticles(x, y) {
+        // Простой пиксельный эффект крови при попадании
+        for (let i = 0; i < 8; i++) {
+            let p = this.add.rectangle(x, y, 3, 3, 0xaa0000).setDepth(4);
+            this.physics.add.existing(p);
+            p.body.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+            this.tweens.add({ targets: p, alpha: 0, duration: 300, onComplete: () => p.destroy() });
+        }
+    }
+
+    setupTouchControls() {
+        this.joyVector = { x: 0, y: 0 };
+        const zone = document.getElementById('joystick-zone');
+        const stick = document.getElementById('joystick-stick');
+        let touchId = null;
+
+        zone.addEventListener('touchstart', e => {
+            touchId = e.changedTouches[0].identifier;
+            updateStick(e.changedTouches[0]);
+        });
+
+        window.addEventListener('touchmove', e => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === touchId) updateStick(t);
+            }
+        });
+
+        const resetStick = e => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === touchId) {
+                    touchId = null;
+                    stick.style.transform = `translate(0px, 0px)`;
+                    this.joyVector = { x: 0, y: 0 };
+                }
+            }
+        };
+
+        window.addEventListener('touchend', resetStick);
+
+        const updateStick = touch => {
+            const rect = zone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.min(Math.hypot(dx, dy), 40);
+            const angle = Math.atan2(dy, dx);
+            
+            dx = Math.cos(angle) * dist;
+            dy = Math.sin(angle) * dist;
+
+            stick.style.transform = `translate(${dx}px, ${dy}px)`;
+            this.joyVector = { x: dx / 40, y: dy / 40 };
+        };
+
+        // Кнопка стрельбы
+        const fireBtn = document.getElementById('btn-shoot');
+        fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.shoot(); });
+        fireBtn.addEventListener('mousedown', (e) => { e.preventDefault(); this.shoot(); });
+    }
+
+    shoot() {
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bullet');
+        let angle = this.player.rotation;
+        bullet.setDepth(3);
+        this.physics.velocityFromRotation(angle, 400, bullet.body.velocity);
+    }
+
+    update() {
+        // 1. УПРАВЛЕНИЕ ДВИЖЕНИЕМ
+        let vx = 0, vy = 0;
+        const speed = 120;
+
+        if (this.cursors.left.isDown) vx = -1;
+        else if (this.cursors.right.isDown) vx = 1;
+        if (this.cursors.up.isDown) vy = -1;
+        else if (this.cursors.down.isDown) vy = 1;
+
+        if (this.joyVector.x !== 0 || this.joyVector.y !== 0) {
+            vx = this.joyVector.x;
+            vy = this.joyVector.y;
+        }
+
+        this.player.body.setVelocity(vx * speed, vy * speed);
+
+        if (vx !== 0 || vy !== 0) {
+            this.player.rotation = Math.atan2(vy, vx);
+        }
+
+        // Клавиша Пробел для ПК-стрельбы
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
+            this.shoot();
+        }
+
+        // 2. ПРОВЕРКА УКРЫТИЯ В КУСТАХ
+        this.player.isHidden = false;
+        this.bushes.getChildren().forEach(bush => {
+            if (Phaser.Math.Distance.Between(this.player.x, this.player.y, bush.x, bush.y) < 15) {
+                this.player.isHidden = true;
+            }
+        });
+
+        this.player.setAlpha(this.player.isHidden ? 0.5 : 1.0);
+
+        // 3. ЗДАНИЯ И ТУМАН ВОЙНЫ (Вход в помещения)
+        this.buildingsData.forEach(b => {
+            let inside = b.bounds.contains(this.player.x, this.player.y);
+            b.roofs.forEach(roof => roof.setVisible(!inside));
+        });
+
+        // 4. ИНТЕЛЛЕКТ ЗОМБИ (Пресделование только если игрок не скрыт)
+        this.zombies.getChildren().forEach(zombie => {
+            let dist = Phaser.Math.Distance.Between(zombie.x, zombie.y, this.player.x, this.player.y);
+            if (dist < 250 && !this.player.isHidden) {
+                let angle = Phaser.Math.Angle.Between(zombie.x, zombie.y, this.player.x, this.player.y);
+                this.physics.velocityFromRotation(angle, 60, zombie.body.velocity);
+                zombie.rotation = angle;
+            } else {
+                zombie.body.setVelocity(0, 0);
+            }
+        });
+
+        // 5. ОБНОВЛЕНИЕ UI
+        this.hpText.setText(`HP: ${Math.ceil(this.player.hp)}% ${this.player.isHidden ? '[СКРЫТ]' : ''}`);
+        this.hpText.setColor(this.player.hp > 30 ? '#00ff00' : '#ff0000');
+    }
+}
+
+// Конфигурация Phaser
+const config = {
+    type: Phaser.AUTO,
+    parent: 'game-container',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    pixelArt: true, // Включает пиксельную четкость
+    physics: { default: 'arcade', arcade: { debug: false } },
+    scene: MainScene
+};
+
+const game = new Phaser.Game(config);
+window.addEventListener('resize', () => game.scale.resize(window.innerWidth, window.innerHeight));
+</script>
 </body>
 </html>
