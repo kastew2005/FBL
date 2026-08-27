@@ -12,6 +12,7 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -169,7 +170,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            transition: all 0.1s;
+            transition: all 0.05s;
             box-shadow: 0 0 10px rgba(255,255,255,0.5);
         }
 
@@ -198,6 +199,7 @@
             justify-content: center;
             backdrop-filter: blur(5px);
             transition: all 0.2s;
+            pointer-events: auto;
         }
 
         .action-btn:active {
@@ -342,8 +344,8 @@
                 1-4 - выбор оружия<br>
                 <strong>📱 Телефон:</strong><br>
                 Левый джойстик - движение<br>
-                Свайп по экрану - осмотр<br>
-                Кнопки справа - действия
+                Правая часть экрана - осмотр<br>
+                Кнопки - действия
             </div>
         </div>
 
@@ -387,6 +389,12 @@
         let medkits = 3;
         let trees = [];
         let grasses = [];
+
+        // Мультитач
+        let activeTouches = new Map();
+        let cameraTouchId = null;
+        let lastCameraTouchX = 0;
+        let lastCameraTouchY = 0;
 
         const ammo = {
             pistol: { current: 12, reserve: 48, max: 12 },
@@ -440,10 +448,22 @@
                     ctx.lineTo(Math.random()*64, Math.random()*64);
                     ctx.stroke();
                 }
-            } else if (type === 'building') {
-                for (let i = 0; i < 10; i++) {
-                    ctx.fillStyle = 'rgba(255, 255, 100, 0.3)';
-                    ctx.fillRect(Math.random()*50, Math.random()*50, 5, 5);
+            } else if (type === 'zombie_skin') {
+                // Текстура кожи зомби
+                for (let i = 0; i < 30; i++) {
+                    ctx.fillStyle = `rgba(${Math.random()*100}, ${Math.random()*50}, ${Math.random()*30}, 0.3)`;
+                    ctx.beginPath();
+                    ctx.arc(Math.random()*64, Math.random()*64, Math.random()*5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                // Шрамы
+                ctx.strokeStyle = 'rgba(100, 0, 0, 0.5)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(Math.random()*64, Math.random()*64);
+                    ctx.lineTo(Math.random()*64, Math.random()*64);
+                    ctx.stroke();
                 }
             }
             
@@ -682,11 +702,12 @@
         function createZombie() {
             const zombieGroup = new THREE.Group();
             
-            // Тело
+            // Тело с текстурой кожи
             const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.8, 8);
             const bodyMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x4a4a4a,
-                roughness: 0.9
+                map: createTexture('#4a4a4a', 'zombie_skin'),
+                roughness: 0.9,
+                bumpScale: 0.1
             });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = 0.9;
@@ -696,7 +717,7 @@
             // Голова
             const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
             const headMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x3a3a3a,
+                map: createTexture('#3a3a3a', 'zombie_skin'),
                 roughness: 0.9
             });
             const head = new THREE.Mesh(headGeometry, headMaterial);
@@ -704,34 +725,60 @@
             head.castShadow = true;
             zombieGroup.add(head);
             
-            // Глаза
+            // Глаза (светящиеся)
             for (let i = -1; i <= 1; i += 2) {
                 const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-                const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                const eyeMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff0000,
+                    emissive: 0xff0000
+                });
                 const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
                 eye.position.set(i * 0.1, 0.05, -0.2);
                 head.add(eye);
             }
             
-            // Руки
+            // Рот (рана)
+            const mouthGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.05);
+            const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouth.position.set(0, -0.1, -0.2);
+            head.add(mouth);
+            
+            // Руки (вытянутые вперед)
             for (let i = -1; i <= 1; i += 2) {
+                const armGroup = new THREE.Group();
+                
                 const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 6);
                 const armMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x3a3a3a,
+                    map: createTexture('#3a3a3a', 'zombie_skin'),
                     roughness: 0.9
                 });
                 const arm = new THREE.Mesh(armGeometry, armMaterial);
-                arm.position.set(i * 0.4, 1.2, 0);
-                arm.rotation.z = i * -0.5;
+                arm.position.y = -0.4;
                 arm.castShadow = true;
-                zombieGroup.add(arm);
+                armGroup.add(arm);
+                
+                // Кисть
+                const handGeometry = new THREE.SphereGeometry(0.12, 6, 6);
+                const handMaterial = new THREE.MeshStandardMaterial({ 
+                    map: createTexture('#3a3a3a', 'zombie_skin'),
+                    roughness: 0.9
+                });
+                const hand = new THREE.Mesh(handGeometry, handMaterial);
+                hand.position.y = -0.8;
+                armGroup.add(hand);
+                
+                armGroup.position.set(i * 0.5, 1.2, 0);
+                armGroup.rotation.x = -Math.PI / 3;
+                armGroup.rotation.z = i * 0.3;
+                zombieGroup.add(armGroup);
             }
             
             // Ноги
             for (let i = -1; i <= 1; i += 2) {
-                const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 6);
+                const legGeometry = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 6);
                 const legMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x2a2a2a,
+                    map: createTexture('#2a2a2a', 'zombie_skin'),
                     roughness: 0.9
                 });
                 const leg = new THREE.Mesh(legGeometry, legMaterial);
@@ -755,7 +802,8 @@
                 damage: 10 + wave * 2,
                 isZombie: true,
                 isDead: false,
-                lastAttack: 0
+                lastAttack: 0,
+                walkCycle: Math.random() * Math.PI * 2
             };
             
             scene.add(zombieGroup);
@@ -779,7 +827,9 @@
                     const deathParticles = new THREE.Group();
                     for (let j = 0; j < 10; j++) {
                         const particleGeometry = new THREE.SphereGeometry(0.1, 4, 4);
-                        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                        const particleMaterial = new THREE.MeshBasicMaterial({ 
+                            color: Math.random() < 0.5 ? 0x00ff00 : 0xff0000 
+                        });
                         const particle = new THREE.Mesh(particleGeometry, particleMaterial);
                         particle.position.set(
                             (Math.random() - 0.5) * 2,
@@ -807,8 +857,14 @@
                     .subVectors(player.position, zombie.position)
                     .normalize();
                 
+                // Анимация ходьбы
+                zombie.userData.walkCycle += deltaTime * zombie.userData.speed * 2;
+                const bobAmount = Math.sin(zombie.userData.walkCycle) * 0.1;
+                zombie.position.y = Math.abs(bobAmount);
+                zombie.rotation.x = bobAmount * 0.3;
+                zombie.rotation.z = Math.sin(zombie.userData.walkCycle) * 0.1;
+                
                 zombie.position.add(direction.multiplyScalar(zombie.userData.speed * deltaTime));
-                zombie.position.y = 0;
                 
                 zombie.lookAt(player.position.x, 0, player.position.z);
                 
@@ -817,6 +873,14 @@
                     if (now - zombie.userData.lastAttack > 1000) {
                         zombie.userData.lastAttack = now;
                         player.takeDamage(zombie.userData.damage);
+                        
+                        // Анимация атаки
+                        zombie.rotation.x = -0.5;
+                        setTimeout(() => {
+                            if (!zombie.userData.isDead) {
+                                zombie.rotation.x = 0;
+                            }
+                        }, 300);
                     }
                 }
             }
@@ -859,6 +923,15 @@
                     
                     if (object.userData.isZombie) {
                         object.userData.health -= weapon.damage;
+                        
+                        // Эффект попадания
+                        const bloodEffect = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.1, 4, 4),
+                            new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+                        );
+                        bloodEffect.position.copy(hit.point);
+                        scene.add(bloodEffect);
+                        setTimeout(() => scene.remove(bloodEffect), 200);
                         
                         if (object.userData.health <= 0) {
                             object.userData.isDead = true;
@@ -1017,6 +1090,8 @@
             spawnRate = 3000;
             waveTimer = 0;
             lastSpawn = 0;
+            activeTouches.clear();
+            cameraTouchId = null;
             
             // Создаем мир
             createWorld();
@@ -1042,87 +1117,144 @@
             console.log('✅ Игра запущена!');
         }
 
-        // ==================== МОБИЛЬНОЕ УПРАВЛЕНИЕ ====================
-        // Джойстик
+        // ==================== МУЛЬТИТАЧ УПРАВЛЕНИЕ ====================
         const joystickBase = document.getElementById('joystick-base');
         const joystickThumb = document.getElementById('joystick-thumb');
-        let isJoystickActive = false;
+        let joystickTouchId = null;
         let joystickStartX = 0;
         let joystickStartY = 0;
 
-        joystickBase.addEventListener('touchstart', (e) => {
+        document.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            isJoystickActive = true;
-            joystickStartX = e.touches[0].clientX;
-            joystickStartY = e.touches[0].clientY;
-        });
-
-        document.addEventListener('touchmove', (e) => {
-            if (!isJoystickActive) {
-                // Поворот камеры
-                if (e.touches.length === 1) {
-                    const touch = e.touches[0];
-                    if (!touch.target.closest('#joystick-container') && !touch.target.closest('#action-buttons')) {
-                        const deltaX = touch.clientX - window.lastTouchX;
-                        const deltaY = touch.clientY - window.lastTouchY;
-                        
-                        player.rotation.y -= deltaX * 0.005;
-                        player.rotation.x -= deltaY * 0.005;
-                        
-                        player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
-                    }
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const touchId = touch.identifier;
+                
+                // Проверяем, не попали ли в джойстик
+                const joystickRect = joystickBase.getBoundingClientRect();
+                if (touch.clientX >= joystickRect.left && touch.clientX <= joystickRect.right &&
+                    touch.clientY >= joystickRect.top && touch.clientY <= joystickRect.bottom) {
+                    joystickTouchId = touchId;
+                    joystickStartX = touch.clientX;
+                    joystickStartY = touch.clientY;
+                    activeTouches.set(touchId, { type: 'joystick' });
+                    continue;
                 }
                 
-                window.lastTouchX = e.touches[0].clientX;
-                window.lastTouchY = e.touches[0].clientY;
-                return;
+                // Проверяем кнопки действий
+                const shootBtn = document.getElementById('shoot-btn');
+                const reloadBtn = document.getElementById('reload-btn');
+                const jumpBtn = document.getElementById('jump-btn');
+                
+                const shootRect = shootBtn.getBoundingClientRect();
+                const reloadRect = reloadBtn.getBoundingClientRect();
+                const jumpRect = jumpBtn.getBoundingClientRect();
+                
+                if (touch.clientX >= shootRect.left && touch.clientX <= shootRect.right &&
+                    touch.clientY >= shootRect.top && touch.clientY <= shootRect.bottom) {
+                    if (gameRunning) shoot();
+                    activeTouches.set(touchId, { type: 'button', button: 'shoot' });
+                    continue;
+                }
+                
+                if (touch.clientX >= reloadRect.left && touch.clientX <= reloadRect.right &&
+                    touch.clientY >= reloadRect.top && touch.clientY <= reloadRect.bottom) {
+                    if (gameRunning) reload();
+                    activeTouches.set(touchId, { type: 'button', button: 'reload' });
+                    continue;
+                }
+                
+                if (touch.clientX >= jumpRect.left && touch.clientX <= jumpRect.right &&
+                    touch.clientY >= jumpRect.top && touch.clientY <= jumpRect.bottom) {
+                    if (gameRunning && player.onGround) player.velocity.y = 8;
+                    activeTouches.set(touchId, { type: 'button', button: 'jump' });
+                    continue;
+                }
+                
+                // Иначе - камера
+                if (cameraTouchId === null) {
+                    cameraTouchId = touchId;
+                    lastCameraTouchX = touch.clientX;
+                    lastCameraTouchY = touch.clientY;
+                    activeTouches.set(touchId, { type: 'camera' });
+                }
             }
-            
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
             e.preventDefault();
             
-            const deltaX = e.touches[0].clientX - joystickStartX;
-            const deltaY = e.touches[0].clientY - joystickStartY;
-            
-            const maxDistance = 40;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > maxDistance) {
-                const ratio = maxDistance / distance;
-                joystickThumb.style.transform = `translate(${deltaX * ratio}px, ${deltaY * ratio}px)`;
-            } else {
-                joystickThumb.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const touchId = touch.identifier;
+                const touchData = activeTouches.get(touchId);
+                
+                if (!touchData) continue;
+                
+                if (touchData.type === 'joystick') {
+                    // Обработка джойстика
+                    const deltaX = touch.clientX - joystickStartX;
+                    const deltaY = touch.clientY - joystickStartY;
+                    
+                    const maxDistance = 40;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    
+                    if (distance > maxDistance) {
+                        const ratio = maxDistance / distance;
+                        joystickThumb.style.transform = `translate(${deltaX * ratio}px, ${deltaY * ratio}px)`;
+                    } else {
+                        joystickThumb.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                    }
+                    
+                    window.joystickDirection = {
+                        x: Math.max(-1, Math.min(1, deltaX / maxDistance)),
+                        y: Math.max(-1, Math.min(1, deltaY / maxDistance))
+                    };
+                } else if (touchData.type === 'camera') {
+                    // Обработка камеры
+                    const deltaX = touch.clientX - lastCameraTouchX;
+                    const deltaY = touch.clientY - lastCameraTouchY;
+                    
+                    player.rotation.y -= deltaX * 0.005;
+                    player.rotation.x -= deltaY * 0.005;
+                    
+                    player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
+                    
+                    lastCameraTouchX = touch.clientX;
+                    lastCameraTouchY = touch.clientY;
+                }
             }
-            
-            window.joystickDirection = {
-                x: deltaX / maxDistance,
-                y: deltaY / maxDistance
-            };
-        });
+        }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
-            if (isJoystickActive) {
-                isJoystickActive = false;
-                joystickThumb.style.transform = 'translate(0px, 0px)';
-                window.joystickDirection = { x: 0, y: 0 };
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const touchId = touch.identifier;
+                const touchData = activeTouches.get(touchId);
+                
+                if (!touchData) continue;
+                
+                if (touchData.type === 'joystick') {
+                    joystickTouchId = null;
+                    joystickThumb.style.transform = 'translate(0px, 0px)';
+                    window.joystickDirection = { x: 0, y: 0 };
+                } else if (touchData.type === 'camera') {
+                    cameraTouchId = null;
+                }
+                
+                activeTouches.delete(touchId);
             }
-        });
+        }, { passive: false });
 
-        // Кнопки для мобильных
-        document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameRunning) shoot();
-        });
-
-        document.getElementById('reload-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameRunning) reload();
-        });
-
-        document.getElementById('jump-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameRunning && player.onGround) {
-                player.velocity.y = 8;
-            }
+        document.addEventListener('touchcancel', (e) => {
+            activeTouches.clear();
+            joystickTouchId = null;
+            cameraTouchId = null;
+            joystickThumb.style.transform = 'translate(0px, 0px)';
+            window.joystickDirection = { x: 0, y: 0 };
         });
 
         // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
