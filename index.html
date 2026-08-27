@@ -2,703 +2,207 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zombie Survival: Open World Overhaul</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Zombie Open World 3D</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #050705; font-family: 'Segoe UI', Roboto, sans-serif; }
-        canvas { display: block; width: 100%; height: 100%; }
-
-        .ui-panel {
-            display: none; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(15, 20, 28, 0.98); border: 2px solid #ff9800;
-            border-radius: 12px; padding: 18px; color: #fff;
-            box-shadow: 0 0 30px rgba(0,0,0,0.95); z-index: 100;
-            width: 92%; max-width: 450px; max-height: 85vh; overflow-y: auto;
-        }
-
-        .ui-header { font-size: 20px; font-weight: bold; margin-bottom: 12px; text-align: center; border-bottom: 1px solid #37474f; padding-bottom: 8px; color: #ffb74d; }
-        .item-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-        .item-card {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255,255,255,0.06); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-            font-size: 13px;
-        }
-        .btn-action { background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; }
-        .btn-close { margin-top: 12px; width: 100%; background: #d32f2f; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; }
-
-        #mainMenu {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #1a237e 0%, #050705 100%); z-index: 200;
-        }
-        #mainMenu h1 { font-size: 34px; color: #ff5722; text-shadow: 0 0 20px rgba(255,87,34,0.8); margin-bottom: 8px; text-align: center; }
-        #mainMenu p { color: #b0bec5; margin-bottom: 25px; text-align: center; font-size: 14px; }
-        .menu-btn {
-            width: 220px; padding: 14px; margin: 8px; background: #263238; color: #fff;
-            border: 2px solid #ff9800; border-radius: 25px; font-size: 16px; font-weight: bold; text-align: center;
-        }
-
-        .hud-btn {
-            position: absolute; background: rgba(0,0,0,0.7); color: #fff; border: 1px solid #ff9800;
-            padding: 8px 12px; border-radius: 18px; font-weight: bold; z-index: 50; font-size: 12px;
-        }
-        #invBtn { top: 12px; left: 12px; }
-        #settingsBtn { top: 12px; left: 110px; }
-        #menuBtnHUD { top: 12px; right: 12px; }
-
-        #actionBtn {
-            display: none; position: absolute; bottom: 110px; right: 25px;
-            background: rgba(255, 152, 0, 0.95); color: #fff;
-            border: 2px solid #fff; padding: 14px 22px; border-radius: 40px;
-            font-weight: bold; font-size: 15px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-        }
-
-        #fireBtnAuto {
-            display: none; position: absolute; bottom: 100px; right: 30px;
-            background: rgba(244, 67, 54, 0.85); color: #fff; border: 3px solid #fff;
-            width: 75px; height: 75px; border-radius: 50%; font-weight: bold; font-size: 14px;
-            z-index: 50; box-shadow: 0 0 15px rgba(244,67,54,0.6);
-        }
-
-        /* Индикаторы выживания */
-        #hudBars {
-            position: absolute; bottom: 15px; left: 15px; z-index: 50;
-            display: flex; flex-direction: column; gap: 6px; width: 160px;
-            background: rgba(0,0,0,0.6); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-        }
-        .bar-container { width: 100%; height: 12px; background: #333; border-radius: 6px; overflow: hidden; position: relative; }
-        .bar-fill { height: 100%; width: 100%; transition: width 0.2s; }
-        .bar-text { position: absolute; top: -1px; left: 0; width: 100%; text-align: center; font-size: 9px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000; }
-
-        .equip-slot { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-bottom: 6px; border: 1px dashed #ff9800; font-size: 12px; }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; user-select: none; background: #000; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        /* Экранный джойстик для мобильных устройств */
+        #ui { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; }
+        .btn { width: 70px; height: 70px; background: rgba(255, 255, 255, 0.2); border: 2px solid #fff; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; touch-action: manipulation; }
+        .btn:active { background: rgba(255, 255, 255, 0.5); }
+        #hud { position: absolute; top: 10px; left: 10px; color: #00ff00; font-family: monospace; font-size: 16px; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
-
-    <div id="mainMenu">
-        <h1>ZOMBIE SURVIVAL</h1>
-        <p>Выживание в масштабируемом открытом мире</p>
-        <div class="menu-btn" id="btnContinue" onclick="continueGame()" style="display:none; background: #2e7d32;">ПРОДОЛЖИТЬ</div>
-        <div class="menu-btn" onclick="startNewGame()">НОВАЯ ИГРА</div>
-    </div>
-
-    <button id="invBtn" class="hud-btn" style="display:none;" onclick="openInventory()">🎒 Инвентарь</button>
-    <button id="settingsBtn" class="hud-btn" style="display:none;" onclick="openSettings()">⚙️</button>
-    <button id="menuBtnHUD" class="hud-btn" style="display:none;" onclick="returnToMenu()">⏸ Меню</button>
-
-    <button id="actionBtn" onclick="triggerAction()">ВЗАИМОДЕЙСТВИЕ</button>
-    <button id="fireBtnAuto">🔥 Выстрел</button>
-
-    <div id="hudBars" style="display:none;">
-        <div class="bar-container">
-            <div id="hpFill" class="bar-fill" style="background: #e53935;"></div>
-            <div id="hpText" class="bar-text">HP: 100/100</div>
+    <div id="hud">Зомби вокруг: <span id="zombie-count">0</span> | Здоровье: <span id="hp">100</span>%</div>
+    <div id="canvas-container"></div>
+    
+    <!-- Мобильное управление -->
+    <div id="ui">
+        <div style="display: flex; gap: 10px;">
+            <div class="btn" id="btn-left">◄</div>
+            <div class="btn" id="btn-right">►</div>
         </div>
-        <div class="bar-container">
-            <div id="hungerFill" class="bar-fill" style="background: #fb8c00;"></div>
-            <div id="hungerText" class="bar-text">Голод: 100/100</div>
+        <div style="display: flex; gap: 10px;">
+            <div class="btn" id="btn-gas">▲</div>
+            <div class="btn" id="btn-brake">▼</div>
         </div>
-        <div style="font-size: 10px; color: #ffb74d; text-align: center; margin-top: 2px;" id="timeText">☀️ День</div>
     </div>
 
-    <div id="lootMenu" class="ui-panel">
-        <div class="ui-header" id="lootHeader">📦 Тайник</div>
-        <div id="lootList" class="item-list"></div>
-        <button class="btn-close" onclick="closeLootMenu()">Закрыть</button>
-    </div>
-
-    <div id="inventoryMenu" class="ui-panel">
-        <div class="ui-header">🎒 Инвентарь & Экипировка</div>
-        <div style="font-size: 13px; font-weight: bold; color: #ffb74d; margin-bottom: 5px;">Экипированное снаряжение:</div>
-        <div id="equipSection"></div>
-        <div style="font-size: 13px; font-weight: bold; color: #ffb74d; margin: 10px 0 5px 0;">Предметы в сумке:</div>
-        <div id="inventoryList" class="item-list"></div>
-        <button class="btn-close" onclick="closeInventory()">Закрыть</button>
-    </div>
-
-    <div id="settingsMenu" class="ui-panel">
-        <div class="ui-header">⚙️ Настройки управления</div>
-        <div style="margin-bottom: 15px; font-size: 14px;">
-            <label><input type="radio" name="controlMode" value="joystick" checked onchange="changeControlMode(this.value)"> 1. Стрельба Джойстиком (Ручная)</label><br><br>
-            <label><input type="radio" name="controlMode" value="button" onchange="changeControlMode(this.value)"> 2. Кнопка Выстрела (Автонаведение)</label>
-        </div>
-        <button class="btn-close" onclick="closeSettings()">Сохранить и Закрыть</button>
-    </div>
-
-    <canvas id="canvas"></canvas>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const actionBtn = document.getElementById('actionBtn');
-        const fireBtnAuto = document.getElementById('fireBtnAuto');
+        // Инициализация сцены, камеры и рендерера
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050508);
+        scene.fog = new THREE.FogExp2(0x050508, 0.015); // Туман апокалипсиса
 
-        // Увеличенная карта игры
-        const WORLD = { width: 6000, height: 6000 };
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        // Освещение (ночной апокалипсис)
+        const ambientLight = new THREE.AmbientLight(0x222233);
+        scene.add(ambientLight);
 
-        // База предметов
-        const ITEMS = {
-            pistol: { name: 'Пистолет', type: 'weapon', fireRate: 250, damage: 1.5, maxDurability: 100, maxRange: 450, ammoType: '9mm' },
-            shotgun: { name: 'Дробовик', type: 'weapon', fireRate: 750, damage: 1.2, maxDurability: 60, maxRange: 280, ammoType: '12cal', pellets: 6 },
-            rifle: { name: 'Автомат', type: 'weapon', fireRate: 110, damage: 1.1, maxDurability: 150, maxRange: 650, ammoType: '5.56mm' },
-            
-            light_armor: { name: 'Легкий жилет', type: 'armor', armorVal: 30, maxDurability: 80 },
-            heavy_armor: { name: 'Тяжелый бронежилет', type: 'armor', armorVal: 70, maxDurability: 150 },
+        const dirLight = new THREE.DirectionalLight(0x444466, 0.8);
+        dirLight.position.set(100, 150, 50);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
 
-            bandage: { name: 'Бинт (+20 HP)', type: 'heal', healVal: 20 },
-            medkit: { name: 'Аптечка (+50 HP)', type: 'heal', healVal: 50 },
-            stim: { name: 'Стимулятор (+100 HP)', type: 'heal', healVal: 100 },
+        // Генерация Открытого Мира (Земля)
+        const WORLD_SIZE = 400;
+        const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x111511, roughness: 0.9 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
 
-            apple: { name: 'Яблоко (+15 Еды)', type: 'food', foodVal: 15 },
-            bread: { name: 'Хлеб (+30 Еды)', type: 'food', foodVal: 30 },
-            canned_food: { name: 'Консервы (+55 Еды)', type: 'food', foodVal: 55 },
-
-            ammo_9mm: { name: 'Патроны 9mm (+30)', type: 'ammo', ammoKey: '9mm', count: 30 },
-            ammo_12cal: { name: 'Патроны 12cal (+12)', type: 'ammo', ammoKey: '12cal', count: 12 },
-            ammo_556mm: { name: 'Патроны 5.56mm (+45)', type: 'ammo', ammoKey: '5.56mm', count: 45 }
-        };
-
-        let gameState = 'MENU';
-        let controlMode = 'joystick'; // 'joystick' или 'button'
-        let lastShot = 0;
-        let activeInteractive = null; // Crate, Bed или Car
-
-        // День/Ночь переменные (7 мин = 420 сек)
-        const DAY_LENGTH = 420;
-        let gameTime = 0; // Время в секундах
-
-        const player = {
-            x: WORLD.width / 2, y: WORLD.height / 2,
-            radius: 16, hp: 100, maxHp: 100, hunger: 100, maxHunger: 100,
-            speed: 185, angle: 0,
-            weapon: { key: 'pistol', durability: 100 },
-            armor: null, // { key: 'light_armor', durability: 80 }
-            ammo: { '9mm': 90, '12cal': 24, '5.56mm': 60 },
-            inventory: ['pistol', 'bandage', 'apple', 'canned_food']
-        };
-
-        const camera = { x: 0, y: 0 };
-        let zombies = [];
-        let bullets = [];
-        let bloodSplatters = [];
-        let environment = { lakes: [], trees: [], rocks: [], buildings: [], walls: [], furniture: [], crates: [], beds: [] };
-
-        const moveJoystick = { active: false, touchId: null, baseX: 0, baseY: 0, dx: 0, dy: 0 };
-        const aimJoystick = { active: false, touchId: null, baseX: 0, baseY: 0, dx: 0, dy: 0 };
-
-        // Инициализация карты со зданиями и распределением ресурсов
-        function generateBuilding(x, y, w, h, type) {
-            const wallThick = 14;
-            const doorSize = 65;
-            const doorX = x + w / 2 - doorSize / 2;
-
-            let wallColor = '#4e342e';
-            let name = 'Жилой дом';
-            if (type === 'gun_shop') { wallColor = '#37474f'; name = 'Оружейный магазин'; }
-            else if (type === 'restaurant') { wallColor = '#bf360c'; name = 'Ресторан / Столовая'; }
-            else if (type === 'hospital') { wallColor = '#006064'; name = 'Больница'; }
-
-            const bId = environment.buildings.length;
-            environment.buildings.push({
-                x, y, w, h, inside: false, wallColor, name, type,
-                doorRect: { x: doorX, y: y + h - wallThick, w: doorSize, h: wallThick }
-            });
-
-            // Стены
-            environment.walls.push({ x, y: y + h - wallThick, w: w / 2 - doorSize / 2, h: wallThick });
-            environment.walls.push({ x: doorX + doorSize, y: y + h - wallThick, w: w / 2 - doorSize / 2, h: wallThick });
-            environment.walls.push({ x, y, w, h: wallThick });
-            environment.walls.push({ x, y, w: wallThick, h });
-            environment.walls.push({ x: x + w - wallThick, y, w: wallThick, h });
-
-            // Лут и мебель внутри в зависимости от типа
-            if (type === 'gun_shop') {
-                environment.crates.push({ x: x + 40, y: y + 40, w: 32, h: 32, items: ['rifle', 'shotgun', 'heavy_armor', 'ammo_556mm', 'ammo_12cal'], type: 'crate' });
-            } else if (type === 'restaurant') {
-                environment.furniture.push({ x: x + w/2 - 30, y: y + h/2 - 20, w: 60, h: 40, type: 'table' });
-                environment.crates.push({ x: x + 40, y: y + 40, w: 32, h: 32, items: ['apple', 'bread', 'canned_food', 'canned_food'], type: 'crate' });
-            } else if (type === 'hospital') {
-                environment.beds.push({ x: x + 30, y: y + 40, w: 45, h: 80, type: 'bed' });
-                environment.crates.push({ x: x + w - 60, y: y + 40, w: 32, h: 32, items: ['medkit', 'bandage', 'stim'], type: 'crate' });
-            } else {
-                // Жилой дом
-                environment.beds.push({ x: x + 30, y: y + 40, w: 45, h: 80, type: 'bed' });
-                let houseItems = ['apple', 'bread'];
-                if (Math.random() < 0.05) houseItems.push(Math.random() > 0.5 ? 'pistol' : 'ammo_9mm'); // 5% шанс
-                environment.crates.push({ x: x + w - 60, y: y + h - 60, w: 32, h: 32, items: houseItems, type: 'crate' });
-            }
+        // Разрушенные здания (Декорации мира)
+        const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        for (let i = 0; i < 40; i++) {
+            const b = new THREE.Mesh(buildingGeo, buildingMat);
+            const w = 10 + Math.random() * 15;
+            const h = 5 + Math.random() * 25;
+            const d = 10 + Math.random() * 15;
+            b.scale.set(w, h, d);
+            b.position.set((Math.random() - 0.5) * (WORLD_SIZE - 40), h / 2, (Math.random() - 0.5) * (WORLD_SIZE - 40));
+            b.castShadow = true;
+            b.receiveShadow = true;
+            scene.add(b);
         }
 
-        function generateMap() {
-            environment = { lakes: [], trees: [], rocks: [], buildings: [], walls: [], furniture: [], crates: [], beds: [] };
-            zombies = []; bloodSplatters = [];
+        // Игрок (Машина)
+        const carGroup = new THREE.Group();
+        const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
+        const carBody = new THREE.Mesh(bodyGeo, bodyMat);
+        carBody.position.y = 0.5;
+        carBody.castShadow = true;
+        carGroup.add(carBody);
 
-            // Озера
-            for (let i = 0; i < 6; i++) {
-                environment.lakes.push({ x: Math.random() * (WORLD.width - 800) + 400, y: Math.random() * (WORLD.height - 800) + 400, radius: 140 });
-            }
+        // Фары машины
+        const headlight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5);
+        headlight.position.set(0, 0.8, -1.8);
+        headlight.target.position.set(0, 0, -10);
+        carGroup.add(headlight);
+        carGroup.add(headlight.target);
 
-            // Здания
-            const buildingTypes = ['house', 'gun_shop', 'restaurant', 'hospital', 'house', 'house'];
-            buildingTypes.forEach((t, i) => {
-                let bx = 600 + (i % 3) * 1600 + Math.random() * 200;
-                let by = 600 + Math.floor(i / 3) * 1800 + Math.random() * 200;
-                generateBuilding(bx, by, 300, 260, t);
-            });
+        scene.add(carGroup);
 
-            // Деревья
-            for (let i = 0; i < 120; i++) environment.trees.push({ x: Math.random() * WORLD.width, y: Math.random() * WORLD.height, radius: 32 });
+        // Зомби
+        const zombies = [];
+        const zombieMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e });
+        const zombieGeo = new THREE.BoxGeometry(1, 2, 1);
 
-            // Различные типы Зомби (Равномерно и немного по всей карте)
-            for (let i = 0; i < 45; i++) {
-                let rand = Math.random();
-                let zType = 'normal';
-                let hp = 5, speed = 75, radius = 16;
-
-                if (rand < 0.25) { zType = 'crawler'; hp = 3; speed = 30; radius = 12; } // Зомби без ног
-                else if (rand > 0.90) { zType = 'armored'; hp = 14; speed = 65; radius = 17; } // Бронированный (10% шанс)
-
-                zombies.push({
-                    x: Math.random() * WORLD.width, y: Math.random() * WORLD.height,
-                    radius, hp, maxHp: hp, speed, type: zType, alerted: false
-                });
-            }
-        }
-
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
-        function saveGame() {
-            const data = { player, gameTime, controlMode };
-            localStorage.setItem('zombie_survival_save', JSON.stringify(data));
-        }
-
-        function checkSave() {
-            if (localStorage.getItem('zombie_survival_save')) {
-                document.getElementById('btnContinue').style.display = 'block';
-            }
-        }
-
-        function continueGame() {
-            const data = JSON.parse(localStorage.getItem('zombie_survival_save'));
-            Object.assign(player, data.player);
-            gameTime = data.gameTime || 0;
-            controlMode = data.controlMode || 'joystick';
-            startGameUI();
-        }
-
-        function startNewGame() {
-            player.hp = 100; player.hunger = 100;
-            player.x = WORLD.width / 2; player.y = WORLD.height / 2;
-            player.inventory = ['pistol', 'bandage', 'apple', 'canned_food'];
-            player.weapon = { key: 'pistol', durability: 100 };
-            player.armor = null;
-            gameTime = 0;
-            generateMap();
-            startGameUI();
-        }
-
-        function startGameUI() {
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('invBtn').style.display = 'block';
-            document.getElementById('settingsBtn').style.display = 'block';
-            document.getElementById('menuBtnHUD').style.display = 'block';
-            document.getElementById('hudBars').style.display = 'flex';
-            gameState = 'PLAYING';
-            updateControlModeUI();
-        }
-
-        function returnToMenu() {
-            saveGame();
-            document.getElementById('mainMenu').style.display = 'flex';
-            document.getElementById('hudBars').style.display = 'none';
-            checkSave();
-            gameState = 'MENU';
-        }
-
-        // --- УПРАВЛЕНИЕ НАСТРОЙКАМИ ---
-        function openSettings() { document.getElementById('settingsMenu').style.display = 'block'; }
-        function closeSettings() { document.getElementById('settingsMenu').style.display = 'none'; }
-
-        function changeControlMode(val) {
-            controlMode = val;
-            updateControlModeUI();
-        }
-
-        function updateControlModeUI() {
-            fireBtnAuto.style.display = (controlMode === 'button' && gameState === 'PLAYING') ? 'block' : 'none';
-        }
-
-        // --- ТАЧ СОБЫТИЯ ---
-        window.addEventListener('touchstart', e => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('.ui-panel')) return;
-            for (let touch of e.changedTouches) {
-                if (touch.clientX < window.innerWidth / 2 && !moveJoystick.active) {
-                    moveJoystick.active = true; moveJoystick.touchId = touch.identifier;
-                    moveJoystick.baseX = touch.clientX; moveJoystick.baseY = touch.clientY;
-                    moveJoystick.dx = 0; moveJoystick.dy = 0;
-                } else if (touch.clientX >= window.innerWidth / 2 && controlMode === 'joystick' && !aimJoystick.active) {
-                    aimJoystick.active = true; aimJoystick.touchId = touch.identifier;
-                    aimJoystick.baseX = touch.clientX; aimJoystick.baseY = touch.clientY;
-                    aimJoystick.dx = 0; aimJoystick.dy = 0;
-                }
-            }
-        });
-
-        window.addEventListener('touchmove', e => {
-            for (let touch of e.changedTouches) {
-                if (touch.identifier === moveJoystick.touchId) {
-                    let dx = touch.clientX - moveJoystick.baseX, dy = touch.clientY - moveJoystick.baseY;
-                    let dist = Math.hypot(dx, dy), maxD = 50;
-                    moveJoystick.dx = (dist > maxD ? (dx / dist) * maxD : dx) / maxD;
-                    moveJoystick.dy = (dist > maxD ? (dy / dist) * maxD : dy) / maxD;
-                }
-                if (touch.identifier === aimJoystick.touchId) {
-                    let dx = touch.clientX - aimJoystick.baseX, dy = touch.clientY - aimJoystick.baseY;
-                    let dist = Math.hypot(dx, dy), maxD = 50;
-                    aimJoystick.dx = (dist > maxD ? (dx / dist) * maxD : dx) / maxD;
-                    aimJoystick.dy = (dist > maxD ? (dy / dist) * maxD : dy) / maxD;
-                }
-            }
-        });
-
-        const resetTouch = (id) => {
-            if (id === moveJoystick.touchId) { moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0; }
-            if (id === aimJoystick.touchId) { aimJoystick.active = false; aimJoystick.dx = 0; aimJoystick.dy = 0; }
-        };
-        window.addEventListener('touchend', e => { for (let t of e.changedTouches) resetTouch(t.identifier); });
-
-        fireBtnAuto.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            autoAimAndShoot();
-        });
-
-        function autoAimAndShoot() {
-            // Найти ближайшего зомби
-            let nearest = null;
-            let minDist = Infinity;
-            for (let z of zombies) {
-                let d = Math.hypot(z.x - player.x, z.y - player.y);
-                if (d < minDist) { minDist = d; nearest = z; }
-            }
-            if (nearest && minDist < 600) {
-                player.angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
-            }
-            shoot();
-        }
-
-        function resolveCollisions(entity) {
-            for (let wall of environment.walls) {
-                let closestX = Math.max(wall.x, Math.min(entity.x, wall.x + wall.w));
-                let closestY = Math.max(wall.y, Math.min(entity.y, wall.y + wall.h));
-                let distX = entity.x - closestX, distY = entity.y - closestY;
-                let dist = Math.hypot(distX, distY);
-                if (dist < entity.radius) {
-                    let overlap = entity.radius - dist;
-                    entity.x += (distX / dist || 1) * overlap;
-                    entity.y += (distY / dist || 0) * overlap;
-                }
-            }
-        }
-
-        // --- ИНВЕНТАРЬ И ЭКИПИРОВКА ---
-        function openInventory() {
-            const equipDiv = document.getElementById('equipSection');
-            const wpn = ITEMS[player.weapon.key];
-            let armorText = player.armor ? `${ITEMS[player.armor.key].name} (Прочность: ${player.armor.durability}/${ITEMS[player.armor.key].maxDurability})` : 'Нет';
-
-            equipDiv.innerHTML = `
-                <div class="equip-slot"><b>Оружие:</b> ${wpn.name} | Прочность: ${player.weapon.durability}/${wpn.maxDurability}</div>
-                <div class="equip-slot"><b>Броня:</b> ${armorText}</div>
-            `;
-
-            const list = document.getElementById('inventoryList');
-            list.innerHTML = '';
-            player.inventory.forEach((key, idx) => {
-                let item = ITEMS[key];
-                list.innerHTML += `<div class="item-card"><span>${item.name}</span><button class="btn-action" onclick="useItem('${key}', ${idx})">Использовать</button></div>`;
-            });
-
-            document.getElementById('inventoryMenu').style.display = 'block';
-        }
-        function closeInventory() { document.getElementById('inventoryMenu').style.display = 'none'; }
-
-        function useItem(key, idx) {
-            let item = ITEMS[key];
-            if (item.type === 'weapon') {
-                player.inventory.push(player.weapon.key);
-                player.weapon = { key, durability: item.maxDurability };
-                player.inventory.splice(idx, 1);
-            } else if (item.type === 'armor') {
-                if (player.armor) player.inventory.push(player.armor.key);
-                player.armor = { key, durability: item.maxDurability };
-                player.inventory.splice(idx, 1);
-            } else if (item.type === 'heal') {
-                player.hp = Math.min(player.maxHp, player.hp + item.healVal);
-                player.inventory.splice(idx, 1);
-            } else if (item.type === 'food') {
-                player.hunger = Math.min(player.maxHunger, player.hunger + item.foodVal);
-                player.inventory.splice(idx, 1);
-            }
-            openInventory();
-        }
-
-        function triggerAction() {
-            if (!activeInteractive) return;
-            if (activeInteractive.type === 'crate') openLootMenu(activeInteractive);
-            if (activeInteractive.type === 'bed') {
-                // Пропустить ночь
-                gameTime = 0; // Сделать утро
-                player.hunger = Math.max(0, player.hunger - 15);
-            }
-        }
-
-        function openLootMenu(crate) {
-            const list = document.getElementById('lootList');
-            list.innerHTML = crate.items.length === 0 ? '<div style="text-align:center;">Пусто</div>' : '';
-            crate.items.forEach((itemKey, idx) => {
-                const item = ITEMS[itemKey];
-                list.innerHTML += `<div class="item-card"><span>${item.name}</span><button class="btn-action" onclick="takeLoot(${idx})">Забрать</button></div>`;
-            });
-            document.getElementById('lootMenu').style.display = 'block';
-        }
-        function closeLootMenu() { document.getElementById('lootMenu').style.display = 'none'; }
-
-        function takeLoot(idx) {
-            let key = activeInteractive.items[idx];
-            let item = ITEMS[key];
-            if (item.type === 'ammo') player.ammo[item.ammoKey] += item.count;
-            else player.inventory.push(key);
-            activeInteractive.items.splice(idx, 1);
-            openLootMenu(activeInteractive);
-        }
-
-        function shoot() {
-            const wpn = ITEMS[player.weapon.key];
-            if (player.weapon.durability <= 0) return; // Сломано
-            if ((player.ammo[wpn.ammoType] || 0) <= 0) return;
-
-            player.ammo[wpn.ammoType]--;
-            player.weapon.durability = Math.max(0, player.weapon.durability - 1);
-
-            let count = wpn.pellets || 1;
+        function spawnZombies(count) {
             for (let i = 0; i < count; i++) {
-                let finalAngle = player.angle + (Math.random() - 0.5) * (count > 1 ? 0.35 : 0.06);
-                bullets.push({
-                    startX: player.x, startY: player.y,
-                    x: player.x, y: player.y,
-                    vx: Math.cos(finalAngle) * 900, vy: Math.sin(finalAngle) * 900,
-                    damage: wpn.damage, maxRange: wpn.maxRange
-                });
+                const z = new THREE.Mesh(zombieGeo, zombieMat);
+                z.position.set((Math.random() - 0.5) * (WORLD_SIZE - 20), 1, (Math.random() - 0.5) * (WORLD_SIZE - 20));
+                z.castShadow = true;
+                scene.add(z);
+                zombies.push(z);
             }
+            document.getElementById('zombie-count').innerText = zombies.length;
         }
+        spawnZombies(60);
 
-        // --- ИГРОВОЙ ЦИКЛ ---
-        let lastTime = performance.now();
+        // Управление (Клавиатура + Тачскрин)
+        const input = { forward: 0, turn: 0 };
+        
+        // Обработка кнопки мыши/тачей
+        const bindBtn = (id, action, val) => {
+            const el = document.getElementById(id);
+            const start = (e) => { e.preventDefault(); input[action] = val; };
+            const end = (e) => { e.preventDefault(); input[action] = 0; };
+            el.addEventListener('touchstart', start);
+            el.addEventListener('touchend', end);
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', end);
+        };
 
-        function update(now) {
-            let dt = (now - lastTime) / 1000;
-            if (dt > 0.1) dt = 0.1;
-            lastTime = now;
+        bindBtn('btn-gas', 'forward', 1);
+        bindBtn('btn-brake', 'forward', -1);
+        bindBtn('btn-left', 'turn', 1);
+        bindBtn('btn-right', 'turn', -1);
 
-            if (gameState === 'PLAYING') {
-                // Время и голод
-                gameTime = (gameTime + dt) % (DAY_LENGTH * 2);
-                player.hunger = Math.max(0, player.hunger - dt * 0.12); // Уменьшение голода
-                if (player.hunger <= 0) player.hp -= dt * 1.5; // Урон от голода
+        // Физика и состояние
+        let speed = 0;
+        let health = 100;
+        const carStats = { maxSpeed: 0.6, accel: 0.02, turnSpeed: 0.03, friction: 0.96 };
 
-                // Движение
-                player.x += moveJoystick.dx * player.speed * dt;
-                player.y += moveJoystick.dy * player.speed * dt;
-                resolveCollisions(player);
+        // Игровой цикл
+        function animate() {
+            requestAnimationFrame(animate);
 
-                if (controlMode === 'joystick' && aimJoystick.active) {
-                    player.angle = Math.atan2(aimJoystick.dy, aimJoystick.dx);
-                    const wpn = ITEMS[player.weapon.key];
-                    if (now - lastShot > wpn.fireRate) { shoot(); lastShot = now; }
-                } else if (moveJoystick.active) {
-                    player.angle = Math.atan2(moveJoystick.dy, moveJoystick.dx);
+            // Движение машины
+            if (input.forward !== 0) {
+                speed = THREE.MathUtils.clamp(speed + input.forward * carStats.accel, -carStats.maxSpeed / 2, carStats.maxSpeed);
+            } else {
+                speed *= carStats.friction;
+            }
+
+            if (Math.abs(speed) > 0.001) {
+                carGroup.rotation.y += input.turn * carStats.turnSpeed * Math.sign(speed);
+            }
+
+            carGroup.translateZ(-speed);
+
+            // Ограничение границами мира
+            const border = WORLD_SIZE / 2 - 2;
+            carGroup.position.x = THREE.MathUtils.clamp(carGroup.position.x, -border, border);
+            carGroup.position.z = THREE.MathUtils.clamp(carGroup.position.z, -border, border);
+
+            // Камера следит за машиной
+            const cameraOffset = new THREE.Vector3(0, 5, 12).applyMatrix4(carGroup.matrixWorld);
+            camera.position.lerp(cameraOffset, 0.1);
+            camera.lookAt(carGroup.position.x, carGroup.position.y + 1, carGroup.position.z);
+
+            // Поведение зомби
+            zombies.forEach((z, index) => {
+                // Идти к машине
+                const dir = new THREE.Vector3().subVectors(carGroup.position, z.position);
+                dir.y = 0;
+                if (dir.length() < 50) { // Видят игрока неподалеку
+                    dir.normalize();
+                    z.position.addScaledVector(dir, 0.08);
+                    z.lookAt(carGroup.position.x, 1, carGroup.position.z);
                 }
 
-                camera.x = player.x - canvas.width / 2;
-                camera.y = player.y - canvas.height / 2;
-
-                // Поиск предметов/кроватей рядом
-                activeInteractive = null;
-                for (let c of environment.crates) {
-                    if (Math.hypot(player.x - c.x, player.y - c.y) < 45) { activeInteractive = c; break; }
-                }
-                if (!activeInteractive) {
-                    for (let b of environment.beds) {
-                        if (Math.hypot(player.x - b.x, player.y - b.y) < 50) { activeInteractive = b; break; }
+                // Проверка столкновения
+                const dist = z.position.distanceTo(carGroup.position);
+                if (dist < 2) {
+                    if (Math.abs(speed) > 0.2) {
+                        // Сбить зомби на скорости
+                        scene.remove(z);
+                        zombies.splice(index, 1);
+                        document.getElementById('zombie-count').innerText = zombies.length;
+                    } else {
+                        // Зомби атакуют стоячую машину
+                        health = Math.max(0, health - 0.1);
+                        document.getElementById('hp').innerText = Math.floor(health);
                     }
                 }
+            });
 
-                if (activeInteractive) {
-                    actionBtn.innerText = activeInteractive.type === 'bed' ? '🛌 СПАТЬ' : 'ОБЫСКАТЬ';
-                    actionBtn.style.display = 'block';
-                } else {
-                    actionBtn.style.display = 'none';
-                }
-
-                // Логика Зомби
-                for (let z of zombies) {
-                    let d = Math.hypot(player.x - z.x, player.y - z.y);
-                    if (d < 300) z.alerted = true;
-                    if (z.alerted) {
-                        let a = Math.atan2(player.y - z.y, player.x - z.x);
-                        z.x += Math.cos(a) * z.speed * dt;
-                        z.y += Math.sin(a) * z.speed * dt;
-                        resolveCollisions(z);
-
-                        if (d < player.radius + z.radius) {
-                            let dmg = 12 * dt;
-                            if (player.armor && player.armor.durability > 0) {
-                                let armorItem = ITEMS[player.armor.key];
-                                player.armor.durability = Math.max(0, player.armor.durability - dt * 10);
-                                dmg *= (1 - armorItem.armorVal / 100);
-                            }
-                            player.hp -= dmg;
-                        }
-                    }
-                }
-
-                // Пули
-                for (let i = bullets.length - 1; i >= 0; i--) {
-                    let b = bullets[i];
-                    b.x += b.vx * dt; b.y += b.vy * dt;
-                    if (Math.hypot(b.x - b.startX, b.y - b.startY) >= b.maxRange) { bullets.splice(i, 1); continue; }
-
-                    for (let z of zombies) {
-                        if (Math.hypot(b.x - z.x, b.y - z.y) < z.radius + 4) {
-                            let finalDmg = z.type === 'armored' ? b.damage * 0.5 : b.damage;
-                            z.hp -= finalDmg; z.alerted = true;
-                            bloodSplatters.push({ x: z.x, y: z.y, r: Math.random() * 6 + 3 });
-                            bullets.splice(i, 1);
-                            if (z.hp <= 0) zombies.splice(zombies.indexOf(z), 1);
-                            break;
-                        }
-                    }
-                }
-
-                // Обновление HUD
-                document.getElementById('hpFill').style.width = `${Math.max(0, player.hp)}%`;
-                document.getElementById('hpText').innerText = `HP: ${Math.round(player.hp)}/100`;
-                document.getElementById('hungerFill').style.width = `${Math.max(0, player.hunger)}%`;
-                document.getElementById('hungerText').innerText = `Голод: ${Math.round(player.hunger)}/100`;
-
-                let isNight = gameTime > DAY_LENGTH;
-                document.getElementById('timeText').innerText = isNight ? '🌙 Ночь' : '☀️ День';
-            }
-
-            draw();
-            requestAnimationFrame(update);
+            renderer.render(scene, camera);
         }
 
-        // --- ГРАФИКА И ОТРЕСОВКА ---
-        function draw() {
-            ctx.save();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#222b1d'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Адаптация под размер экрана
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-            ctx.translate(-camera.x, -camera.y);
-
-            // Кровь
-            ctx.fillStyle = '#660000';
-            for (let b of bloodSplatters) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); }
-
-            // Здания
-            for (let b of environment.buildings) {
-                ctx.fillStyle = b.wallColor; ctx.fillRect(b.x, b.y, b.w, b.h);
-                ctx.fillStyle = '#111'; ctx.fillRect(b.x + 10, b.y + 10, b.w - 20, b.h - 20); // Пол
-                ctx.fillStyle = '#ffb74d'; ctx.fillRect(b.doorRect.x, b.doorRect.y, b.doorRect.w, b.doorRect.h);
-            }
-
-            // Мебель и Кровати
-            ctx.fillStyle = '#4e342e';
-            for (let f of environment.furniture) ctx.fillRect(f.x, f.y, f.w, f.h);
-            ctx.fillStyle = '#1565c0';
-            for (let b of environment.beds) ctx.fillRect(b.x, b.y, b.w, b.h);
-
-            // Зомби
-            for (let z of zombies) {
-                ctx.save(); ctx.translate(z.x, z.y);
-                ctx.rotate(Math.atan2(player.y - z.y, player.x - z.x));
-
-                if (z.type === 'crawler') {
-                    // Без ног (ползун)
-                    ctx.fillStyle = '#33691e'; ctx.fillRect(-8, -6, 10, 12);
-                } else if (z.type === 'armored') {
-                    // Бронированный
-                    ctx.fillStyle = '#263238'; ctx.beginPath(); ctx.arc(0, 0, z.radius, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#ff1744'; ctx.fillRect(4, -3, 3, 2); ctx.fillRect(4, 1, 3, 2);
-                } else {
-                    // Обычный
-                    ctx.fillStyle = '#558b2f'; ctx.beginPath(); ctx.arc(0, 0, z.radius, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#ff1744'; ctx.fillRect(3, -3, 3, 2); ctx.fillRect(3, 1, 3, 2);
-                }
-                ctx.restore();
-            }
-
-            // Игрок
-            ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
-            ctx.fillStyle = player.armor ? '#37474f' : '#1565c0'; ctx.fillRect(-10, -8, 14, 16);
-            ctx.fillStyle = '#ffcc80'; ctx.beginPath(); ctx.arc(-1, 0, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#212121'; ctx.fillRect(4, 3, 12, 4);
-            ctx.restore();
-
-            // Деревья
-            for (let t of environment.trees) {
-                ctx.fillStyle = '#1b5e20'; ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.fill();
-            }
-
-            // Пули
-            ctx.fillStyle = '#ffeb3b';
-            for (let b of bullets) { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill(); }
-
-            ctx.restore();
-
-            // ЭФФЕКТ НОЧИ (Тень во круг игрока)
-            if (gameState === 'PLAYING') {
-                let isNight = gameTime > DAY_LENGTH;
-                if (isNight) {
-                    ctx.save();
-                    let gradient = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 80, canvas.width/2, canvas.height/2, 320);
-                    gradient.addColorStop(0, 'rgba(0,0,0,0)');
-                    gradient.addColorStop(1, 'rgba(0,0,0,0.92)');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.restore();
-                }
-
-                // Джойстики
-                if (controlMode === 'joystick') {
-                    [moveJoystick, aimJoystick].forEach(j => {
-                        if (j.active) {
-                            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 3;
-                            ctx.beginPath(); ctx.arc(j.baseX, j.baseY, 50, 0, Math.PI * 2); ctx.stroke();
-                            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                            ctx.beginPath(); ctx.arc(j.baseX + j.dx * 50, j.baseY + j.dy * 50, 20, 0, Math.PI * 2); ctx.fill();
-                        }
-                    });
-                } else if (moveJoystick.active) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.arc(moveJoystick.baseX, moveJoystick.baseY, 50, 0, Math.PI * 2); ctx.stroke();
-                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                    ctx.beginPath(); ctx.arc(moveJoystick.baseX + moveJoystick.dx * 50, moveJoystick.baseY + moveJoystick.dy * 50, 20, 0, Math.PI * 2); ctx.fill();
-                }
-            }
-        }
-
-        checkSave();
-        requestAnimationFrame(update);
+        animate();
     </script>
 </body>
 </html>
