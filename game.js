@@ -47,3 +47,4 @@ function initGame() {
     
     document.getElementById('start-menu').style.display = 'none';
     document.getElementById('death-screen').style
+    
