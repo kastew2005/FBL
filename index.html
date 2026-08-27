@@ -4,11 +4,171 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Zombie Apocalypse - Выживание</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            cursor: crosshair;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #health-bar, #stamina-bar {
+            width: 200px;
+            height: 25px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #fff;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #44ff44);
+            transition: width 0.3s;
+        }
+
+        #stamina-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #44ff44);
+            transition: width 0.3s;
+        }
+
+        #health-text, #stamina-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        #ammo-display, #score-display, #wave-display {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            width: fit-content;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #inventory {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .weapon-slot {
+            width: 60px;
+            height: 60px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #666;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .weapon-slot.active {
+            border-color: #ff4444;
+            background: rgba(255,0,0,0.3);
+            box-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+
+        #start-menu, #death-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            z-index: 1000;
+            border: 3px solid #ff0000;
+        }
+
+        #start-menu h1, #death-screen h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: #ff0000;
+            text-shadow: 3px 3px 6px rgba(255,0,0,0.5);
+        }
+
+        #start-btn, #restart-btn {
+            font-size: 20px;
+            padding: 15px 30px;
+            background: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+
+        #start-btn:hover, #restart-btn:hover {
+            background: #cc0000;
+            transform: scale(1.1);
+        }
+    </style>
 </head>
 <body>
     <div id="game-container">
-        <!-- HUD -->
         <div id="hud">
             <div id="health-bar">
                 <div id="health-fill"></div>
@@ -29,10 +189,8 @@
             </div>
         </div>
 
-        <!-- Прицел -->
         <div id="crosshair">+</div>
 
-        <!-- Инвентарь -->
         <div id="inventory">
             <div class="weapon-slot active" data-weapon="pistol">🔫</div>
             <div class="weapon-slot" data-weapon="shotgun">🔫</div>
@@ -40,26 +198,11 @@
             <div class="weapon-slot" data-weapon="medkit">💊</div>
         </div>
 
-        <!-- Джойстик для телефона -->
-        <div id="joystick-container" style="display: none;">
-            <div id="joystick-base">
-                <div id="joystick-thumb"></div>
-            </div>
-        </div>
-
-        <!-- Кнопки действий для телефона -->
-        <div id="action-buttons" style="display: none;">
-            <button id="shoot-btn">🔫</button>
-            <button id="reload-btn">🔄</button>
-            <button id="jump-btn">⬆️</button>
-        </div>
-
-        <!-- Меню -->
         <div id="start-menu">
             <h1>ZOMBIE APOCALYPSE</h1>
             <p>Выживи как можно дольше!</p>
-            <button id="start-btn" onclick="initGame()">НАЧАТЬ ИГРУ</button>
-            <div id="controls-info">
+            <button id="start-btn">НАЧАТЬ ИГРУ</button>
+            <div>
                 <h3>Управление:</h3>
                 <p>WASD - движение</p>
                 <p>Мышь - осмотр</p>
@@ -70,19 +213,535 @@
             </div>
         </div>
 
-        <!-- Экран смерти -->
         <div id="death-screen" style="display: none;">
             <h1>ВЫ ПОГИБЛИ</h1>
             <p>Счет: <span id="final-score">0</span></p>
             <p>Волна: <span id="final-wave">1</span></p>
-            <button id="restart-btn" onclick="initGame()">ИГРАТЬ СНОВА</button>
+            <button id="restart-btn">ИГРАТЬ СНОВА</button>
         </div>
     </div>
 
-    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <!-- Единый файл игры -->
-    <script src="game.js"></script>
+    <script>
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        console.log('Скрипт загружен');
+        
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        // ==================== ПЕРЕМЕННЫЕ ====================
+        let gameRunning = false;
+        let lastTime = 0;
+        let waveTimer = 0;
+        const waveDuration = 30000;
+        const keys = {};
+        let zombies = [];
+        let maxZombies = 10;
+        let spawnRate = 3000;
+        let wave = 1;
+        let lastSpawn = 0;
+        let currentWeapon = 'pistol';
+        let reloading = false;
+        let lastShot = 0;
+        let medkits = 3;
+
+        const ammo = {
+            pistol: { current: 12, reserve: 48, max: 12 },
+            shotgun: { current: 6, reserve: 24, max: 6 },
+            rifle: { current: 30, reserve: 90, max: 30 }
+        };
+
+        const weapons = {
+            pistol: { damage: 25, fireRate: 500, reloadTime: 1000, spread: 0.02, range: 50 },
+            shotgun: { damage: 15, pellets: 8, fireRate: 1000, reloadTime: 2000, spread: 0.15, range: 30 },
+            rifle: { damage: 35, fireRate: 100, reloadTime: 1500, spread: 0.01, range: 70 }
+        };
+
+        const player = {
+            position: new THREE.Vector3(0, 1.7, 0),
+            velocity: new THREE.Vector3(0, 0, 0),
+            health: 100,
+            stamina: 100,
+            onGround: false,
+            rotation: { x: 0, y: 0 },
+            takeDamage: function(damage) {
+                this.health = Math.max(0, this.health - damage);
+                updateHealthDisplay();
+                if (this.health <= 0) {
+                    this.die();
+                }
+            },
+            die: function() {
+                gameRunning = false;
+                document.getElementById('death-screen').style.display = 'block';
+                document.getElementById('final-score').textContent = document.getElementById('score').textContent;
+                document.getElementById('final-wave').textContent = wave;
+            }
+        };
+
+        // ==================== СОЗДАНИЕ МИРА ====================
+        function createWorld() {
+            // Земля
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x3a3a3a,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Освещение
+            scene.fog = new THREE.FogExp2(0x1a1a1a, 0.015);
+            
+            const moonLight = new THREE.DirectionalLight(0x4444ff, 0.5);
+            moonLight.position.set(50, 100, 50);
+            moonLight.castShadow = true;
+            moonLight.shadow.mapSize.width = 2048;
+            moonLight.shadow.mapSize.height = 2048;
+            moonLight.shadow.camera.left = -50;
+            moonLight.shadow.camera.right = 50;
+            moonLight.shadow.camera.top = 50;
+            moonLight.shadow.camera.bottom = -50;
+            scene.add(moonLight);
+            
+            scene.background = new THREE.Color(0x1a0000);
+            
+            const ambientLight = new THREE.AmbientLight(0x222222);
+            scene.add(ambientLight);
+
+            // Здания
+            for (let i = 0; i < 15; i++) {
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                
+                if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+                
+                const width = 5 + Math.random() * 10;
+                const height = 5 + Math.random() * 20;
+                const depth = 5 + Math.random() * 10;
+                
+                const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+                const buildingMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x666666,
+                    roughness: 0.6
+                });
+                const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                building.position.set(x, height / 2, z);
+                building.castShadow = true;
+                building.receiveShadow = true;
+                scene.add(building);
+            }
+
+            // Машины и препятствия
+            for (let i = 0; i < 20; i++) {
+                const x = (Math.random() - 0.5) * 90;
+                const z = (Math.random() - 0.5) * 90;
+                
+                if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;
+                
+                const carGeometry = new THREE.BoxGeometry(4, 1.5, 2);
+                const carMaterial = new THREE.MeshStandardMaterial({ 
+                    color: Math.random() * 0xffffff,
+                    roughness: 0.3
+                });
+                const car = new THREE.Mesh(carGeometry, carMaterial);
+                car.position.set(x, 0.75, z);
+                car.rotation.y = Math.random() * Math.PI * 2;
+                car.castShadow = true;
+                car.receiveShadow = true;
+                scene.add(car);
+            }
+        }
+
+        // ==================== СОЗДАНИЕ ЗОМБИ ====================
+        function createZombie() {
+            const zombieGroup = new THREE.Group();
+            
+            const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4a4a4a,
+                roughness: 0.9
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.9;
+            body.castShadow = true;
+            zombieGroup.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+            const headMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x3a3a3a,
+                roughness: 0.9
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.8;
+            head.castShadow = true;
+            zombieGroup.add(head);
+            
+            // Спавн зомби
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 30;
+            zombieGroup.position.set(
+                player.position.x + Math.cos(angle) * distance,
+                0,
+                player.position.z + Math.sin(angle) * distance
+            );
+            
+            zombieGroup.userData = {
+                health: 50 + wave * 10,
+                speed: 2 + wave * 0.2,
+                damage: 10 + wave * 2,
+                isZombie: true,
+                isDead: false
+            };
+            
+            scene.add(zombieGroup);
+            zombies.push(zombieGroup);
+        }
+
+        // ==================== ОБНОВЛЕНИЕ ЗОМБИ ====================
+        function updateZombies(deltaTime) {
+            const now = Date.now();
+            
+            if (zombies.length < maxZombies && now - lastSpawn > spawnRate) {
+                createZombie();
+                lastSpawn = now;
+            }
+            
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const zombie = zombies[i];
+                
+                if (zombie.userData.isDead) {
+                    scene.remove(zombie);
+                    zombies.splice(i, 1);
+                    const scoreElement = document.getElementById('score');
+                    scoreElement.textContent = parseInt(scoreElement.textContent) + 10;
+                    continue;
+                }
+                
+                const direction = new THREE.Vector3()
+                    .subVectors(player.position, zombie.position)
+                    .normalize();
+                
+                zombie.position.add(direction.multiplyScalar(zombie.userData.speed * deltaTime));
+                zombie.position.y = 0;
+                
+                zombie.lookAt(player.position.x, 0, player.position.z);
+                
+                const distance = zombie.position.distanceTo(player.position);
+                if (distance < 2) {
+                    if (Date.now() - (zombie.userData.lastAttack || 0) > 1000) {
+                        zombie.userData.lastAttack = Date.now();
+                        player.takeDamage(zombie.userData.damage);
+                    }
+                }
+            }
+        }
+
+        // ==================== СТРЕЛЬБА ====================
+        function shoot() {
+            if (!gameRunning || reloading) return;
+            
+            const weapon = weapons[currentWeapon];
+            const now = Date.now();
+            
+            if (now - lastShot < weapon.fireRate) return;
+            
+            if (ammo[currentWeapon].current <= 0) {
+                reload();
+                return;
+            }
+            
+            lastShot = now;
+            ammo[currentWeapon].current--;
+            
+            const shots = currentWeapon === 'shotgun' ? weapon.pellets : 1;
+            
+            for (let i = 0; i < shots; i++) {
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+                raycaster.far = weapon.range;
+                
+                const spreadX = (Math.random() - 0.5) * weapon.spread;
+                const spreadY = (Math.random() - 0.5) * weapon.spread;
+                raycaster.ray.direction.x += spreadX;
+                raycaster.ray.direction.y += spreadY;
+                
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                
+                if (intersects.length > 0) {
+                    const hit = intersects[0];
+                    const object = hit.object;
+                    
+                    if (object.userData.isZombie) {
+                        object.userData.health -= weapon.damage;
+                        
+                        if (object.userData.health <= 0) {
+                            object.userData.isDead = true;
+                        }
+                    }
+                }
+            }
+            
+            updateAmmoDisplay();
+        }
+
+        function reload() {
+            if (reloading) return;
+            
+            const weapon = ammo[currentWeapon];
+            if (weapon.current === weapon.max || weapon.reserve === 0) return;
+            
+            reloading = true;
+            
+            setTimeout(() => {
+                const needed = weapon.max - weapon.current;
+                const available = Math.min(needed, weapon.reserve);
+                
+                weapon.current += available;
+                weapon.reserve -= available;
+                reloading = false;
+                updateAmmoDisplay();
+            }, weapons[currentWeapon].reloadTime);
+        }
+
+        // ==================== ОБНОВЛЕНИЕ UI ====================
+        function updateHealthDisplay() {
+            const healthPercent = Math.max(0, player.health);
+            document.getElementById('health-fill').style.width = healthPercent + '%';
+            document.getElementById('health-text').textContent = Math.round(healthPercent) + ' HP';
+        }
+
+        function updateStaminaDisplay() {
+            const staminaPercent = Math.max(0, player.stamina);
+            document.getElementById('stamina-fill').style.width = staminaPercent + '%';
+            document.getElementById('stamina-text').textContent = Math.round(staminaPercent) + ' SP';
+        }
+
+        function updateAmmoDisplay() {
+            const weapon = ammo[currentWeapon];
+            document.getElementById('ammo-text').textContent = `${weapon.current}/${weapon.reserve}`;
+        }
+
+        // ==================== ОБНОВЛЕНИЕ ИГРОКА ====================
+        function updatePlayer(deltaTime) {
+            if (!gameRunning) return;
+            
+            const forward = new THREE.Vector3(-Math.sin(player.rotation.y), 0, -Math.cos(player.rotation.y));
+            const right = new THREE.Vector3(Math.cos(player.rotation.y), 0, -Math.sin(player.rotation.y));
+            
+            const moveDirection = new THREE.Vector3(0, 0, 0);
+            
+            if (keys['w'] || keys['arrowup']) moveDirection.add(forward);
+            if (keys['s'] || keys['arrowdown']) moveDirection.sub(forward);
+            if (keys['a'] || keys['arrowleft']) moveDirection.sub(right);
+            if (keys['d'] || keys['arrowright']) moveDirection.add(right);
+            
+            let speed = 8;
+            if (keys['shift'] && player.stamina > 0) {
+                speed = 15;
+                player.stamina -= 20 * deltaTime;
+                updateStaminaDisplay();
+            } else if (player.stamina < 100) {
+                player.stamina += 10 * deltaTime;
+                updateStaminaDisplay();
+            }
+            
+            if (moveDirection.length() > 0) {
+                moveDirection.normalize();
+                moveDirection.multiplyScalar(speed * deltaTime);
+                player.position.add(moveDirection);
+            }
+            
+            player.velocity.y -= 20 * deltaTime;
+            player.position.y += player.velocity.y * deltaTime;
+            
+            if (player.position.y <= 1.7) {
+                player.position.y = 1.7;
+                player.velocity.y = 0;
+                player.onGround = true;
+            } else {
+                player.onGround = false;
+            }
+            
+            if ((keys[' '] || keys['space']) && player.onGround) {
+                player.velocity.y = 8;
+            }
+            
+            const worldBoundary = 45;
+            player.position.x = Math.max(-worldBoundary, Math.min(worldBoundary, player.position.x));
+            player.position.z = Math.max(-worldBoundary, Math.min(worldBoundary, player.position.z));
+        }
+
+        // ==================== ИГРОВОЙ ЦИКЛ ====================
+        function animate(currentTime) {
+            if (!gameRunning) return;
+            
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+            
+            updatePlayer(deltaTime);
+            updateZombies(deltaTime);
+            
+            camera.position.copy(player.position);
+            camera.rotation.set(player.rotation.x, player.rotation.y, 0);
+            
+            waveTimer += deltaTime * 1000;
+            if (waveTimer >= waveDuration) {
+                waveTimer = 0;
+                wave++;
+                maxZombies += 5;
+                spawnRate = Math.max(500, spawnRate - 200);
+                document.getElementById('wave').textContent = wave;
+            }
+            
+            renderer.render(scene, camera);
+            
+            requestAnimationFrame(animate);
+        }
+
+        // ==================== ЗАПУСК ИГРЫ ====================
+        function initGame() {
+            console.log('Запуск игры...');
+            
+            // Очищаем сцену
+            while(scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+            
+            // Сбрасываем переменные
+            player.position.set(0, 1.7, 0);
+            player.velocity.set(0, 0, 0);
+            player.health = 100;
+            player.stamina = 100;
+            player.rotation = { x: 0, y: 0 };
+            zombies = [];
+            wave = 1;
+            maxZombies = 10;
+            spawnRate = 3000;
+            waveTimer = 0;
+            
+            // Создаем мир
+            createWorld();
+            
+            // Создаем первого зомби
+            createZombie();
+            
+            // Обновляем UI
+            document.getElementById('score').textContent = '0';
+            document.getElementById('wave').textContent = '1';
+            updateHealthDisplay();
+            updateStaminaDisplay();
+            updateAmmoDisplay();
+            
+            // Скрываем меню
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('death-screen').style.display = 'none';
+            
+            gameRunning = true;
+            lastTime = performance.now();
+            animate(lastTime);
+            
+            console.log('Игра запущена!');
+        }
+
+        // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
+        document.getElementById('start-btn').addEventListener('click', function() {
+            console.log('Кнопка нажата!');
+            initGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', function() {
+            console.log('Перезапуск!');
+            initGame();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            
+            if (!gameRunning) return;
+            
+            if (e.key.toLowerCase() === 'r') {
+                reload();
+            }
+            
+            if (e.key === '1') {
+                currentWeapon = 'pistol';
+                updateAmmoDisplay();
+            }
+            if (e.key === '2') {
+                currentWeapon = 'shotgun';
+                updateAmmoDisplay();
+            }
+            if (e.key === '3') {
+                currentWeapon = 'rifle';
+                updateAmmoDisplay();
+            }
+            if (e.key === '4' && medkits > 0) {
+                medkits--;
+                player.health = Math.min(100, player.health + 50);
+                updateHealthDisplay();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (!gameRunning) return;
+            
+            if (e.button === 0) {
+                shoot();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!gameRunning) return;
+            
+            player.rotation.y -= e.movementX * 0.002;
+            player.rotation.x -= e.movementY * 0.002;
+            
+            player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
+        });
+
+        // Клики по оружию
+        document.querySelectorAll('.weapon-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                if (!gameRunning) return;
+                
+                const weapon = slot.dataset.weapon;
+                
+                if (weapon === 'medkit') {
+                    if (medkits > 0) {
+                        medkits--;
+                        player.health = Math.min(100, player.health + 50);
+                        updateHealthDisplay();
+                    }
+                } else {
+                    currentWeapon = weapon;
+                    updateAmmoDisplay();
+                }
+                
+                document.querySelectorAll('.weapon-slot').forEach(s => s.classList.remove('active'));
+                slot.classList.add('active');
+            });
+        });
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        console.log('Все обработчики добавлены!');
+    </script>
 </body>
 </html>
