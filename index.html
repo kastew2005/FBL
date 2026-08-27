@@ -3,149 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Craft Mobile</title>
+    <title>JS Craft Mobile</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: sans-serif;
-        }
-        #game-container {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        /* Предупреждение о портретной ориентации */
-        #orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #111;
-            color: #fff;
-            z-index: 999;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            font-size: 20px;
-        }
-        @media screen and (orientation: portrait) {
-            #orientation-warning { display: flex; }
-        }
-        /* Прицел */
-        #crosshair {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 10px; height: 10px;
-            margin-top: -5px; margin-left: -5px;
-            pointer-events: none;
-            z-index: 10;
-        }
-        #crosshair::before, #crosshair::after {
-            content: ''; position: absolute; background: white;
-        }
-        #crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
-        #crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: monospace; }
+        
+        /* Принудительный ландшафт */
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        canvas { width: 100%; height: 100%; display: block; }
 
-        /* Элементы управления (UI) */
-        .touch-zone {
-            position: absolute;
-            bottom: 20px;
-            z-index: 20;
-        }
-        #joystick-container {
-            left: 20px;
-            width: 120px; height: 120px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            position: absolute;
-            bottom: 20px;
-        }
-        #joystick-stick {
-            width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            position: absolute;
-            top: 35px; left: 35px;
-        }
-        #action-buttons {
-            right: 20px;
-            display: flex;
-            gap: 15px;
-        }
-        .btn {
-            width: 65px; height: 65px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid #fff;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .btn:active { background: rgba(255, 255, 255, 0.4); }
+        /* UI Меню */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); color: white; z-index: 10; }
+        .hidden { display: none !important; }
+        h1 { font-size: 32px; margin-bottom: 20px; text-shadow: 2px 2px #000; color: #55FF55; }
+        button { padding: 12px 24px; margin: 8px; font-size: 18px; background: #777; border: 2px solid #fff; color: white; font-weight: bold; width: 220px; }
+        button:active { background: #555; }
+
+        /* HUD Игры */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .stats-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 15px; font-size: 18px; font-weight: bold; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 5px; }
+        #hotbar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; background: rgba(0,0,0,0.6); padding: 5px; border: 2px solid #555; pointer-events: auto; }
+        .slot { width: 40px; height: 40px; border: 2px solid #aaa; margin: 0 2px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; }
+        .slot.active { border-color: yellow; background: rgba(255,255,255,0.2); }
+
+        /* Тач-управление */
+        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: auto; }
+        .btn-group { display: flex; gap: 10px; }
+        .touch-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.3); border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: white; font-weight: bold; }
+        .touch-btn:active { background: rgba(255,255,255,0.6); }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="orientation-warning">Пожалуйста, поверните устройство в альбомный режим 🔄</div>
-    <div id="crosshair"></div>
-    <div id="game-container"></div>
-
-    <div id="joystick-container">
-        <div id="joystick-stick"></div>
+<div id="game-container">
+    <div id="main-menu" class="screen">
+        <h1>JS CRAFT MOBILE</h1>
+        <button onclick="showScreen('world-menu')">Одиночная игра</button>
+        <button onclick="showScreen('settings-menu')">Настройки</button>
     </div>
 
-    <div id="action-buttons" class="touch-zone">
-        <div class="btn" id="btn-destroy">ЛОМАТЬ</div>
-        <div class="btn" id="btn-build">СТРОИТЬ</div>
-        <div class="btn" id="btn-jump">ПРЫЖОК</div>
+    <div id="world-menu" class="screen hidden">
+        <h1>Создание мира</h1>
+        <button onclick="startGame('flat')">Плоский мир</button>
+        <button onclick="startGame('normal')">Обычный мир</button>
+        <button onclick="showScreen('main-menu')">Назад</button>
     </div>
 
-    <script>
-        // --- Настройка сцены Three.js ---
-        const container = document.getElementById('game-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb); // Цвет неба
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.03);
+    <div id="settings-menu" class="screen hidden">
+        <h1>Настройки</h1>
+        <button onclick="toggleSound()" id="sound-btn">Звук: ВКЛ</button>
+        <button onclick="showScreen('main-menu')">Назад</button>
+    </div>
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+    <canvas id="gameCanvas"></canvas>
 
-        // --- Освобождение и свет ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight.position.set(20, 40, 20);
-        scene.add(dirLight);
+    <div id="hud" class="hidden">
+        <div class="stats-bar">
+            <span style="color: #ff5555;">❤️ <span id="hp">100</span></span>
+            <span style="color: #ffaa00;">🍗 <span id="hunger">100</span></span>
+            <span style="color: #ffff55;">☀️ <span id="time">День</span></span>
+        </div>
+        
+        <div id="hotbar">
+            <div class="slot active" onclick="selectSlot(0)">1</div>
+            <div class="slot" onclick="selectSlot(1)">2</div>
+            <div class="slot" onclick="selectSlot(2)">3</div>
+        </div>
 
-        // --- Текстуры блоков (упрощенная процедурная генерация) ---
-        function createBlockTexture(color) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, 64, 64);
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.fillRect(0, 0, 64, 4); ctx.fillRect(0, 0, 4, 64);
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.fillRect(0, 60, 64, 4); ctx.fillRect(60, 0, 4, 64);
-            return new THREE.CanvasTexture(canvas);
+        <div class="controls">
+            <div class="btn-group">
+                <div class="touch-btn" id="btn-left">◄</div>
+                <div class="touch-btn" id="btn-right">►</div>
+            </div>
+            <div class="btn-group">
+                <div class="touch-btn" id="btn-action">🔨</div>
+                <div class="touch-btn" id="btn-jump">▲</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- Аудио Синтезатор (без внешних файлов) ---
+const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let soundEnabled = true;
+
+function playSound(freq, type, duration) {
+    if (!soundEnabled) return;
+    try {
+        let osc = AudioCtx.createOscillator();
+        let gain = AudioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(AudioCtx.destination);
+        osc.start();
+        gain.gain.setValueAtTime(0.3, AudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + duration);
+        osc.stop(AudioCtx.currentTime + duration);
+    } catch(e) {}
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('sound-btn').innerText = "Звук: " + (soundEnabled ? "ВКЛ" : "ВЫКЛ");
+}
+
+// --- Состояние игры ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const BLOCK_SIZE = 32;
+let world = [];
+let worldWidth = 100;
+let worldHeight = 40;
+
+let player = {
+    x: 50 * BLOCK_SIZE,
+    y: 10 * BLOCK_SIZE,
+    vx: 0, vy: 0,
+    width: 20, height: 48,
+    grounded: false,
+    hp: 100, hunger: 100,
+    selectedSlot: 0,
+    inventory: [1, 2, 3] // ID блоков: 1-Земля, 2-Камень, 3-Мясо
+};
+
+let animals = [];
+let dayTime = 0; // 0..600 сек (5 мин день, 5 мин ночь = 10 мин цикл)
+const DAY_CYCLE = 600; 
+
+// --- Переключение меню ---
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    if(id) document.getElementById(id).classList.remove('hidden');
+}
+
+function startGame(type) {
+    showScreen(null);
+    document.getElementById('hud').classList.remove('hidden');
+    resizeCanvas();
+    generateWorld(type);
+    spawnAnimals();
+    gameLoop();
+    
+    // Таймер голода
+    setInterval(() => {
+        if(player.hunger > 0) player.hunger--;
+        else if(player.hp > 0) player.hp -= 5;
+        updateHUD();
+    }, 3000);
+}
+
+// --- Генерация мира ---
+function generateWorld(type) {
+    world = Array(worldHeight).fill(0).map(() => Array(worldWidth).fill(0));
+    for (let x = 0; x < worldWidth; x++) {
+        let groundLevel = type === 'flat' ? 25 : Math.floor(20 + Math.sin(x * 0.1) * 5);
+        for (let y = 0; y < worldHeight; y++) {
+            if (y > groundLevel + 4) world[y][x] = 2; // Камень
+            else if (y >= groundLevel) world[y][x] = 1; // Земля
         }
+    }
+}
 
-        const blockMaterials
+function spawnAnimals() {
+    animals = [];
+    for(let i = 0; i < 5; i++) {
+        animals.push({
+            x: (20 + i * 15) * BLOCK_SIZE,
+            y: 10 * BLOCK_SIZE,
+            vx: 1, vy: 0,
+            width: 28, height: 20,
+            hp: 20
+        });
+    }
+}
+
+// --- Управление ---
+let keys = { left: false, right: false, jump: false, action: false };
+
+const bindTouch = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+};
+
+bindTouch('btn-left', 'left');
+bindTouch('btn-right', 'right');
+bindTouch('btn-jump', 'jump');
+bindTouch('btn-action', 'action');
+
+function selectSlot(i) {
+    player.selectedSlot = i;
+    document.querySelectorAll('.slot').forEach((s, idx) => {
+        s.classList.toggle('active', idx === i);
+    });
+}
+
+// --- Физика и Обновление ---
+function update() {
+    // Движение игрока
+    if (keys.left) player.vx = -3;
+    else if (keys.right) player.vx = 3;
+    else player.vx = 0;
+
+    if (keys.jump && player.grounded) {
+        player.vy = -9;
+        player.grounded = false;
+        playSound(150, 'square', 0.1);
+    }
+
+    // Гравитация
+    player.vy += 0.4;
+    
+    // Коллизии игрока
+    moveAndCollide(player);
+
+    // Действие (Ломать / Ставить / Есть)
+    if (keys.action) {
+        keys.action = false; // Одиночное нажатие
+        handleAction();
+    }
+
+    // Обновление животных
+    animals.forEach(a => {
+        a.vy += 0.4;
+        a.x += a.vx;
+        if(Math.random() < 0.02) a.vx *= -1; // Случайный разворот
+        moveAndCollide(a);
+    });
+
+    // Время суток (10 минут full cycle)
+    dayTime = (dayTime + 1/60) % DAY_CYCLE;
+    updateHUD();
+}
+
+function moveAndCollide(obj) {
+    obj.x += obj.vx;
+    // Упрощенная коллизия по X
+    
+    obj.y += obj.vy;
+    let tileX = Math.floor((obj.x + obj.width/2) / BLOCK_SIZE);
+    let tileY = Math.floor((obj.y + obj.height) / BLOCK_SIZE);
+
+    if (tileY < worldHeight && tileX < worldWidth && tileY >= 0 && tileX >= 0) {
+        if (world[tileY][tileX] !== 0) {
+            obj.y = (tileY * BLOCK_SIZE) - obj.height;
+            obj.vy = 0;
+            if(obj === player) player.grounded = true;
+        }
+    }
+}
+
+function handleAction() {
+    let targetX = Math.floor((player.x + (player.vx >= 0 ? 40 : -20)) / BLOCK_SIZE);
+    let targetY = Math.floor((player.y + 20) / BLOCK_SIZE);
+
+    // Проверка удара по животному
+    animals.forEach((a, idx) => {
+        if (Math.abs(a.x - player.x) < 40 && Math.abs(a.y - player.y) < 40) {
+            a.hp -= 10;
+            playSound(300, 'sawtooth', 0.1);
+            if (a.hp <= 0) {
+                animals.splice(idx, 1);
+                player.hunger = Math.min(100, player.hunger + 30); // Выпало мясо и восполнило голод
+                playSound(600, 'sine', 0.2);
+            }
+        }
+    });
+
+    // Взаимодействие с блоками
+    if (targetY >= 0 && targetY < worldHeight && targetX >= 0 && targetX < worldWidth) {
+        if (world[targetY][targetX] !== 0) {
+            world[targetY][targetX] = 0; // Сломать блок
+            playSound(100, 'triangle', 0.05);
+        } else {
+            world[targetY][targetX] = player.inventory[player.selectedSlot]; // Поставить блок
+            playSound(200, 'square', 0.05);
+        }
+    }
+}
+
+function updateHUD() {
+    document.getElementById('hp').innerText = player.hp;
+    document.getElementById('hunger').innerText = player.hunger;
+    document.getElementById('time').innerText = dayTime < DAY_CYCLE/2 ? "День" : "Ночь";
+}
+
+// --- Отрисовка ---
+function render() {
+    // Небо (Смена дня и ночи)
+    let isDay = dayTime < DAY_CYCLE/2;
+    ctx.fillStyle = isDay ? "#70a5ff" : "#0B0D1B";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    // Камера следит за игроком
+    ctx.translate(-player.x + canvas.width / 2, -player.y + canvas.height / 2);
+
+    // Отрисовка мира
+    for (let y = 0; y < worldHeight; y++) {
+        for (let x = 0; x < worldWidth; x++) {
+            let type = world[y][x];
+            if (type !== 0) {
+                ctx.fillStyle = type === 1 ? "#55aa55" : "#888888";
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                ctx.strokeStyle = "rgba(0,0,0,0.1)";
+                ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            }
+        }
+    }
+
+    // Животные (Свиньи)
+    ctx.fillStyle = "#ffaaaa";
+    animals.forEach(a => {
+        ctx.fillRect(a.x, a.y, a.width, a.height);
+    });
+
+    // Игрок
+    ctx.fillStyle = "#ff5555";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    ctx.restore();
+}
+
+// --- Главный цикл ---
+function gameLoop() {
+    update();
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
