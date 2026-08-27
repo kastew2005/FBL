@@ -2,1334 +2,1233 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Zombie Apocalypse - Выживание</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Деревня: Эпоха Процветания</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
-
+        
         body {
+            background: #1a1a2e;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
-            background: #000;
             touch-action: none;
-            cursor: crosshair;
             position: fixed;
             width: 100%;
             height: 100%;
         }
-
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
+        
+        #gameCanvas {
+            display: block;
+            background: #2d5a27;
+            cursor: pointer;
         }
-
-        /* HUD */
-        #hud {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        .bar-container {
-            width: 150px;
-            height: 20px;
-            background: rgba(0,0,0,0.8);
-            border: 2px solid rgba(255,255,255,0.5);
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #health-fill {
+        
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff4444);
-            transition: width 0.3s;
-            border-radius: 8px;
-        }
-
-        #stamina-fill {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #00ff00, #44ff44);
-            transition: width 0.3s;
-            border-radius: 8px;
-        }
-
-        .bar-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-weight: bold;
-            font-size: 10px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-            z-index: 1;
-        }
-
-        .hud-info {
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            background: rgba(0,0,0,0.6);
-            padding: 5px 10px;
-            border-radius: 5px;
-            width: fit-content;
-            backdrop-filter: blur(5px);
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             pointer-events: none;
             z-index: 10;
-            opacity: 0.8;
         }
-
-        /* Инвентарь */
-        #inventory {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 100;
-        }
-
-        .weapon-slot {
-            width: 50px;
-            height: 50px;
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #666;
+        
+        .panel {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #8b6914;
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.3s;
-            backdrop-filter: blur(5px);
-        }
-
-        .weapon-slot.active {
-            border-color: #ff4444;
-            background: rgba(255,0,0,0.3);
-            box-shadow: 0 0 15px rgba(255,0,0,0.5);
-            transform: scale(1.1);
-        }
-
-        /* Мобильное управление */
-        #joystick-container {
-            position: absolute;
-            bottom: 80px;
-            left: 30px;
-            z-index: 100;
-            display: none;
-        }
-
-        #joystick-base {
-            width: 120px;
-            height: 120px;
-            background: rgba(255,255,255,0.2);
-            border: 3px solid rgba(255,255,255,0.5);
-            border-radius: 50%;
-            position: relative;
-            backdrop-filter: blur(5px);
-        }
-
-        #joystick-thumb {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transition: all 0.05s;
-            box-shadow: 0 0 10px rgba(255,255,255,0.5);
-        }
-
-        #action-buttons {
-            position: absolute;
-            bottom: 80px;
-            right: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            z-index: 100;
-            display: none;
-        }
-
-        .action-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.7);
-            border: 2px solid #fff;
-            color: white;
-            font-size: 25px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s;
+            padding: 10px;
             pointer-events: auto;
+            color: #fff;
+            max-height: 70vh;
+            overflow-y: auto;
         }
-
-        .action-btn:active {
-            background: rgba(255,0,0,0.7);
-            transform: scale(0.9);
+        
+        .top-bar {
+            position: fixed;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            pointer-events: none;
+            flex-wrap: wrap;
         }
-
-        /* Меню */
-        #start-menu, #death-screen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.95);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-            z-index: 1000;
-            border: 3px solid #ff0000;
-            max-width: 90%;
-            width: 400px;
-            box-shadow: 0 0 50px rgba(255,0,0,0.3);
-            backdrop-filter: blur(10px);
+        
+        .resource {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 12px;
+            color: #fff;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 3px;
         }
-
-        #start-menu h1, #death-screen h1 {
-            font-size: 32px;
-            margin-bottom: 15px;
-            color: #ff0000;
-            text-shadow: 3px 3px 6px rgba(255,0,0,0.5);
+        
+        .resource-icon {
+            font-size: 14px;
         }
-
-        #start-btn, #restart-btn {
-            font-size: 18px;
-            padding: 12px 25px;
-            background: #ff0000;
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 14px;
             cursor: pointer;
-            margin: 15px 0;
+            margin: 3px;
             transition: all 0.3s;
-            font-weight: bold;
-            letter-spacing: 1px;
+            pointer-events: auto;
+            min-height: 40px;
+            touch-action: manipulation;
         }
-
-        #start-btn:hover, #restart-btn:hover {
-            background: #cc0000;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
-
-        .controls-info {
-            margin-top: 15px;
-            text-align: left;
+        
+        .btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
             font-size: 12px;
-            line-height: 1.4;
-            color: #ccc;
+            min-height: 30px;
         }
-
-        /* Мобильная адаптация */
+        
+        .btn-close {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            pointer-events: auto;
+        }
+        
+        .building-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .worker-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #8b6914;
+            border-radius: 15px;
+            padding: 20px;
+            color: #fff;
+            z-index: 100;
+            pointer-events: auto;
+            min-width: 280px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            pointer-events: auto;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+            text-align: center;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-bar {
+            background: #333;
+            border-radius: 10px;
+            height: 20px;
+            position: relative;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+        }
+        
+        .stat-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .mini-map {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #444;
+            border-radius: 10px;
+            pointer-events: auto;
+            image-rendering: pixelated;
+        }
+        
         @media (max-width: 768px) {
-            #joystick-container, #action-buttons {
-                display: flex !important;
+            .resource {
+                font-size: 10px;
+                padding: 2px 5px;
             }
             
-            .bar-container {
-                width: 120px;
-                height: 18px;
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-height: 35px;
             }
             
-            .weapon-slot {
-                width: 45px;
-                height: 45px;
-                font-size: 20px;
+            .title {
+                font-size: 16px;
             }
             
-            #start-menu, #death-screen {
-                padding: 20px;
-                width: 90%;
-            }
-            
-            #start-menu h1, #death-screen h1 {
-                font-size: 24px;
+            .mini-map {
+                width: 80px;
+                height: 80px;
+                bottom: 5px;
+                right: 5px;
             }
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <!-- HUD -->
-        <div id="hud">
-            <div class="bar-container">
-                <div id="health-fill"></div>
-                <span class="bar-text">❤️ 100</span>
-            </div>
-            <div class="bar-container">
-                <div id="stamina-fill"></div>
-                <span class="bar-text">⚡ 100</span>
-            </div>
-            <div class="hud-info">🔫 <span id="ammo-text">12/48</span></div>
-            <div class="hud-info">💀 Счет: <span id="score">0</span></div>
-            <div class="hud-info">🌊 Волна: <span id="wave">1</span></div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="top-bar" id="resources">
+        <div class="resource">
+            <span class="resource-icon">🌾</span>
+            <span id="food">0</span>
         </div>
-
-        <div id="crosshair">+</div>
-
-        <div id="inventory">
-            <div class="weapon-slot active" data-weapon="pistol">🔫</div>
-            <div class="weapon-slot" data-weapon="shotgun">💥</div>
-            <div class="weapon-slot" data-weapon="rifle">🎯</div>
-            <div class="weapon-slot" data-weapon="medkit">💊</div>
+        <div class="resource">
+            <span class="resource-icon">🪵</span>
+            <span id="wood">0</span>
         </div>
-
-        <!-- Джойстик -->
-        <div id="joystick-container">
-            <div id="joystick-base">
-                <div id="joystick-thumb"></div>
-            </div>
+        <div class="resource">
+            <span class="resource-icon">🪨</span>
+            <span id="stone">0</span>
         </div>
-
-        <!-- Кнопки -->
-        <div id="action-buttons">
-            <button class="action-btn" id="shoot-btn">🔫</button>
-            <button class="action-btn" id="reload-btn">🔄</button>
-            <button class="action-btn" id="jump-btn">⬆️</button>
+        <div class="resource">
+            <span class="resource-icon">💰</span>
+            <span id="gold">0</span>
         </div>
-
-        <!-- Меню -->
-        <div id="start-menu">
-            <h1>🧟 ZOMBIE APOCALYPSE</h1>
-            <p>Выживи как можно дольше!</p>
-            <button id="start-btn">🎮 НАЧАТЬ ИГРУ</button>
-            <div class="controls-info">
-                <strong>🖥️ Компьютер:</strong><br>
-                WASD - движение<br>
-                Мышь - осмотр<br>
-                ЛКМ - выстрел<br>
-                R - перезарядка<br>
-                Пробел - прыжок<br>
-                1-4 - выбор оружия<br>
-                <strong>📱 Телефон:</strong><br>
-                Левый джойстик - движение<br>
-                Правая часть экрана - осмотр<br>
-                Кнопки - действия
-            </div>
-        </div>
-
-        <!-- Смерть -->
-        <div id="death-screen" style="display: none;">
-            <h1>☠️ ВЫ ПОГИБЛИ</h1>
-            <p>Счет: <span id="final-score">0</span></p>
-            <p>Волна: <span id="final-wave">1</span></p>
-            <button id="restart-btn">🔄 ИГРАТЬ СНОВА</button>
+        <div class="resource">
+            <span class="resource-icon">👥</span>
+            <span id="population">0/5</span>
         </div>
     </div>
+    
+    <div class="mini-map" id="miniMap"></div>
+    
+    <button class="btn" style="position: fixed; bottom: 10px; left: 10px;" onclick="toggleBuildMenu()">
+        🏗️ Строить
+    </button>
+    
+    <button class="btn" style="position: fixed; bottom: 10px; left: 120px;" onclick="toggleWorkersMenu()">
+        👥 Рабочие
+    </button>
+    
+    <button class="btn" style="position: fixed; bottom: 60px; left: 10px;" onclick="toggleShopMenu()">
+        🛒 Магазин
+    </button>
+    
+    <div id="buildMenu" class="panel hidden" style="bottom: 100px; left: 10px; right: 10px;">
+        <button class="btn-close" onclick="toggleBuildMenu()">×</button>
+        <div class="title">🏗️ Строительство</div>
+        <div id="buildingsList"></div>
+    </div>
+    
+    <div id="workersMenu" class="panel hidden" style="bottom: 100px; left: 10px; right: 10px;">
+        <button class="btn-close" onclick="toggleWorkersMenu()">×</button>
+        <div class="title">👥 Управление рабочими</div>
+        <div id="workersList"></div>
+    </div>
+    
+    <div id="shopMenu" class="panel hidden" style="bottom: 100px; left: 10px; right: 10px;">
+        <button class="btn-close" onclick="toggleShopMenu()">×</button>
+        <div class="title">🛒 Магазин улучшений</div>
+        <div id="shopList"></div>
+    </div>
+    
+    <div id="buildingInfo" class="modal hidden">
+        <div class="title" id="buildingInfoTitle"></div>
+        <div id="buildingInfoContent"></div>
+        <button class="btn" onclick="closeBuildingInfo()">Закрыть</button>
+    </div>
+    
+    <div id="questModal" class="modal hidden">
+        <div class="title">📜 Новое задание!</div>
+        <div id="questContent"></div>
+        <button class="btn" onclick="acceptQuest()">Принять</button>
+        <button class="btn" onclick="declineQuest()">Отклонить</button>
+    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-        console.log('🎮 Инициализация игры...');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
         
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.getElementById('game-container').appendChild(renderer.domElement);
-
-        // ==================== ПЕРЕМЕННЫЕ ====================
-        let gameRunning = false;
-        let lastTime = 0;
-        let waveTimer = 0;
-        const waveDuration = 30000;
-        const keys = {};
-        let zombies = [];
-        let maxZombies = 10;
-        let spawnRate = 3000;
-        let wave = 1;
-        let lastSpawn = 0;
-        let currentWeapon = 'pistol';
-        let reloading = false;
-        let lastShot = 0;
-        let medkits = 3;
-        let trees = [];
-        let grasses = [];
-
-        // Мультитач
-        let activeTouches = new Map();
-        let cameraTouchId = null;
-        let lastCameraTouchX = 0;
-        let lastCameraTouchY = 0;
-
-        const ammo = {
-            pistol: { current: 12, reserve: 48, max: 12 },
-            shotgun: { current: 6, reserve: 24, max: 6 },
-            rifle: { current: 30, reserve: 90, max: 30 }
-        };
-
-        const weapons = {
-            pistol: { damage: 25, fireRate: 500, reloadTime: 1000, spread: 0.02, range: 50 },
-            shotgun: { damage: 15, pellets: 8, fireRate: 1000, reloadTime: 2000, spread: 0.15, range: 30 },
-            rifle: { damage: 35, fireRate: 100, reloadTime: 1500, spread: 0.01, range: 70 }
-        };
-
-        const player = {
-            position: new THREE.Vector3(0, 1.7, 0),
-            velocity: new THREE.Vector3(0, 0, 0),
-            health: 100,
-            stamina: 100,
-            onGround: false,
-            rotation: { x: 0, y: 0 },
-            takeDamage: function(damage) {
-                this.health = Math.max(0, this.health - damage);
-                updateHealthDisplay();
-                if (this.health <= 0) {
-                    this.die();
-                }
+        // Адаптация размера канваса
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Состояние игры
+        const gameState = {
+            resources: {
+                food: 50,
+                wood: 30,
+                stone: 10,
+                gold: 20
             },
-            die: function() {
-                gameRunning = false;
-                document.getElementById('death-screen').style.display = 'block';
-                document.getElementById('final-score').textContent = document.getElementById('score').textContent;
-                document.getElementById('final-wave').textContent = wave;
+            population: 3,
+            maxPopulation: 5,
+            villagers: [],
+            buildings: [],
+            tiles: [],
+            selectedVillager: null,
+            selectedBuilding: null,
+            camera: { x: 0, y: 0 },
+            worldSize: 100,
+            tileSize: 32,
+            day: 1,
+            time: 0,
+            quests: [],
+            activeQuests: [],
+            weather: 'sunny',
+            season: 'spring',
+            achievements: []
+        };
+        
+        // Типы тайлов
+        const TILE_TYPES = {
+            GRASS: 'grass',
+            FOREST: 'forest',
+            STONE: 'stone',
+            WATER: 'water',
+            FARM: 'farm',
+            HOUSE: 'house',
+            ROAD: 'road'
+        };
+        
+        // Типы зданий
+        const BUILDING_TYPES = {
+            HOUSE: {
+                name: 'Дом',
+                cost: { wood: 15, stone: 5 },
+                description: 'Увеличивает население на 2',
+                size: 2,
+                color: '#8B4513',
+                emoji: '🏠'
+            },
+            FARM: {
+                name: 'Ферма',
+                cost: { wood: 10, gold: 5 },
+                description: 'Производит еду',
+                size: 2,
+                color: '#228B22',
+                emoji: '🌾'
+            },
+            LUMBER_MILL: {
+                name: 'Лесопилка',
+                cost: { wood: 20, stone: 10 },
+                description: 'Ускоряет добычу дерева',
+                size: 2,
+                color: '#654321',
+                emoji: '🪚'
+            },
+            QUARRY: {
+                name: 'Каменоломня',
+                cost: { wood: 15, stone: 15 },
+                description: 'Ускоряет добычу камня',
+                size: 2,
+                color: '#808080',
+                emoji: '⛏️'
+            },
+            MARKET: {
+                name: 'Рынок',
+                cost: { wood: 20, gold: 20 },
+                description: 'Увеличивает доход золота',
+                size: 3,
+                color: '#FFD700',
+                emoji: '🏪'
             }
         };
-
-        // ==================== СОЗДАНИЕ ТЕКСТУР ====================
-        function createTexture(color, type) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, 64, 64);
-            
-            if (type === 'grass') {
-                for (let i = 0; i < 50; i++) {
-                    ctx.strokeStyle = `rgba(${Math.random()*100}, ${Math.random()*255}, ${Math.random()*50}, 0.5)`;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.random()*64, Math.random()*64);
-                    ctx.lineTo(Math.random()*64, Math.random()*64);
-                    ctx.stroke();
-                }
-            } else if (type === 'zombie_skin') {
-                // Текстура кожи зомби
-                for (let i = 0; i < 30; i++) {
-                    ctx.fillStyle = `rgba(${Math.random()*100}, ${Math.random()*50}, ${Math.random()*30}, 0.3)`;
-                    ctx.beginPath();
-                    ctx.arc(Math.random()*64, Math.random()*64, Math.random()*5, 0, Math.PI*2);
-                    ctx.fill();
-                }
-                // Шрамы
-                ctx.strokeStyle = 'rgba(100, 0, 0, 0.5)';
-                ctx.lineWidth = 2;
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(Math.random()*64, Math.random()*64);
-                    ctx.lineTo(Math.random()*64, Math.random()*64);
-                    ctx.stroke();
-                }
-            }
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(5, 5);
-            return texture;
-        }
-
-        // ==================== СОЗДАНИЕ МИРА ====================
-        function createWorld() {
-            // Небо
-            const skyGeometry = new THREE.SphereGeometry(200, 32, 32);
-            const skyMaterial = new THREE.MeshBasicMaterial({
-                color: 0x1a0030,
-                side: THREE.BackSide
-            });
-            const sky = new THREE.Mesh(skyGeometry, skyMaterial);
-            scene.add(sky);
-            
-            // Звезды
-            for (let i = 0; i < 200; i++) {
-                const starGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const star = new THREE.Mesh(starGeometry, starMaterial);
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.random() * Math.PI;
-                star.position.set(
-                    150 * Math.sin(phi) * Math.cos(theta),
-                    150 * Math.cos(phi),
-                    150 * Math.sin(phi) * Math.sin(theta)
-                );
-                scene.add(star);
-            }
-            
-            // Луна
-            const moonGeometry = new THREE.SphereGeometry(5, 32, 32);
-            const moonMaterial = new THREE.MeshBasicMaterial({ color: 0xffffcc });
-            const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-            moon.position.set(50, 80, -50);
-            scene.add(moon);
-            
-            // Земля
-            const groundGeometry = new THREE.PlaneGeometry(200, 200);
-            const groundMaterial = new THREE.MeshStandardMaterial({ 
-                map: createTexture('#2d5a1e', 'grass'),
-                roughness: 0.9
-            });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            
-            // Дороги
-            const roadMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x444444,
-                roughness: 0.7
-            });
-            
-            const road1 = new THREE.Mesh(new THREE.PlaneGeometry(200, 4), roadMaterial);
-            road1.rotation.x = -Math.PI / 2;
-            road1.position.set(0, 0.01, 0);
-            road1.receiveShadow = true;
-            scene.add(road1);
-            
-            const road2 = new THREE.Mesh(new THREE.PlaneGeometry(4, 200), roadMaterial);
-            road2.rotation.x = -Math.PI / 2;
-            road2.position.set(0, 0.01, 0);
-            road2.receiveShadow = true;
-            scene.add(road2);
-            
-            // Деревья
-            for (let i = 0; i < 50; i++) {
-                createTree(
-                    (Math.random() - 0.5) * 150,
-                    (Math.random() - 0.5) * 150
-                );
-            }
-            
-            // Здания
-            for (let i = 0; i < 15; i++) {
-                createBuilding(
-                    (Math.random() - 0.5) * 120,
-                    (Math.random() - 0.5) * 120
-                );
-            }
-            
-            // Машины
-            for (let i = 0; i < 20; i++) {
-                createCar(
-                    (Math.random() - 0.5) * 100,
-                    (Math.random() - 0.5) * 100
-                );
-            }
-            
-            // Освещение
-            const ambientLight = new THREE.AmbientLight(0x222244, 0.8);
-            scene.add(ambientLight);
-            
-            const moonLight = new THREE.DirectionalLight(0x4466ff, 0.6);
-            moonLight.position.set(50, 100, -50);
-            moonLight.castShadow = true;
-            moonLight.shadow.mapSize.width = 2048;
-            moonLight.shadow.mapSize.height = 2048;
-            moonLight.shadow.camera.left = -100;
-            moonLight.shadow.camera.right = 100;
-            moonLight.shadow.camera.top = 100;
-            moonLight.shadow.camera.bottom = -100;
-            scene.add(moonLight);
-            
-            scene.fog = new THREE.FogExp2(0x1a0030, 0.008);
-        }
-
-        function createTree(x, z) {
-            const treeGroup = new THREE.Group();
-            
-            // Ствол
-            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 4, 8);
-            const trunkMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x4a2f1b,
-                roughness: 0.9
-            });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.y = 2;
-            trunk.castShadow = true;
-            treeGroup.add(trunk);
-            
-            // Крона
-            const crownGeometry = new THREE.SphereGeometry(2, 8, 8);
-            const crownMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x1a4d0a,
-                roughness: 0.8
-            });
-            const crown = new THREE.Mesh(crownGeometry, crownMaterial);
-            crown.position.y = 5;
-            crown.castShadow = true;
-            treeGroup.add(crown);
-            
-            treeGroup.position.set(x, 0, z);
-            scene.add(treeGroup);
-            trees.push(treeGroup);
-        }
-
-        function createBuilding(x, z) {
-            if (Math.abs(x) < 15 && Math.abs(z) < 15) return;
-            
-            const width = 8 + Math.random() * 12;
-            const height = 10 + Math.random() * 30;
-            const depth = 8 + Math.random() * 12;
-            
-            const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
-            const buildingMaterial = new THREE.MeshStandardMaterial({ 
-                color: new THREE.Color().setHSL(Math.random() * 0.2 + 0.05, 0.3, 0.4),
-                roughness: 0.7,
-                metalness: 0.1
-            });
-            const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
-            building.position.set(x, height / 2, z);
-            building.castShadow = true;
-            building.receiveShadow = true;
-            scene.add(building);
-            
-            // Окна
-            for (let floor = 0; floor < Math.floor(height / 3); floor++) {
-                for (let side = 0; side < 4; side++) {
-                    if (Math.random() < 0.3) continue;
+        
+        // Типы работ
+        const JOB_TYPES = {
+            IDLE: { name: 'Без работы', emoji: '😴', color: '#808080' },
+            WOODCUTTER: { name: 'Лесоруб', emoji: '🪓', color: '#8B4513' },
+            MINER: { name: 'Шахтёр', emoji: '⛏️', color: '#696969' },
+            FISHER: { name: 'Рыбак', emoji: '🎣', color: '#4169E1' },
+            FARMER: { name: 'Фермер', emoji: '🌾', color: '#228B22' },
+            BUILDER: { name: 'Строитель', emoji: '🔨', color: '#D2691E' }
+        };
+        
+        // Генерация мира
+        function generateWorld() {
+            gameState.tiles = [];
+            for (let x = 0; x < gameState.worldSize; x++) {
+                gameState.tiles[x] = [];
+                for (let y = 0; y < gameState.worldSize; y++) {
+                    let type = TILE_TYPES.GRASS;
+                    const noise = Math.random();
                     
-                    const windowGeometry = new THREE.PlaneGeometry(1, 1);
-                    const windowMaterial = new THREE.MeshBasicMaterial({ 
-                        color: Math.random() < 0.7 ? 0xffaa00 : 0x444444
-                    });
-                    const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial);
+                    if (noise < 0.3) {
+                        type = TILE_TYPES.FOREST;
+                    } else if (noise < 0.35) {
+                        type = TILE_TYPES.STONE;
+                    } else if (noise < 0.4) {
+                        type = TILE_TYPES.WATER;
+                    }
                     
-                    const offset = floor * 3 + 1.5;
-                    if (side === 0) windowMesh.position.set(x, offset, z - depth/2 - 0.1);
-                    if (side === 1) windowMesh.position.set(x, offset, z + depth/2 + 0.1);
-                    if (side === 2) windowMesh.position.set(x - width/2 - 0.1, offset, z);
-                    if (side === 3) windowMesh.position.set(x + width/2 + 0.1, offset, z);
-                    
-                    scene.add(windowMesh);
-                }
-            }
-        }
-
-        function createCar(x, z) {
-            if (Math.abs(x) < 5 && Math.abs(z) < 5) return;
-            
-            const carGroup = new THREE.Group();
-            
-            // Кузов
-            const bodyGeometry = new THREE.BoxGeometry(4, 1, 2);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ 
-                color: new THREE.Color().setHSL(Math.random(), 0.5, 0.5),
-                roughness: 0.3,
-                metalness: 0.5
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.5;
-            body.castShadow = true;
-            carGroup.add(body);
-            
-            // Кабина
-            const cabinGeometry = new THREE.BoxGeometry(2, 0.8, 1.8);
-            const cabinMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x333333,
-                roughness: 0.1,
-                metalness: 0.8
-            });
-            const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
-            cabin.position.set(-0.3, 1.2, 0);
-            cabin.castShadow = true;
-            carGroup.add(cabin);
-            
-            // Колеса
-            for (let i = -1; i <= 1; i += 2) {
-                for (let j = -1; j <= 1; j += 2) {
-                    const wheelGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 16);
-                    const wheelMaterial = new THREE.MeshStandardMaterial({ 
-                        color: 0x111111,
-                        roughness: 0.9
-                    });
-                    const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-                    wheel.rotation.z = Math.PI / 2;
-                    wheel.position.set(i * 1.5, 0.3, j * 1);
-                    carGroup.add(wheel);
+                    gameState.tiles[x][y] = {
+                        type: type,
+                        building: null,
+                        resource: noise < 0.3 ? 'tree' : noise < 0.35 ? 'stone' : null
+                    };
                 }
             }
             
-            carGroup.position.set(x, 0, z);
-            carGroup.rotation.y = Math.random() * Math.PI * 2;
-            scene.add(carGroup);
+            // Размещаем стартовые здания
+            const centerX = Math.floor(gameState.worldSize / 2);
+            const centerY = Math.floor(gameState.worldSize / 2);
+            
+            for (let i = 0; i < 2; i++) {
+                addBuilding(BUILDING_TYPES.HOUSE, centerX + i * 3, centerY);
+            }
+            addBuilding(BUILDING_TYPES.FARM, centerX, centerY + 3);
+            
+            // Создаём стартовых жителей
+            for (let i = 0; i < gameState.population; i++) {
+                gameState.villagers.push({
+                    id: i,
+                    name: `Житель ${i + 1}`,
+                    job: JOB_TYPES.IDLE,
+                    x: centerX * gameState.tileSize + Math.random() * 100,
+                    y: centerY * gameState.tileSize + Math.random() * 100,
+                    health: 100,
+                    energy: 100,
+                    happiness: 70,
+                    inventory: { wood: 0, stone: 0, food: 0 }
+                });
+            }
+            
+            gameState.camera.x = centerX * gameState.tileSize - canvas.width / 2;
+            gameState.camera.y = centerY * gameState.tileSize - canvas.height / 2;
         }
-
-        // ==================== СОЗДАНИЕ ЗОМБИ ====================
-        function createZombie() {
-            const zombieGroup = new THREE.Group();
-            
-            // Тело с текстурой кожи
-            const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.8, 8);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ 
-                map: createTexture('#4a4a4a', 'zombie_skin'),
-                roughness: 0.9,
-                bumpScale: 0.1
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.9;
-            body.castShadow = true;
-            zombieGroup.add(body);
-            
-            // Голова
-            const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
-            const headMaterial = new THREE.MeshStandardMaterial({ 
-                map: createTexture('#3a3a3a', 'zombie_skin'),
-                roughness: 0.9
-            });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.9;
-            head.castShadow = true;
-            zombieGroup.add(head);
-            
-            // Глаза (светящиеся)
-            for (let i = -1; i <= 1; i += 2) {
-                const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-                const eyeMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xff0000,
-                    emissive: 0xff0000
-                });
-                const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-                eye.position.set(i * 0.1, 0.05, -0.2);
-                head.add(eye);
-            }
-            
-            // Рот (рана)
-            const mouthGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.05);
-            const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
-            mouth.position.set(0, -0.1, -0.2);
-            head.add(mouth);
-            
-            // Руки (вытянутые вперед)
-            for (let i = -1; i <= 1; i += 2) {
-                const armGroup = new THREE.Group();
-                
-                const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 6);
-                const armMaterial = new THREE.MeshStandardMaterial({ 
-                    map: createTexture('#3a3a3a', 'zombie_skin'),
-                    roughness: 0.9
-                });
-                const arm = new THREE.Mesh(armGeometry, armMaterial);
-                arm.position.y = -0.4;
-                arm.castShadow = true;
-                armGroup.add(arm);
-                
-                // Кисть
-                const handGeometry = new THREE.SphereGeometry(0.12, 6, 6);
-                const handMaterial = new THREE.MeshStandardMaterial({ 
-                    map: createTexture('#3a3a3a', 'zombie_skin'),
-                    roughness: 0.9
-                });
-                const hand = new THREE.Mesh(handGeometry, handMaterial);
-                hand.position.y = -0.8;
-                armGroup.add(hand);
-                
-                armGroup.position.set(i * 0.5, 1.2, 0);
-                armGroup.rotation.x = -Math.PI / 3;
-                armGroup.rotation.z = i * 0.3;
-                zombieGroup.add(armGroup);
-            }
-            
-            // Ноги
-            for (let i = -1; i <= 1; i += 2) {
-                const legGeometry = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 6);
-                const legMaterial = new THREE.MeshStandardMaterial({ 
-                    map: createTexture('#2a2a2a', 'zombie_skin'),
-                    roughness: 0.9
-                });
-                const leg = new THREE.Mesh(legGeometry, legMaterial);
-                leg.position.set(i * 0.2, 0.4, 0);
-                leg.castShadow = true;
-                zombieGroup.add(leg);
-            }
-            
-            // Спавн
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 25 + Math.random() * 35;
-            zombieGroup.position.set(
-                player.position.x + Math.cos(angle) * distance,
-                0,
-                player.position.z + Math.sin(angle) * distance
-            );
-            
-            zombieGroup.userData = {
-                health: 50 + wave * 10,
-                speed: 2 + wave * 0.3,
-                damage: 10 + wave * 2,
-                isZombie: true,
-                isDead: false,
-                lastAttack: 0,
-                walkCycle: Math.random() * Math.PI * 2
+        
+        function addBuilding(type, x, y) {
+            const building = {
+                type: type,
+                x: x,
+                y: y,
+                level: 1,
+                workers: [],
+                production: 0
             };
             
-            scene.add(zombieGroup);
-            zombies.push(zombieGroup);
-        }
-
-        // ==================== ОБНОВЛЕНИЕ ЗОМБИ ====================
-        function updateZombies(deltaTime) {
-            const now = Date.now();
-            
-            if (zombies.length < maxZombies && now - lastSpawn > spawnRate) {
-                createZombie();
-                lastSpawn = now;
+            for (let dx = 0; dx < type.size; dx++) {
+                for (let dy = 0; dy < type.size; dy++) {
+                    gameState.tiles[x + dx][y + dy].building = building;
+                }
             }
             
-            for (let i = zombies.length - 1; i >= 0; i--) {
-                const zombie = zombies[i];
-                
-                if (zombie.userData.isDead) {
-                    // Эффект смерти
-                    const deathParticles = new THREE.Group();
-                    for (let j = 0; j < 10; j++) {
-                        const particleGeometry = new THREE.SphereGeometry(0.1, 4, 4);
-                        const particleMaterial = new THREE.MeshBasicMaterial({ 
-                            color: Math.random() < 0.5 ? 0x00ff00 : 0xff0000 
-                        });
-                        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-                        particle.position.set(
-                            (Math.random() - 0.5) * 2,
-                            Math.random() * 2,
-                            (Math.random() - 0.5) * 2
-                        );
-                        deathParticles.add(particle);
-                    }
-                    deathParticles.position.copy(zombie.position);
-                    scene.add(deathParticles);
-                    
-                    setTimeout(() => {
-                        scene.remove(deathParticles);
-                    }, 1000);
-                    
-                    scene.remove(zombie);
-                    zombies.splice(i, 1);
-                    
-                    const scoreElement = document.getElementById('score');
-                    scoreElement.textContent = parseInt(scoreElement.textContent) + 10;
-                    continue;
+            gameState.buildings.push(building);
+            
+            if (type === BUILDING_TYPES.HOUSE) {
+                gameState.maxPopulation += 2;
+            }
+            
+            return building;
+        }
+        
+        // Управление рабочими
+        function assignJob(villagerId, jobType) {
+            const villager = gameState.villagers.find(v => v.id === villagerId);
+            if (villager) {
+                villager.job = jobType;
+                updateUI();
+            }
+        }
+        
+        // Производство ресурсов
+        function updateProduction() {
+            gameState.villagers.forEach(villager => {
+                switch (villager.job.name) {
+                    case 'Лесоруб':
+                        if (villager.energy > 0) {
+                            villager.inventory.wood += 2;
+                            villager.energy -= 5;
+                            villager.happiness -= 1;
+                        }
+                        break;
+                    case 'Шахтёр':
+                        if (villager.energy > 0) {
+                            villager.inventory.stone += 1;
+                            villager.energy -= 8;
+                            villager.happiness -= 1;
+                        }
+                        break;
+                    case 'Фермер':
+                        if (villager.energy > 0) {
+                            villager.inventory.food += 3;
+                            villager.energy -= 6;
+                        }
+                        break;
+                    case 'Рыбак':
+                        if (villager.energy > 0) {
+                            villager.inventory.food += 2;
+                            villager.energy -= 4;
+                            villager.happiness += 2;
+                        }
+                        break;
                 }
                 
-                const direction = new THREE.Vector3()
-                    .subVectors(player.position, zombie.position)
-                    .normalize();
+                // Восстановление энергии
+                if (villager.job.name === 'Без работы') {
+                    villager.energy = Math.min(100, villager.energy + 5);
+                    villager.happiness = Math.min(100, villager.happiness + 3);
+                }
                 
-                // Анимация ходьбы
-                zombie.userData.walkCycle += deltaTime * zombie.userData.speed * 2;
-                const bobAmount = Math.sin(zombie.userData.walkCycle) * 0.1;
-                zombie.position.y = Math.abs(bobAmount);
-                zombie.rotation.x = bobAmount * 0.3;
-                zombie.rotation.z = Math.sin(zombie.userData.walkCycle) * 0.1;
+                // Сбор ресурсов в общий пул
+                if (villager.inventory.wood > 0) {
+                    gameState.resources.wood += villager.inventory.wood;
+                    villager.inventory.wood = 0;
+                }
+                if (villager.inventory.stone > 0) {
+                    gameState.resources.stone += villager.inventory.stone;
+                    villager.inventory.stone = 0;
+                }
+                if (villager.inventory.food > 0) {
+                    gameState.resources.food += villager.inventory.food;
+                    villager.inventory.food = 0;
+                }
+            });
+            
+            // Потребление еды
+            const foodConsumption = gameState.population * 1;
+            gameState.resources.food -= foodConsumption;
+            if (gameState.resources.food < 0) {
+                gameState.resources.food = 0;
+                gameState.villagers.forEach(v => v.health -= 5);
+            }
+            
+            // Генерация золота от рынков
+            const markets = gameState.buildings.filter(b => b.type === BUILDING_TYPES.MARKET);
+            gameState.resources.gold += markets.length * 5;
+        }
+        
+        // Квесты
+        function generateQuest() {
+            const quests = [
+                {
+                    title: 'Сбор древесины',
+                    description: 'Соберите 50 единиц дерева',
+                    requirement: { wood: 50 },
+                    reward: { gold: 30, food: 10 },
+                    duration: 60
+                },
+                {
+                    title: 'Каменный запас',
+                    description: 'Добудьте 30 единиц камня',
+                    requirement: { stone: 30 },
+                    reward: { gold: 40, wood: 10 },
+                    duration: 50
+                },
+                {
+                    title: 'Продовольствие',
+                    description: 'Произведите 40 единиц еды',
+                    requirement: { food: 40 },
+                    reward: { gold: 25, wood: 15 },
+                    duration: 45
+                },
+                {
+                    title: 'Строительный бум',
+                    description: 'Постройте 3 новых здания',
+                    requirement: { buildings: 3 },
+                    reward: { gold: 100, wood: 30, stone: 20 },
+                    duration: 90
+                }
+            ];
+            
+            const quest = quests[Math.floor(Math.random() * quests.length)];
+            gameState.activeQuests.push({
+                ...quest,
+                progress: 0,
+                startTime: gameState.time
+            });
+            
+            showQuestModal(quest);
+        }
+        
+        // UI функции
+        function updateUI() {
+            document.getElementById('food').textContent = Math.floor(gameState.resources.food);
+            document.getElementById('wood').textContent = Math.floor(gameState.resources.wood);
+            document.getElementById('stone').textContent = Math.floor(gameState.resources.stone);
+            document.getElementById('gold').textContent = Math.floor(gameState.resources.gold);
+            document.getElementById('population').textContent = `${gameState.population}/${gameState.maxPopulation}`;
+        }
+        
+        function toggleBuildMenu() {
+            const menu = document.getElementById('buildMenu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                updateBuildingsList();
+            }
+        }
+        
+        function toggleWorkersMenu() {
+            const menu = document.getElementById('workersMenu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                updateWorkersList();
+            }
+        }
+        
+        function toggleShopMenu() {
+            const menu = document.getElementById('shopMenu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                updateShopList();
+            }
+        }
+        
+        function updateBuildingsList() {
+            const list = document.getElementById('buildingsList');
+            list.innerHTML = '';
+            
+            Object.values(BUILDING_TYPES).forEach(type => {
+                const canAfford = Object.entries(type.cost).every(([resource, amount]) => 
+                    gameState.resources[resource] >= amount
+                );
                 
-                zombie.position.add(direction.multiplyScalar(zombie.userData.speed * deltaTime));
+                const item = document.createElement('div');
+                item.className = 'building-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${type.emoji} ${type.name}</strong><br>
+                        <small>${type.description}</small><br>
+                        <small>Стоимость: ${formatCost(type.cost)}</small>
+                    </div>
+                    <button class="btn btn-small" ${canAfford ? '' : 'style="opacity:0.5"'} 
+                        onclick="buildBuilding('${type.name}')">
+                        Построить
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        function updateWorkersList() {
+            const list = document.getElementById('workersList');
+            list.innerHTML = '';
+            
+            gameState.villagers.forEach(villager => {
+                const item = document.createElement('div');
+                item.className = 'worker-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${villager.name}</strong><br>
+                        <small>Работа: ${villager.job.emoji} ${villager.job.name}</small><br>
+                        <small>Энергия: ${villager.energy}% | Счастье: ${villager.happiness}%</small>
+                    </div>
+                    <select onchange="assignJob(${villager.id}, JOB_TYPES[this.value])">
+                        ${Object.entries(JOB_TYPES).map(([key, job]) => 
+                            `<option value="${key}" ${villager.job.name === job.name ? 'selected' : ''}>
+                                ${job.emoji} ${job.name}
+                            </option>`
+                        ).join('')}
+                    </select>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        function updateShopList() {
+            const list = document.getElementById('shopList');
+            list.innerHTML = '';
+            
+            const upgrades = [
+                { name: 'Улучшить дома', description: '+2 к населению для всех домов', cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } },
+                { name: 'Эффективные инструменты', description: '+50% к добыче ресурсов', cost: { gold: 80, stone: 30 }, effect: () => { /* Добавить множитель */ } },
+                { name: 'Праздник урожая', description: '+20 к счастью всех жителей', cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = Math.min(100, v.happiness + 20)); } },
+                { name: 'Нанять жителя', description: '+1 житель', cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } }
+            ];
+            
+            upgrades.forEach(upgrade => {
+                const canAfford = Object.entries(upgrade.cost).every(([resource, amount]) => 
+                    gameState.resources[resource] >= amount
+                );
                 
-                zombie.lookAt(player.position.x, 0, player.position.z);
-                
-                const distance = zombie.position.distanceTo(player.position);
-                if (distance < 2) {
-                    if (now - zombie.userData.lastAttack > 1000) {
-                        zombie.userData.lastAttack = now;
-                        player.takeDamage(zombie.userData.damage);
-                        
-                        // Анимация атаки
-                        zombie.rotation.x = -0.5;
-                        setTimeout(() => {
-                            if (!zombie.userData.isDead) {
-                                zombie.rotation.x = 0;
+                const item = document.createElement('div');
+                item.className = 'building-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${upgrade.name}</strong><br>
+                        <small>${upgrade.description}</small><br>
+                        <small>Стоимость: ${formatCost(upgrade.cost)}</small>
+                    </div>
+                    <button class="btn btn-small" ${canAfford ? '' : 'style="opacity:0.5"'} 
+                        onclick="buyUpgrade(${upgrades.indexOf(upgrade)})">
+                        Купить
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        function formatCost(cost) {
+            return Object.entries(cost).map(([resource, amount]) => 
+                `${getEmoji(resource)}${amount}`
+            ).join(' ');
+        }
+        
+        function getEmoji(resource) {
+            const emojis = { wood: '🪵', stone: '🪨', gold: '💰', food: '🌾' };
+            return emojis[resource] || '📦';
+        }
+        
+        function buildBuilding(typeName) {
+            const type = Object.values(BUILDING_TYPES).find(t => t.name === typeName);
+            if (!type) return;
+            
+            const canAfford = Object.entries(type.cost).every(([resource, amount]) => 
+                gameState.resources[resource] >= amount
+            );
+            
+            if (!canAfford) return;
+            
+            // Вычитаем ресурсы
+            Object.entries(type.cost).forEach(([resource, amount]) => {
+                gameState.resources[resource] -= amount;
+            });
+            
+            // Находим место для строительства
+            const centerX = Math.floor(gameState.camera.x / gameState.tileSize) + Math.floor(canvas.width / gameState.tileSize / 2);
+            const centerY = Math.floor(gameState.camera.y / gameState.tileSize) + Math.floor(canvas.height / gameState.tileSize / 2);
+            
+            // Ищем свободное место
+            let placed = false;
+            for (let radius = 0; radius < 20 && !placed; radius++) {
+                for (let angle = 0; angle < Math.PI * 2 && !placed; angle += 0.5) {
+                    const x = Math.floor(centerX + Math.cos(angle) * radius);
+                    const y = Math.floor(centerY + Math.sin(angle) * radius);
+                    
+                    if (x > 0 && y > 0 && x + type.size < gameState.worldSize && y + type.size < gameState.worldSize) {
+                        let canPlace = true;
+                        for (let dx = 0; dx < type.size; dx++) {
+                            for (let dy = 0; dy < type.size; dy++) {
+                                if (gameState.tiles[x + dx][y + dy].building) {
+                                    canPlace = false;
+                                    break;
+                                }
                             }
-                        }, 300);
-                    }
-                }
-            }
-        }
-
-        // ==================== СТРЕЛЬБА ====================
-        function shoot() {
-            if (!gameRunning || reloading) return;
-            
-            const weapon = weapons[currentWeapon];
-            const now = Date.now();
-            
-            if (now - lastShot < weapon.fireRate) return;
-            
-            if (ammo[currentWeapon].current <= 0) {
-                reload();
-                return;
-            }
-            
-            lastShot = now;
-            ammo[currentWeapon].current--;
-            
-            const shots = currentWeapon === 'shotgun' ? weapon.pellets : 1;
-            
-            for (let i = 0; i < shots; i++) {
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-                raycaster.far = weapon.range;
-                
-                const spreadX = (Math.random() - 0.5) * weapon.spread;
-                const spreadY = (Math.random() - 0.5) * weapon.spread;
-                raycaster.ray.direction.x += spreadX;
-                raycaster.ray.direction.y += spreadY;
-                
-                const intersects = raycaster.intersectObjects(scene.children, true);
-                
-                if (intersects.length > 0) {
-                    const hit = intersects[0];
-                    const object = hit.object;
-                    
-                    if (object.userData.isZombie) {
-                        object.userData.health -= weapon.damage;
+                            if (!canPlace) break;
+                        }
                         
-                        // Эффект попадания
-                        const bloodEffect = new THREE.Mesh(
-                            new THREE.SphereGeometry(0.1, 4, 4),
-                            new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-                        );
-                        bloodEffect.position.copy(hit.point);
-                        scene.add(bloodEffect);
-                        setTimeout(() => scene.remove(bloodEffect), 200);
-                        
-                        if (object.userData.health <= 0) {
-                            object.userData.isDead = true;
+                        if (canPlace) {
+                            addBuilding(type, x, y);
+                            placed = true;
                         }
                     }
                 }
             }
             
-            updateAmmoDisplay();
+            updateUI();
+            updateBuildingsList();
         }
-
-        function reload() {
-            if (reloading) return;
-            
-            const weapon = ammo[currentWeapon];
-            if (weapon.current === weapon.max || weapon.reserve === 0) return;
-            
-            reloading = true;
-            
-            setTimeout(() => {
-                const needed = weapon.max - weapon.current;
-                const available = Math.min(needed, weapon.reserve);
-                
-                weapon.current += available;
-                weapon.reserve -= available;
-                reloading = false;
-                updateAmmoDisplay();
-            }, weapons[currentWeapon].reloadTime);
-        }
-
-        // ==================== ОБНОВЛЕНИЕ UI ====================
-        function updateHealthDisplay() {
-            const healthPercent = Math.max(0, player.health);
-            document.getElementById('health-fill').style.width = healthPercent + '%';
-            document.getElementById('health-fill').parentElement.querySelector('.bar-text').textContent = `❤️ ${Math.round(healthPercent)}`;
-        }
-
-        function updateStaminaDisplay() {
-            const staminaPercent = Math.max(0, player.stamina);
-            document.getElementById('stamina-fill').style.width = staminaPercent + '%';
-            document.getElementById('stamina-fill').parentElement.querySelector('.bar-text').textContent = `⚡ ${Math.round(staminaPercent)}`;
-        }
-
-        function updateAmmoDisplay() {
-            const weapon = ammo[currentWeapon];
-            document.getElementById('ammo-text').textContent = `${weapon.current}/${weapon.reserve}`;
-        }
-
-        // ==================== ОБНОВЛЕНИЕ ИГРОКА ====================
-        function updatePlayer(deltaTime) {
-            if (!gameRunning) return;
-            
-            const forward = new THREE.Vector3(-Math.sin(player.rotation.y), 0, -Math.cos(player.rotation.y));
-            const right = new THREE.Vector3(Math.cos(player.rotation.y), 0, -Math.sin(player.rotation.y));
-            
-            const moveDirection = new THREE.Vector3(0, 0, 0);
-            
-            // Клавиатура
-            if (keys['w'] || keys['arrowup']) moveDirection.add(forward);
-            if (keys['s'] || keys['arrowdown']) moveDirection.sub(forward);
-            if (keys['a'] || keys['arrowleft']) moveDirection.sub(right);
-            if (keys['d'] || keys['arrowright']) moveDirection.add(right);
-            
-            // Джойстик
-            if (window.joystickDirection) {
-                moveDirection.add(new THREE.Vector3(
-                    window.joystickDirection.x * right.x + window.joystickDirection.y * forward.x,
-                    0,
-                    window.joystickDirection.x * right.z + window.joystickDirection.y * forward.z
-                ));
+        
+        function hireVillager() {
+            if (gameState.population >= gameState.maxPopulation) {
+                alert('Достигнут лимит населения! Постройте больше домов.');
+                return;
             }
             
-            let speed = 8;
-            if (keys['shift'] && player.stamina > 0) {
-                speed = 15;
-                player.stamina -= 20 * deltaTime;
-                updateStaminaDisplay();
-            } else if (player.stamina < 100) {
-                player.stamina += 10 * deltaTime;
-                updateStaminaDisplay();
+            const cost = { gold: 40, food: 20 };
+            const canAfford = Object.entries(cost).every(([resource, amount]) => 
+                gameState.resources[resource] >= amount
+            );
+            
+            if (!canAfford) {
+                alert('Недостаточно ресурсов для найма!');
+                return;
             }
             
-            if (moveDirection.length() > 0) {
-                moveDirection.normalize();
-                moveDirection.multiplyScalar(speed * deltaTime);
-                player.position.add(moveDirection);
-            }
-            
-            player.velocity.y -= 20 * deltaTime;
-            player.position.y += player.velocity.y * deltaTime;
-            
-            if (player.position.y <= 1.7) {
-                player.position.y = 1.7;
-                player.velocity.y = 0;
-                player.onGround = true;
-            } else {
-                player.onGround = false;
-            }
-            
-            if ((keys[' '] || keys['space']) && player.onGround) {
-                player.velocity.y = 8;
-            }
-            
-            const worldBoundary = 60;
-            player.position.x = Math.max(-worldBoundary, Math.min(worldBoundary, player.position.x));
-            player.position.z = Math.max(-worldBoundary, Math.min(worldBoundary, player.position.z));
-        }
-
-        // ==================== ИГРОВОЙ ЦИКЛ ====================
-        function animate(currentTime) {
-            if (!gameRunning) return;
-            
-            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
-            lastTime = currentTime;
-            
-            updatePlayer(deltaTime);
-            updateZombies(deltaTime);
-            
-            camera.position.copy(player.position);
-            camera.rotation.set(player.rotation.x, player.rotation.y, 0);
-            
-            waveTimer += deltaTime * 1000;
-            if (waveTimer >= waveDuration) {
-                waveTimer = 0;
-                wave++;
-                maxZombies += 5;
-                spawnRate = Math.max(500, spawnRate - 200);
-                document.getElementById('wave').textContent = wave;
-            }
-            
-            renderer.render(scene, camera);
-            
-            requestAnimationFrame(animate);
-        }
-
-        // ==================== ЗАПУСК ИГРЫ ====================
-        function initGame() {
-            console.log('🚀 Запуск игры...');
-            
-            // Очищаем сцену
-            while(scene.children.length > 0) {
-                scene.remove(scene.children[0]);
-            }
-            
-            // Сбрасываем переменные
-            player.position.set(0, 1.7, 0);
-            player.velocity.set(0, 0, 0);
-            player.health = 100;
-            player.stamina = 100;
-            player.rotation = { x: 0, y: 0 };
-            zombies = [];
-            trees = [];
-            grasses = [];
-            wave = 1;
-            maxZombies = 10;
-            spawnRate = 3000;
-            waveTimer = 0;
-            lastSpawn = 0;
-            activeTouches.clear();
-            cameraTouchId = null;
-            
-            // Создаем мир
-            createWorld();
-            
-            // Создаем первого зомби
-            createZombie();
-            
-            // Обновляем UI
-            document.getElementById('score').textContent = '0';
-            document.getElementById('wave').textContent = '1';
-            updateHealthDisplay();
-            updateStaminaDisplay();
-            updateAmmoDisplay();
-            
-            // Скрываем меню
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('death-screen').style.display = 'none';
-            
-            gameRunning = true;
-            lastTime = performance.now();
-            animate(lastTime);
-            
-            console.log('✅ Игра запущена!');
-        }
-
-        // ==================== МУЛЬТИТАЧ УПРАВЛЕНИЕ ====================
-        const joystickBase = document.getElementById('joystick-base');
-        const joystickThumb = document.getElementById('joystick-thumb');
-        let joystickTouchId = null;
-        let joystickStartX = 0;
-        let joystickStartY = 0;
-
-        document.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                const touchId = touch.identifier;
-                
-                // Проверяем, не попали ли в джойстик
-                const joystickRect = joystickBase.getBoundingClientRect();
-                if (touch.clientX >= joystickRect.left && touch.clientX <= joystickRect.right &&
-                    touch.clientY >= joystickRect.top && touch.clientY <= joystickRect.bottom) {
-                    joystickTouchId = touchId;
-                    joystickStartX = touch.clientX;
-                    joystickStartY = touch.clientY;
-                    activeTouches.set(touchId, { type: 'joystick' });
-                    continue;
-                }
-                
-                // Проверяем кнопки действий
-                const shootBtn = document.getElementById('shoot-btn');
-                const reloadBtn = document.getElementById('reload-btn');
-                const jumpBtn = document.getElementById('jump-btn');
-                
-                const shootRect = shootBtn.getBoundingClientRect();
-                const reloadRect = reloadBtn.getBoundingClientRect();
-                const jumpRect = jumpBtn.getBoundingClientRect();
-                
-                if (touch.clientX >= shootRect.left && touch.clientX <= shootRect.right &&
-                    touch.clientY >= shootRect.top && touch.clientY <= shootRect.bottom) {
-                    if (gameRunning) shoot();
-                    activeTouches.set(touchId, { type: 'button', button: 'shoot' });
-                    continue;
-                }
-                
-                if (touch.clientX >= reloadRect.left && touch.clientX <= reloadRect.right &&
-                    touch.clientY >= reloadRect.top && touch.clientY <= reloadRect.bottom) {
-                    if (gameRunning) reload();
-                    activeTouches.set(touchId, { type: 'button', button: 'reload' });
-                    continue;
-                }
-                
-                if (touch.clientX >= jumpRect.left && touch.clientX <= jumpRect.right &&
-                    touch.clientY >= jumpRect.top && touch.clientY <= jumpRect.bottom) {
-                    if (gameRunning && player.onGround) player.velocity.y = 8;
-                    activeTouches.set(touchId, { type: 'button', button: 'jump' });
-                    continue;
-                }
-                
-                // Иначе - камера
-                if (cameraTouchId === null) {
-                    cameraTouchId = touchId;
-                    lastCameraTouchX = touch.clientX;
-                    lastCameraTouchY = touch.clientY;
-                    activeTouches.set(touchId, { type: 'camera' });
-                }
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                const touchId = touch.identifier;
-                const touchData = activeTouches.get(touchId);
-                
-                if (!touchData) continue;
-                
-                if (touchData.type === 'joystick') {
-                    // Обработка джойстика
-                    const deltaX = touch.clientX - joystickStartX;
-                    const deltaY = touch.clientY - joystickStartY;
-                    
-                    const maxDistance = 40;
-                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                    
-                    if (distance > maxDistance) {
-                        const ratio = maxDistance / distance;
-                        joystickThumb.style.transform = `translate(${deltaX * ratio}px, ${deltaY * ratio}px)`;
-                    } else {
-                        joystickThumb.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-                    }
-                    
-                    window.joystickDirection = {
-                        x: Math.max(-1, Math.min(1, deltaX / maxDistance)),
-                        y: Math.max(-1, Math.min(1, deltaY / maxDistance))
-                    };
-                } else if (touchData.type === 'camera') {
-                    // Обработка камеры
-                    const deltaX = touch.clientX - lastCameraTouchX;
-                    const deltaY = touch.clientY - lastCameraTouchY;
-                    
-                    player.rotation.y -= deltaX * 0.005;
-                    player.rotation.x -= deltaY * 0.005;
-                    
-                    player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
-                    
-                    lastCameraTouchX = touch.clientX;
-                    lastCameraTouchY = touch.clientY;
-                }
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                const touchId = touch.identifier;
-                const touchData = activeTouches.get(touchId);
-                
-                if (!touchData) continue;
-                
-                if (touchData.type === 'joystick') {
-                    joystickTouchId = null;
-                    joystickThumb.style.transform = 'translate(0px, 0px)';
-                    window.joystickDirection = { x: 0, y: 0 };
-                } else if (touchData.type === 'camera') {
-                    cameraTouchId = null;
-                }
-                
-                activeTouches.delete(touchId);
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchcancel', (e) => {
-            activeTouches.clear();
-            joystickTouchId = null;
-            cameraTouchId = null;
-            joystickThumb.style.transform = 'translate(0px, 0px)';
-            window.joystickDirection = { x: 0, y: 0 };
-        });
-
-        // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
-        document.getElementById('start-btn').addEventListener('click', initGame);
-        document.getElementById('restart-btn').addEventListener('click', initGame);
-
-        document.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
-            
-            if (!gameRunning) return;
-            
-            if (e.key.toLowerCase() === 'r') reload();
-            if (e.key === '1') { currentWeapon = 'pistol'; updateAmmoDisplay(); }
-            if (e.key === '2') { currentWeapon = 'shotgun'; updateAmmoDisplay(); }
-            if (e.key === '3') { currentWeapon = 'rifle'; updateAmmoDisplay(); }
-            if (e.key === '4' && medkits > 0) {
-                medkits--;
-                player.health = Math.min(100, player.health + 50);
-                updateHealthDisplay();
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
-        });
-
-        document.addEventListener('mousedown', (e) => {
-            if (!gameRunning) return;
-            if (e.button === 0) shoot();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!gameRunning) return;
-            
-            player.rotation.y -= e.movementX * 0.002;
-            player.rotation.x -= e.movementY * 0.002;
-            
-            player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
-        });
-
-        document.querySelectorAll('.weapon-slot').forEach(slot => {
-            slot.addEventListener('click', () => {
-                if (!gameRunning) return;
-                
-                const weapon = slot.dataset.weapon;
-                
-                if (weapon === 'medkit') {
-                    if (medkits > 0) {
-                        medkits--;
-                        player.health = Math.min(100, player.health + 50);
-                        updateHealthDisplay();
-                    }
-                } else {
-                    currentWeapon = weapon;
-                    updateAmmoDisplay();
-                }
-                
-                document.querySelectorAll('.weapon-slot').forEach(s => s.classList.remove('active'));
-                slot.classList.add('active');
+            Object.entries(cost).forEach(([resource, amount]) => {
+                gameState.resources[resource] -= amount;
             });
-        });
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // Определяем мобильное устройство
-        if ('ontouchstart' in window) {
-            document.getElementById('joystick-container').style.display = 'block';
-            document.getElementById('action-buttons').style.display = 'flex';
+            
+            const newVillager = {
+                id: gameState.villagers.length,
+                name: `Житель ${gameState.villagers.length + 1}`,
+                job: JOB_TYPES.IDLE,
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                health: 100,
+                energy: 100,
+                happiness: 70,
+                inventory: { wood: 0, stone: 0, food: 0 }
+            };
+            
+            gameState.villagers.push(newVillager);
+            gameState.population++;
+            
+            updateUI();
+            updateWorkersList();
+            updateShopList();
         }
-
-        console.log('🎮 Игра готова к запуску!');
+        
+        function buyUpgrade(index) {
+            const upgrades = [
+                { cost: { gold: 50, wood: 20 }, effect: () => { gameState.maxPopulation += 5; } },
+                { cost: { gold: 80, stone: 30 }, effect: () => { /* Улучшение инструментов */ } },
+                { cost: { gold: 30, food: 50 }, effect: () => { gameState.villagers.forEach(v => v.happiness = Math.min(100, v.happiness + 20)); } },
+                { cost: { gold: 40, food: 20 }, effect: () => { hireVillager(); } }
+            ];
+            
+            const upgrade = upgrades[index];
+            if (!upgrade) return;
+            
+            const canAfford = Object.entries(upgrade.cost).every(([resource, amount]) => 
+                gameState.resources[resource] >= amount
+            );
+            
+            if (!canAfford) return;
+            
+            Object.entries(upgrade.cost).forEach(([resource, amount]) => {
+                gameState.resources[resource] -= amount;
+            });
+            
+            upgrade.effect();
+            updateUI();
+            updateShopList();
+        }
+        
+        function showQuestModal(quest) {
+            document.getElementById('questContent').innerHTML = `
+                <h3>${quest.title}</h3>
+                <p>${quest.description}</p>
+                <p><strong>Награда:</strong> ${formatCost(quest.reward)}</p>
+                <p><strong>Время:</strong> ${quest.duration} секунд</p>
+            `;
+            document.getElementById('questModal').classList.remove('hidden');
+        }
+        
+        function acceptQuest() {
+            document.getElementById('questModal').classList.add('hidden');
+            // Квест уже добавлен в activeQuests
+        }
+        
+        function declineQuest() {
+            gameState.activeQuests.pop();
+            document.getElementById('questModal').classList.add('hidden');
+        }
+        
+        function showBuildingInfo(building) {
+            document.getElementById('buildingInfoTitle').textContent = 
+                `${building.type.emoji} ${building.type.name} (Уровень ${building.level})`;
+            
+            let content = `<p>${building.type.description}</p>`;
+            content += `<p>Рабочих: ${building.workers.length}</p>`;
+            content += `<p>Производство: ${building.production}</p>`;
+            
+            if (building.workers.length < 3) {
+                content += `<button class="btn" onclick="assignWorkerToBuilding(${building.x}, ${building.y})">Назначить рабочего</button>`;
+            }
+            
+            document.getElementById('buildingInfoContent').innerHTML = content;
+            document.getElementById('buildingInfo').classList.remove('hidden');
+        }
+        
+        function closeBuildingInfo() {
+            document.getElementById('buildingInfo').classList.add('hidden');
+        }
+        
+        function assignWorkerToBuilding(x, y) {
+            const building = gameState.tiles[x][y].building;
+            const idleVillager = gameState.villagers.find(v => v.job.name === 'Без работы');
+            
+            if (building && idleVillager) {
+                building.workers.push(idleVillager.id);
+                idleVillager.job = building.type === BUILDING_TYPES.FARM ? JOB_TYPES.FARMER : JOB_TYPES.BUILDER;
+                closeBuildingInfo();
+                updateWorkersList();
+            }
+        }
+        
+        // Отрисовка
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Отрисовка тайлов
+            const startX = Math.floor(gameState.camera.x / gameState.tileSize);
+            const startY = Math.floor(gameState.camera.y / gameState.tileSize);
+            const endX = Math.ceil((gameState.camera.x + canvas.width) / gameState.tileSize);
+            const endY = Math.ceil((gameState.camera.y + canvas.height) / gameState.tileSize);
+            
+            for (let x = Math.max(0, startX); x < Math.min(gameState.worldSize, endX); x++) {
+                for (let y = Math.max(0, startY); y < Math.min(gameState.worldSize, endY); y++) {
+                    const tile = gameState.tiles[x][y];
+                    const screenX = x * gameState.tileSize - gameState.camera.x;
+                    const screenY = y * gameState.tileSize - gameState.camera.y;
+                    
+                    // Цвет тайла
+                    let color = '#4CAF50'; // Трава
+                    
+                    switch (tile.type) {
+                        case TILE_TYPES.FOREST:
+                            color = '#2E7D32';
+                            break;
+                        case TILE_TYPES.STONE:
+                            color = '#9E9E9E';
+                            break;
+                        case TILE_TYPES.WATER:
+                            color = '#2196F3';
+                            break;
+                        case TILE_TYPES.FARM:
+                            color = '#8BC34A';
+                            break;
+                    }
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(screenX, screenY, gameState.tileSize, gameState.tileSize);
+                    
+                    // Отрисовка ресурсов
+                    if (tile.resource === 'tree') {
+                        ctx.fillStyle = '#33691E';
+                        ctx.beginPath();
+                        ctx.arc(screenX + gameState.tileSize / 2, screenY + gameState.tileSize / 2, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (tile.resource === 'stone') {
+                        ctx.fillStyle = '#616161';
+                        ctx.fillRect(screenX + 8, screenY + 8, 16, 16);
+                    }
+                    
+                    // Отрисовка зданий
+                    if (tile.building && tile.building.x === x && tile.building.y === y) {
+                        ctx.fillStyle = tile.building.type.color;
+                        ctx.fillRect(
+                            screenX, 
+                            screenY, 
+                            tile.building.type.size * gameState.tileSize, 
+                            tile.building.type.size * gameState.tileSize
+                        );
+                        
+                        ctx.fillStyle = '#000';
+                        ctx.font = `${gameState.tileSize * tile.building.type.size}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(
+                            tile.building.type.emoji,
+                            screenX + (tile.building.type.size * gameState.tileSize) / 2,
+                            screenY + (tile.building.type.size * gameState.tileSize) / 2
+                        );
+                    }
+                }
+            }
+            
+            // Отрисовка жителей
+            gameState.villagers.forEach(villager => {
+                const screenX = villager.x - gameState.camera.x;
+                const screenY = villager.y - gameState.camera.y;
+                
+                if (screenX > -20 && screenX < canvas.width + 20 && 
+                    screenY > -20 && screenY < canvas.height + 20) {
+                    
+                    // Тело
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Работа
+                    if (villager.job.emoji) {
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(villager.job.emoji, screenX, screenY - 15);
+                    }
+                    
+                    // Имя
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(villager.name, screenX, screenY + 20);
+                }
+            });
+            
+            // Мини-карта
+            drawMiniMap();
+        }
+        
+        function drawMiniMap() {
+            const miniMap = document.getElementById('miniMap');
+            const miniCtx = miniMap.getContext('2d');
+            const scale = miniMap.width / (gameState.worldSize * gameState.tileSize);
+            
+            miniCtx.clearRect(0, 0, miniMap.width, miniMap.height);
+            
+            // Отрисовка мира
+            for (let x = 0; x < gameState.worldSize; x++) {
+                for (let y = 0; y < gameState.worldSize; y++) {
+                    const tile = gameState.tiles[x][y];
+                    let color = '#4CAF50';
+                    
+                    if (tile.type === TILE_TYPES.FOREST) color = '#2E7D32';
+                    else if (tile.type === TILE_TYPES.WATER) color = '#2196F3';
+                    else if (tile.type === TILE_TYPES.STONE) color = '#9E9E9E';
+                    
+                    miniCtx.fillStyle = color;
+                    miniCtx.fillRect(
+                        x * gameState.tileSize * scale,
+                        y * gameState.tileSize * scale,
+                        gameState.tileSize * scale,
+                        gameState.tileSize * scale
+                    );
+                }
+            }
+            
+            // Позиция камеры
+            miniCtx.strokeStyle = '#FF0000';
+            miniCtx.strokeRect(
+                gameState.camera.x * scale,
+                gameState.camera.y * scale,
+                canvas.width * scale,
+                canvas.height * scale
+            );
+        }
+        
+        // Игровой цикл
+        let lastTime = 0;
+        let questTimer = 0;
+        
+        function gameLoop(timestamp) {
+            const deltaTime = lastTime ? (timestamp - lastTime) / 1000 : 0;
+            lastTime = timestamp;
+            
+            // Обновление времени
+            gameState.time += deltaTime;
+            
+            // Обновление производства (каждые 5 секунд)
+            if (Math.floor(gameState.time) % 5 === 0 && Math.floor(gameState.time) !== Math.floor(gameState.time - deltaTime)) {
+                updateProduction();
+                updateUI();
+            }
+            
+            // Генерация квестов (каждые 60 секунд)
+            questTimer += deltaTime;
+            if (questTimer > 60) {
+                questTimer = 0;
+                if (gameState.activeQuests.length < 3) {
+                    generateQuest();
+                }
+            }
+            
+            // Движение жителей
+            gameState.villagers.forEach(villager => {
+                if (Math.random() < 0.02) {
+                    villager.x += (Math.random() - 0.5) * 50;
+                    villager.y += (Math.random() - 0.5) * 50;
+                    
+                    // Ограничение по миру
+                    villager.x = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize, villager.x));
+                    villager.y = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize, villager.y));
+                }
+            });
+            
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Управление с клавиатуры и мыши
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Управление камерой
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                
+                gameState.camera.x -= dx;
+                gameState.camera.y -= dy;
+                
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                
+                // Ограничение камеры
+                gameState.camera.x = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.width, gameState.camera.x));
+                gameState.camera.y = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.height, gameState.camera.y));
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+            }
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDragging && e.touches.length === 1) {
+                const dx = e.touches[0].clientX - lastMouseX;
+                const dy = e.touches[0].clientY - lastMouseY;
+                
+                gameState.camera.x -= dx;
+                gameState.camera.y -= dy;
+                
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+                
+                gameState.camera.x = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.width, gameState.camera.x));
+                gameState.camera.y = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.height, gameState.camera.y));
+            }
+        });
+        
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+        
+        // Клик по зданию
+        canvas.addEventListener('click', (e) => {
+            if (isDragging) return;
+            
+            const worldX = e.clientX + gameState.camera.x;
+            const worldY = e.clientY + gameState.camera.y;
+            const tileX = Math.floor(worldX / gameState.tileSize);
+            const tileY = Math.floor(worldY / gameState.tileSize);
+            
+            if (tileX >= 0 && tileX < gameState.worldSize && tileY >= 0 && tileY < gameState.worldSize) {
+                const tile = gameState.tiles[tileX][tileY];
+                if (tile.building) {
+                    showBuildingInfo(tile.building);
+                }
+            }
+        });
+        
+        // Клавиши для перемещения камеры
+        function moveCamera() {
+            const speed = 10;
+            
+            if (keys['ArrowLeft'] || keys['a']) gameState.camera.x -= speed;
+            if (keys['ArrowRight'] || keys['d']) gameState.camera.x += speed;
+            if (keys['ArrowUp'] || keys['w']) gameState.camera.y -= speed;
+            if (keys['ArrowDown'] || keys['s']) gameState.camera.y += speed;
+            
+            gameState.camera.x = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.width, gameState.camera.x));
+            gameState.camera.y = Math.max(0, Math.min(gameState.worldSize * gameState.tileSize - canvas.height, gameState.camera.y));
+        }
+        
+        // Инициализация
+        generateWorld();
+        updateUI();
+        
+        // Запуск игрового цикла
+        requestAnimationFrame(gameLoop);
+        
+        // Обновление камеры
+        setInterval(moveCamera, 16);
+        
+        // Показ первого квеста через 10 секунд
+        setTimeout(() => {
+            generateQuest();
+        }, 10000);
     </script>
 </body>
 </html>
