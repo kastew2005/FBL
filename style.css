@@ -1,0 +1,260 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 16/9;
+    background: #2a2a2a;
+    border: 3px solid #444;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #2c3e50, #1a1a2e);
+    z-index: 10;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#gameScreen {
+    background: #3a5a3a;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Главное меню */
+.game-title {
+    font-size: 3.5rem;
+    color: #ff4444;
+    text-shadow: 3px 3px 0px #8b0000, 6px 6px 0px rgba(0,0,0,0.5);
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 3px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.subtitle {
+    color: #aaa;
+    font-size: 1.2rem;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.menu-btn {
+    background: #4a4a4a;
+    color: #fff;
+    border: 2px solid #666;
+    padding: 15px 40px;
+    margin: 10px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    min-width: 250px;
+}
+
+.menu-btn:hover {
+    background: #5a5a5a;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.version {
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    color: #666;
+    font-size: 0.8rem;
+}
+
+/* Экраны */
+.screen-title {
+    color: #ffaa00;
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+}
+
+.controls-info, .about-info {
+    color: #ccc;
+    font-size: 1.1rem;
+    line-height: 2;
+    margin-bottom: 30px;
+    text-align: left;
+    padding: 20px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    max-width: 500px;
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.hud-item {
+    background: rgba(0,0,0,0.7);
+    padding: 10px 15px;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 0.9rem;
+    min-width: 120px;
+    text-align: center;
+}
+
+.health-bar {
+    width: 100px;
+    height: 15px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+#healthFill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff0000, #00ff00);
+    transition: width 0.3s;
+    border-radius: 10px;
+}
+
+/* Мобильное управление */
+#mobileControls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: none;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 5;
+}
+
+#joystick {
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.5);
+    position: relative;
+    pointer-events: auto;
+}
+
+#joystickKnob {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s;
+}
+
+#shootBtn {
+    width: 70px;
+    height: 70px;
+    background: rgba(255,0,0,0.5);
+    border: 2px solid #ff0000;
+    border-radius: 50%;
+    font-size: 2rem;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+/* Экран смерти */
+.death-title {
+    color: #ff0000;
+    font-size: 3rem;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 0px #8b0000;
+}
+
+.stats {
+    color: #fff;
+    font-size: 1.3rem;
+    line-height: 2;
+    margin-bottom: 30px;
+    text-align: center;
+    background: rgba(0,0,0,0.5);
+    padding: 20px;
+    border-radius: 10px;
+    min-width: 300px;
+}
+
+/* Адаптация под мобильные */
+@media (max-width: 768px) {
+    #mobileControls {
+        display: flex;
+    }
+    
+    .game-title {
+        font-size: 2.5rem;
+    }
+    
+    .menu-btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+        min-width: 200px;
+    }
+    
+    #hud {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .hud-item {
+        min-width: 80px;
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+}
