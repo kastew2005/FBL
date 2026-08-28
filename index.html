@@ -2,8 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wasteland Survivor - Постапокалиптическая игра</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Wasteland Survivor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,15 +29,13 @@
                 <h1 class="game-title">WASTELAND<br>SURVIVOR</h1>
                 <p class="subtitle">Выживи в постапокалиптическом мире</p>
                 <div class="menu-buttons">
-                    <button class="menu-btn" onclick="startGame()">▶ ИГРАТЬ</button>
-                    <button class="menu-btn" onclick="showControls()">🎮 УПРАВЛЕНИЕ</button>
-                    <button class="menu-btn" onclick="showAbout()">ℹ ОБ ИГРЕ</button>
-                    <button class="menu-btn" onclick="showSettings()">⚙ НАСТРОЙКИ</button>
+                    <button class="menu-btn" ontouchstart="startGame()" onclick="startGame()">▶ ИГРАТЬ</button>
+                    <button class="menu-btn" ontouchstart="showControls()" onclick="showControls()">🎮 УПРАВЛЕНИЕ</button>
+                    <button class="menu-btn" ontouchstart="showAbout()" onclick="showAbout()">ℹ ОБ ИГРЕ</button>
                 </div>
                 <div class="best-score-display">
                     Лучший результат: <span id="menuBestScore">0</span> 💀
                 </div>
-                <div class="version">v3.0 Major Update</div>
             </div>
         </div>
 
@@ -44,14 +45,14 @@
             <div class="controls-info">
                 <p>📱 <strong>Джойстик слева</strong> — движение</p>
                 <p>🔫 <strong>Кнопка справа</strong> — стрельба</p>
-                <p>🔄 <strong>Автоприцеливание</strong> — стреляет в ближайшего зомби</p>
+                <p>💨 <strong>Кнопка рывка</strong> — быстрое перемещение</p>
+                <p>🎯 <strong>Автоприцеливание</strong> — стреляет в ближайшего зомби</p>
                 <p>💊 Собирайте аптечки для восстановления здоровья</p>
                 <p>🔫 Собирайте патроны для стрельбы</p>
                 <p>🛡️ Собирайте броню для защиты</p>
-                <p>⚡ Собирайте энергию для ускорения</p>
-                <p>🎯 <strong>Цель:</strong> выжить как можно дольше</p>
+                <p>⚡ Собирайте энергию для рывков</p>
             </div>
-            <button class="menu-btn" onclick="showMainMenu()">← НАЗАД</button>
+            <button class="menu-btn" ontouchstart="showMainMenu()" onclick="showMainMenu()">← НАЗАД</button>
         </div>
 
         <!-- Об игре -->
@@ -66,33 +67,8 @@
                 <p>• Открывать новые способности ⚡</p>
                 <br>
                 <p>С каждым уровнем зомби становятся быстрее и сильнее!</p>
-                <p>Новые типы врагов появляются со временем!</p>
             </div>
-            <button class="menu-btn" onclick="showMainMenu()">← НАЗАД</button>
-        </div>
-
-        <!-- Настройки -->
-        <div id="settingsScreen" class="screen hidden">
-            <h2 class="screen-title">НАСТРОЙКИ</h2>
-            <div class="settings-info">
-                <div class="setting-item">
-                    <label>🎵 Звук</label>
-                    <button class="toggle-btn" id="soundToggle" onclick="toggleSound()">ВКЛ</button>
-                </div>
-                <div class="setting-item">
-                    <label>📳 Вибрация</label>
-                    <button class="toggle-btn" id="vibrationToggle" onclick="toggleVibration()">ВКЛ</button>
-                </div>
-                <div class="setting-item">
-                    <label>🎯 Автоприцеливание</label>
-                    <button class="toggle-btn" id="autoAimToggle" onclick="toggleAutoAim()">ВКЛ</button>
-                </div>
-                <div class="setting-item">
-                    <label>🩸 Кровь</label>
-                    <button class="toggle-btn" id="bloodToggle" onclick="toggleBlood()">ВКЛ</button>
-                </div>
-            </div>
-            <button class="menu-btn" onclick="showMainMenu()">← НАЗАД</button>
+            <button class="menu-btn" ontouchstart="showMainMenu()" onclick="showMainMenu()">← НАЗАД</button>
         </div>
 
         <!-- Игровой экран -->
@@ -108,37 +84,39 @@
                             <div class="health-bar">
                                 <div id="healthFill"></div>
                             </div>
+                            <span class="hud-text" id="healthText">100</span>
                         </div>
                         <div class="hud-item">
                             <span class="hud-icon">🛡️</span>
                             <div class="armor-bar">
                                 <div id="armorFill"></div>
                             </div>
+                            <span class="hud-text" id="armorText">0</span>
                         </div>
                     </div>
                     <div class="hud-right">
                         <div class="hud-item">
                             <span class="hud-icon">🔫</span>
-                            <span id="ammoCount">12/12</span>
+                            <span class="hud-text" id="ammoCount">12/12</span>
                         </div>
                         <div class="hud-item">
                             <span class="hud-icon">⚡</span>
-                            <span id="energyCount">0</span>
+                            <span class="hud-text" id="energyCount">0</span>
                         </div>
                     </div>
                 </div>
                 <div class="hud-bottom">
                     <div class="hud-item">
                         <span class="hud-icon">💀</span>
-                        <span id="killCount">0</span>
+                        <span class="hud-text" id="killCount">0</span>
                     </div>
                     <div class="hud-item">
                         <span class="hud-icon">⏱️</span>
-                        <span id="timeCount">0с</span>
+                        <span class="hud-text" id="timeCount">0с</span>
                     </div>
                     <div class="hud-item">
                         <span class="hud-icon">📊</span>
-                        <span id="levelCount">Ур. 1</span>
+                        <span class="hud-text" id="levelCount">Ур. 1</span>
                     </div>
                 </div>
             </div>
@@ -160,10 +138,11 @@
             <!-- Индикаторы -->
             <div id="autoAimIndicator" class="hidden">🎯</div>
             <div id="damageIndicator" class="hidden"></div>
+            <div id="dashIndicator" class="hidden">💨</div>
             
             <!-- Мини-карта -->
             <div id="minimap">
-                <canvas id="minimapCanvas" width="100" height="100"></canvas>
+                <canvas id="minimapCanvas"></canvas>
             </div>
         </div>
 
@@ -177,8 +156,8 @@
                 <p>Лучший результат: <span id="bestScore">0</span></p>
             </div>
             <div class="achievement" id="achievement"></div>
-            <button class="menu-btn" onclick="restartGame()">🔄 ЗАНОВО</button>
-            <button class="menu-btn" onclick="showMainMenu()">🏠 В МЕНЮ</button>
+            <button class="menu-btn" ontouchstart="restartGame()" onclick="restartGame()">🔄 ЗАНОВО</button>
+            <button class="menu-btn" ontouchstart="showMainMenu()" onclick="showMainMenu()">🏠 В МЕНЮ</button>
         </div>
     </div>
 
