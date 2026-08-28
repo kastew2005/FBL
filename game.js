@@ -1,8 +1,8 @@
 // Игровые константы
 let CANVAS_WIDTH = 800;
-let CANVAS_HEIGHT = 450;
+let CANVAS_HEIGHT = 400;
 let worldWidth = 1600;
-let worldHeight = 900;
+let worldHeight = 800;
 
 // Состояние игры
 let gameState = 'loading';
@@ -25,15 +25,17 @@ let autoAimTarget = null;
 let dashCooldown = 0;
 let isDashing = false;
 let dashTimer = 0;
+let mouseX = 0;
+let mouseY = 0;
 
-// Класс игрока
+// Класс игрока (компактный для альбомной ориентации)
 class Player {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 24;
-        this.height = 24;
-        this.speed = 200;
+        this.width = 22;
+        this.height = 22;
+        this.speed = 180;
         this.health = 100;
         this.maxHealth = 100;
         this.armor = 0;
@@ -46,7 +48,7 @@ class Player {
         this.hitFlash = 0;
         this.walkAnimation = 0;
         this.moving = false;
-        this.dashSpeed = 400;
+        this.dashSpeed = 350;
     }
 
     update(dt) {
@@ -72,7 +74,6 @@ class Player {
             this.walkAnimation += dt * 10;
         }
         
-        // Рывок
         if (isDashing && dashTimer > 0) {
             this.x += dx * this.dashSpeed * dt;
             this.y += dy * this.dashSpeed * dt;
@@ -82,11 +83,9 @@ class Player {
             this.y += dy * this.speed * dt;
         }
         
-        // Границы мира
         this.x = Math.max(this.width / 2, Math.min(worldWidth - this.width / 2, this.x));
         this.y = Math.max(this.height / 2, Math.min(worldHeight - this.height / 2, this.y));
         
-        // Автоприцеливание
         if (joystickActive) {
             autoAimTarget = this.findNearestZombie();
             if (autoAimTarget) {
@@ -109,7 +108,7 @@ class Player {
         for (let zombie of zombies) {
             if (!zombie.alive) continue;
             const dist = Math.sqrt((this.x - zombie.x) ** 2 + (this.y - zombie.y) ** 2);
-            if (dist < minDist && dist < 400) {
+            if (dist < minDist && dist < 350) {
                 minDist = dist;
                 nearest = zombie;
             }
@@ -127,7 +126,7 @@ class Player {
         this.hitFlash = 0.1;
         
         if (navigator.vibrate) {
-            navigator.vibrate(100);
+            navigator.vibrate(50);
         }
         
         showDamageIndicator();
@@ -142,31 +141,26 @@ class Player {
     draw(ctx) {
         if (!this.alive) return;
         
-        const scale = Math.min(CANVAS_WIDTH / 800, CANVAS_HEIGHT / 450);
-        
         ctx.save();
         ctx.translate(this.x - camera.x, this.y - camera.y);
         
         // Тень
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
-        ctx.ellipse(0, this.height / 2, this.width / 2, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, this.height / 2, this.width / 2, 4, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Ноги с анимацией ходьбы
-        const legSwing = this.moving ? Math.sin(this.walkAnimation) * 4 : 0;
+        // Ноги
+        const legSwing = this.moving ? Math.sin(this.walkAnimation) * 3 : 0;
         ctx.fillStyle = '#3a3a3a';
-        ctx.fillRect(-6, this.height / 2 - 8 + legSwing, 5, 10);
-        ctx.fillRect(1, this.height / 2 - 8 - legSwing, 5, 10);
+        ctx.fillRect(-5, this.height / 2 - 7 + legSwing, 4, 8);
+        ctx.fillRect(1, this.height / 2 - 7 - legSwing, 4, 8);
         
         // Тело
-        const bodyGradient = ctx.createLinearGradient(-this.width/2, -this.height/2, this.width/2, this.height/2);
-        bodyGradient.addColorStop(0, this.hitFlash > 0 ? '#ff4444' : '#5a8f5a');
-        bodyGradient.addColorStop(1, this.hitFlash > 0 ? '#cc0000' : '#3a6f3a');
-        ctx.fillStyle = bodyGradient;
+        ctx.fillStyle = this.hitFlash > 0 ? '#ff4444' : '#5a8f5a';
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
-        // Бронежилет
+        // Броня
         if (this.armor > 0) {
             ctx.fillStyle = '#4a4a4a';
             ctx.fillRect(-this.width / 2 + 2, -this.height / 4, this.width - 4, this.height / 2);
@@ -175,27 +169,27 @@ class Player {
         // Голова
         ctx.fillStyle = '#d4a574';
         ctx.beginPath();
-        ctx.arc(0, -this.height / 2 - 4, 6, 0, Math.PI * 2);
+        ctx.arc(0, -this.height / 2 - 3, 5, 0, Math.PI * 2);
         ctx.fill();
         
         // Оружие
         ctx.save();
         ctx.rotate(this.angle);
         ctx.fillStyle = '#2a2a2a';
-        ctx.fillRect(6, -2, 16, 4);
+        ctx.fillRect(5, -1.5, 14, 3);
         ctx.restore();
         
         ctx.restore();
     }
 }
 
-// Класс зомби (компактная версия для телефона)
+// Класс зомби
 class Zombie {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.width = 22;
-        this.height = 22;
+        this.width = 20;
+        this.height = 20;
         this.type = type || 'normal';
         this.alive = true;
         this.hitFlash = 0;
@@ -203,30 +197,30 @@ class Zombie {
         
         switch(this.type) {
             case 'fast':
-                this.speed = 140 + difficulty * 5;
-                this.health = 35;
-                this.damage = 6;
+                this.speed = 130 + difficulty * 5;
+                this.health = 30;
+                this.damage = 5;
                 this.color = '#ff9900';
                 break;
             case 'tank':
-                this.speed = 50 + difficulty * 2;
-                this.health = 120;
-                this.damage = 15;
-                this.width = 32;
-                this.height = 32;
+                this.speed = 45 + difficulty * 2;
+                this.health = 100;
+                this.damage = 12;
+                this.width = 28;
+                this.height = 28;
                 this.color = '#ff0000';
                 break;
             case 'exploder':
-                this.speed = 100 + difficulty * 3;
-                this.health = 25;
-                this.damage = 25;
+                this.speed = 90 + difficulty * 3;
+                this.health = 20;
+                this.damage = 20;
                 this.color = '#ffff00';
-                this.explodeRadius = 50;
+                this.explodeRadius = 45;
                 break;
             default:
-                this.speed = 80 + difficulty * 5;
-                this.health = 40;
-                this.damage = 8;
+                this.speed = 75 + difficulty * 5;
+                this.health = 35;
+                this.damage = 7;
                 this.color = '#66aa66';
         }
     }
@@ -260,7 +254,7 @@ class Zombie {
         if (dist < this.explodeRadius) {
             player.takeDamage(this.damage);
         }
-        spawnParticles(this.x, this.y, '#ffff00', 20);
+        spawnParticles(this.x, this.y, '#ffff00', 15);
         this.alive = false;
     }
 
@@ -270,27 +264,23 @@ class Zombie {
         ctx.save();
         ctx.translate(this.x - camera.x, this.y - camera.y);
         
-        // Тень
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
-        ctx.ellipse(0, this.height / 2, this.width / 2, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, this.height / 2, this.width / 2, 3, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Тело
         ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : this.color;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
-        // Голова
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(0, -this.height / 2 - 4, 6, 0, Math.PI * 2);
+        ctx.arc(0, -this.height / 2 - 3, 5, 0, Math.PI * 2);
         ctx.fill();
         
-        // Глаза
         ctx.fillStyle = '#ff0000';
         ctx.beginPath();
-        ctx.arc(-2, -this.height / 2 - 5, 1.5, 0, Math.PI * 2);
-        ctx.arc(2, -this.height / 2 - 5, 1.5, 0, Math.PI * 2);
+        ctx.arc(-2, -this.height / 2 - 4, 1.5, 0, Math.PI * 2);
+        ctx.arc(2, -this.height / 2 - 4, 1.5, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.restore();
@@ -302,14 +292,14 @@ class Bullet {
     constructor(x, y, angle, type = 'player') {
         this.x = x;
         this.y = y;
-        this.speed = type === 'player' ? 500 : 200;
-        this.damage = type === 'player' ? 25 : 10;
+        this.speed = type === 'player' ? 450 : 180;
+        this.damage = type === 'player' ? 25 : 8;
         this.radius = 3;
         this.alive = true;
         this.type = type;
         this.vx = Math.cos(angle) * this.speed;
         this.vy = Math.sin(angle) * this.speed;
-        this.life = 2;
+        this.life = 1.5;
         this.color = type === 'player' ? '#ffff00' : '#00ff00';
     }
 
@@ -336,7 +326,7 @@ class Bullet {
                         zombie.alive = false;
                         kills++;
                         score += 10;
-                        spawnParticles(zombie.x, zombie.y, zombie.color, 15);
+                        spawnParticles(zombie.x, zombie.y, zombie.color, 12);
                         
                         if (Math.random() < 0.3) {
                             pickups.push(new Pickup(zombie.x, zombie.y, 'energy'));
@@ -361,11 +351,6 @@ class Bullet {
         ctx.beginPath();
         ctx.arc(this.x - camera.x, this.y - camera.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        
-        ctx.fillStyle = this.color + '33';
-        ctx.beginPath();
-        ctx.arc(this.x - camera.x, this.y - camera.y, this.radius * 2, 0, Math.PI * 2);
-        ctx.fill();
     }
 }
 
@@ -375,8 +360,8 @@ class Pickup {
         this.x = x;
         this.y = y;
         this.type = type;
-        this.width = 16;
-        this.height = 16;
+        this.width = 14;
+        this.height = 14;
         this.alive = true;
         this.bob = Math.random() * Math.PI * 2;
     }
@@ -401,20 +386,19 @@ class Pickup {
                     break;
             }
             this.alive = false;
-            spawnParticles(this.x, this.y, '#ffffff', 8);
+            spawnParticles(this.x, this.y, '#ffffff', 6);
         }
     }
 
     draw(ctx) {
         if (!this.alive) return;
         
-        const bounceY = this.y + Math.sin(this.bob) * 4 - camera.y;
+        const bounceY = this.y + Math.sin(this.bob) * 3 - camera.y;
         const x = this.x - camera.x;
         
-        // Свечение
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.beginPath();
-        ctx.arc(x, bounceY, 20, 0, Math.PI * 2);
+        ctx.arc(x, bounceY, 15, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.save();
@@ -423,31 +407,31 @@ class Pickup {
         switch(this.type) {
             case 'health':
                 ctx.fillStyle = '#ffffff';
-                ctx.fillRect(-8, -8, 16, 16);
+                ctx.fillRect(-7, -7, 14, 14);
                 ctx.fillStyle = '#ff0000';
-                ctx.fillRect(-4, -1, 8, 3);
-                ctx.fillRect(-1, -4, 3, 8);
+                ctx.fillRect(-3, -1, 7, 2);
+                ctx.fillRect(-1, -3, 2, 7);
                 break;
             case 'ammo':
                 ctx.fillStyle = '#ffaa00';
-                ctx.fillRect(-6, -4, 5, 8);
-                ctx.fillRect(1, -4, 5, 8);
+                ctx.fillRect(-5, -3, 4, 7);
+                ctx.fillRect(1, -3, 4, 7);
                 break;
             case 'armor':
                 ctx.fillStyle = '#666';
-                ctx.fillRect(-8, -8, 16, 16);
+                ctx.fillRect(-7, -7, 14, 14);
                 ctx.fillStyle = '#999';
-                ctx.fillRect(-6, -6, 12, 12);
+                ctx.fillRect(-5, -5, 10, 10);
                 break;
             case 'energy':
                 ctx.fillStyle = '#00ffff';
                 ctx.beginPath();
-                ctx.moveTo(0, -8);
-                ctx.lineTo(4, -2);
-                ctx.lineTo(8, -2);
-                ctx.lineTo(0, 8);
-                ctx.lineTo(-4, 2);
-                ctx.lineTo(-8, 2);
+                ctx.moveTo(0, -7);
+                ctx.lineTo(3, -2);
+                ctx.lineTo(7, -2);
+                ctx.lineTo(0, 7);
+                ctx.lineTo(-3, 2);
+                ctx.lineTo(-7, 2);
                 ctx.closePath();
                 ctx.fill();
                 break;
@@ -459,18 +443,18 @@ class Pickup {
 
 // Класс частиц
 class Particle {
-    constructor(x, y, color, count = 10) {
+    constructor(x, y, color, count = 8) {
         this.particles = [];
         for (let i = 0; i < count; i++) {
             this.particles.push({
                 x: x,
                 y: y,
-                vx: (Math.random() - 0.5) * 150,
-                vy: (Math.random() - 0.5) * 150,
-                life: Math.random() * 0.5 + 0.3,
-                maxLife: 0.8,
+                vx: (Math.random() - 0.5) * 120,
+                vy: (Math.random() - 0.5) * 120,
+                life: Math.random() * 0.4 + 0.3,
+                maxLife: 0.7,
                 color: color,
-                radius: Math.random() * 3 + 1
+                radius: Math.random() * 2 + 1
             });
         }
         this.alive = true;
@@ -513,9 +497,9 @@ function resizeCanvas() {
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
     
-    // Сохраняем пропорции мира
-    worldWidth = Math.max(CANVAS_WIDTH * 2, 1200);
-    worldHeight = Math.max(CANVAS_HEIGHT * 2, 800);
+    // Адаптация мира под альбомную ориентацию
+    worldWidth = Math.max(CANVAS_WIDTH * 1.8, 1200);
+    worldHeight = Math.max(CANVAS_HEIGHT * 1.8, 600);
     
     if (player) {
         camera.x = player.x - CANVAS_WIDTH / 2;
@@ -634,8 +618,8 @@ function spawnZombie() {
 }
 
 function spawnPickup() {
-    const x = Math.random() * (worldWidth - 100) + 50;
-    const y = Math.random() * (worldHeight - 100) + 50;
+    const x = Math.random() * (worldWidth - 80) + 40;
+    const y = Math.random() * (worldHeight - 80) + 40;
     
     let type;
     const random = Math.random();
@@ -647,7 +631,7 @@ function spawnPickup() {
     pickups.push(new Pickup(x, y, type));
 }
 
-function spawnParticles(x, y, color, count = 10) {
+function spawnParticles(x, y, color, count = 8) {
     particles.push(new Particle(x, y, color, count));
 }
 
@@ -657,20 +641,20 @@ function showDamageIndicator() {
     indicator.textContent = '💥';
     setTimeout(() => {
         indicator.classList.add('hidden');
-    }, 500);
+    }, 400);
 }
 
 function shoot() {
     const now = Date.now();
-    if (now - lastShotTime < 250) return;
+    if (now - lastShotTime < 200) return;
     if (player.ammo <= 0) return;
     
     lastShotTime = now;
     player.ammo--;
     bullets.push(new Bullet(player.x, player.y, player.angle, 'player'));
-    spawnParticles(player.x + Math.cos(player.angle) * 15, 
-                    player.y + Math.sin(player.angle) * 15, 
-                    '#ffff00', 4);
+    spawnParticles(player.x + Math.cos(player.angle) * 12, 
+                    player.y + Math.sin(player.angle) * 12, 
+                    '#ffff00', 3);
 }
 
 function dash() {
@@ -681,7 +665,7 @@ function dash() {
     isDashing = true;
     dashTimer = 0.15;
     
-    spawnParticles(player.x, player.y, '#00ffff', 10);
+    spawnParticles(player.x, player.y, '#00ffff', 8);
     
     const indicator = document.getElementById('dashIndicator');
     indicator.classList.remove('hidden');
@@ -753,7 +737,7 @@ function handleJoystickMove(e) {
     joystickDX = dx;
     joystickDY = dy;
     
-    joystickKnob.style.transform = `translate(calc(-50% + ${dx * 30}px), calc(-50% + ${dy * 30}px))`;
+    joystickKnob.style.transform = `translate(calc(-50% + ${dx * 25}px), calc(-50% + ${dy * 25}px))`;
 }
 
 function handleJoystickEnd(e) {
@@ -779,8 +763,6 @@ dashBtn.addEventListener('touchstart', (e) => {
 
 // Игровой цикл
 let lastTime = Date.now();
-let mouseX = 0;
-let mouseY = 0;
 
 function gameLoop() {
     const now = Date.now();
@@ -926,13 +908,13 @@ function drawGround(ctx) {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
     // Дорожки
-    ctx.strokeStyle = 'rgba(80, 110, 80, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 8]);
+    ctx.strokeStyle = 'rgba(80, 110, 80, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
     
-    for (let y = 0; y < worldHeight; y += 120) {
+    for (let y = 0; y < worldHeight; y += 100) {
         const screenY = y - camera.y;
-        if (screenY > -20 && screenY < CANVAS_HEIGHT + 20) {
+        if (screenY > -15 && screenY < CANVAS_HEIGHT + 15) {
             ctx.beginPath();
             ctx.moveTo(0, screenY);
             ctx.lineTo(CANVAS_WIDTH, screenY);
@@ -940,9 +922,9 @@ function drawGround(ctx) {
         }
     }
     
-    for (let x = 0; x < worldWidth; x += 160) {
+    for (let x = 0; x < worldWidth; x += 130) {
         const screenX = x - camera.x;
-        if (screenX > -20 && screenX < CANVAS_WIDTH + 20) {
+        if (screenX > -15 && screenX < CANVAS_WIDTH + 15) {
             ctx.beginPath();
             ctx.moveTo(screenX, 0);
             ctx.lineTo(screenX, CANVAS_HEIGHT);
@@ -951,22 +933,6 @@ function drawGround(ctx) {
     }
     
     ctx.setLineDash([]);
-    
-    // Камни
-    for (let i = 0; i < 30; i++) {
-        const x = (i * 137 + 50) % worldWidth;
-        const y = (i * 89 + 30) % worldHeight;
-        const screenX = x - camera.x;
-        const screenY = y - camera.y;
-        
-        if (screenX > -10 && screenX < CANVAS_WIDTH + 10 && 
-            screenY > -10 && screenY < CANVAS_HEIGHT + 10) {
-            ctx.fillStyle = 'rgba(100, 100, 100, 0.6)';
-            ctx.beginPath();
-            ctx.arc(screenX, screenY, 4 + (i % 2), 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
 }
 
 function draw() {
@@ -1013,7 +979,7 @@ function init() {
     resizeCanvas();
     
     const minimapCanvas = document.getElementById('minimapCanvas');
-    const minimapSize = Math.min(80, window.innerWidth * 0.15);
+    const minimapSize = Math.min(60, window.innerHeight * 0.15);
     minimapCanvas.width = minimapSize;
     minimapCanvas.height = minimapSize;
     
