@@ -6,10 +6,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
+    <meta name="screen-orientation" content="landscape">
     <title>Wasteland Survivor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="rotateOverlay">
+        <div class="rotate-content">
+            <div class="rotate-icon">📱</div>
+            <h2>Поверните телефон</h2>
+            <p>Игра доступна только в альбомной ориентации</p>
+        </div>
+    </div>
+
     <div id="gameContainer">
         <!-- Загрузочный экран -->
         <div id="loadingScreen" class="screen">
@@ -94,6 +103,16 @@
                             <span class="hud-text" id="armorText">0</span>
                         </div>
                     </div>
+                    <div class="hud-center">
+                        <div class="hud-item">
+                            <span class="hud-icon">💀</span>
+                            <span class="hud-text" id="killCount">0</span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-icon">📊</span>
+                            <span class="hud-text" id="levelCount">Ур. 1</span>
+                        </div>
+                    </div>
                     <div class="hud-right">
                         <div class="hud-item">
                             <span class="hud-icon">🔫</span>
@@ -103,20 +122,10 @@
                             <span class="hud-icon">⚡</span>
                             <span class="hud-text" id="energyCount">0</span>
                         </div>
-                    </div>
-                </div>
-                <div class="hud-bottom">
-                    <div class="hud-item">
-                        <span class="hud-icon">💀</span>
-                        <span class="hud-text" id="killCount">0</span>
-                    </div>
-                    <div class="hud-item">
-                        <span class="hud-icon">⏱️</span>
-                        <span class="hud-text" id="timeCount">0с</span>
-                    </div>
-                    <div class="hud-item">
-                        <span class="hud-icon">📊</span>
-                        <span class="hud-text" id="levelCount">Ур. 1</span>
+                        <div class="hud-item">
+                            <span class="hud-icon">⏱️</span>
+                            <span class="hud-text" id="timeCount">0с</span>
+                        </div>
                     </div>
                 </div>
             </div>
