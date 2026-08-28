@@ -7,14 +7,22 @@ let gameState = 'menu';
 let player, zombies = [], bullets = [], pickups = [], particles = [];
 let score = 0, kills = 0, gameTime = 0;
 let keys = {};
-let mouseX = 0, mouseY = 0;
 let shooting = false;
 let lastShotTime = 0;
 let spawnTimer = 0;
 let difficulty = 1;
 let bestScore = localStorage.getItem('bestScore') || 0;
+let camera = { x: 0, y: 0 };
+let worldWidth = 1600;
+let worldHeight = 900;
 
-// Класс игрока
+// Джойстик
+let joystickActive = false;
+let joystickDX = 0;
+let joystickDY = 0;
+let autoAimTarget = null;
+
+// Класс игрока с детальной графикой
 class Player {
     constructor(x, y) {
         this.x = x;
@@ -29,65 +37,127 @@ class Player {
         this.angle = 0;
         this.alive = true;
         this.hitFlash = 0;
+        this.walkAnimation = 0;
+        this.moving = false;
     }
 
     update(dt) {
         if (!this.alive) return;
         
-        // Движение
         let dx = 0, dy = 0;
         if (keys['w'] || keys['arrowup']) dy = -1;
         if (keys['s'] || keys['arrowdown']) dy = 1;
         if (keys['a'] || keys['arrowleft']) dx = -1;
         if (keys['d'] || keys['arrowright']) dx = 1;
         
-        // Джойстик
         if (joystickActive) {
             dx = joystickDX;
             dy = joystickDY;
         }
         
-        // Нормализация
+        this.moving = (dx !== 0 || dy !== 0);
+        
         if (dx !== 0 || dy !== 0) {
             const len = Math.sqrt(dx * dx + dy * dy);
             dx /= len;
             dy /= len;
+            this.walkAnimation += dt * 10;
         }
         
         this.x += dx * this.speed * dt;
         this.y += dy * this.speed * dt;
         
-        // Границы
-        this.x = Math.max(this.width / 2, Math.min(CANVAS_WIDTH - this.width / 2, this.x));
-        this.y = Math.max(this.height / 2, Math.min(CANVAS_HEIGHT - this.height / 2, this.y));
+        // Границы мира
+        this.x = Math.max(this.width / 2, Math.min(worldWidth - this.width / 2, this.x));
+        this.y = Math.max(this.height / 2, Math.min(worldHeight - this.height / 2, this.y));
         
-        // Угол к мыши
-        this.angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+        // Автоприцеливание
+        if (joystickActive) {
+            autoAimTarget = this.findNearestZombie();
+            if (autoAimTarget) {
+                this.angle = Math.atan2(autoAimTarget.y - this.y, autoAimTarget.x - this.x);
+            }
+        } else {
+            const screenX = mouseX + camera.x;
+            const screenY = mouseY + camera.y;
+            this.angle = Math.atan2(screenY - this.y, screenX - this.x);
+            autoAimTarget = null;
+        }
         
         if (this.hitFlash > 0) this.hitFlash -= dt;
+    }
+
+    findNearestZombie() {
+        let nearest = null;
+        let minDist = Infinity;
+        for (let zombie of zombies) {
+            if (!zombie.alive) continue;
+            const dist = Math.sqrt((this.x - zombie.x) ** 2 + (this.y - zombie.y) ** 2);
+            if (dist < minDist && dist < 300) {
+                minDist = dist;
+                nearest = zombie;
+            }
+        }
+        return nearest;
     }
 
     draw(ctx) {
         if (!this.alive) return;
         
         ctx.save();
-        ctx.translate(this.x, this.y);
+        ctx.translate(this.x - camera.x, this.y - camera.y);
+        
+        // Тень
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(0, this.height / 2, this.width / 2, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Ноги с анимацией ходьбы
+        const legSwing = this.moving ? Math.sin(this.walkAnimation) * 5 : 0;
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(-8, this.height / 2 - 10 + legSwing, 7, 12);
+        ctx.fillRect(1, this.height / 2 - 10 - legSwing, 7, 12);
         
         // Тело
-        ctx.fillStyle = this.hitFlash > 0 ? '#ff0000' : '#4a8f4a';
+        const bodyGradient = ctx.createLinearGradient(-this.width/2, -this.height/2, this.width/2, this.height/2);
+        bodyGradient.addColorStop(0, this.hitFlash > 0 ? '#ff4444' : '#5a8f5a');
+        bodyGradient.addColorStop(1, this.hitFlash > 0 ? '#cc0000' : '#3a6f3a');
+        ctx.fillStyle = bodyGradient;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
+        // Бронежилет
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillRect(-this.width / 2 + 3, -this.height / 4, this.width - 6, this.height / 2);
+        
+        // Голова
+        ctx.fillStyle = '#d4a574';
+        ctx.beginPath();
+        ctx.arc(0, -this.height / 2 - 5, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Волосы
+        ctx.fillStyle = '#4a3728';
+        ctx.beginPath();
+        ctx.arc(0, -this.height / 2 - 7, 8, Math.PI, Math.PI * 2);
+        ctx.fill();
+        
         // Оружие
+        ctx.save();
         ctx.rotate(this.angle);
-        ctx.fillStyle = '#333';
-        ctx.fillRect(10, -3, 25, 6);
-        ctx.fillRect(30, -5, 8, 10);
+        ctx.fillStyle = '#2a2a2a';
+        ctx.fillRect(8, -2, 20, 4);
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(24, -3, 6, 6);
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillRect(10, -4, 8, 2);
+        ctx.restore();
         
         ctx.restore();
     }
 }
 
-// Класс зомби
+// Класс зомби с детальной графикой
 class Zombie {
     constructor(x, y, type) {
         this.x = x;
@@ -97,13 +167,15 @@ class Zombie {
         this.type = type || 'normal';
         this.alive = true;
         this.hitFlash = 0;
+        this.walkAnimation = Math.random() * Math.PI * 2;
         
         switch(this.type) {
             case 'fast':
                 this.speed = 120 + difficulty * 5;
-                this.health = 50;
+                this.health = 40;
                 this.damage = 8;
                 this.color = '#ff9900';
+                this.clothes = '#8b4513';
                 break;
             case 'tank':
                 this.speed = 40 + difficulty * 2;
@@ -112,19 +184,20 @@ class Zombie {
                 this.width = 40;
                 this.height = 40;
                 this.color = '#ff0000';
+                this.clothes = '#4a4a4a';
                 break;
-            default: // normal
+            default:
                 this.speed = 70 + difficulty * 5;
                 this.health = 50;
                 this.damage = 10;
                 this.color = '#66aa66';
+                this.clothes = '#6b8e23';
         }
     }
 
     update(dt) {
         if (!this.alive) return;
         
-        // Движение к игроку
         const dx = player.x - this.x;
         const dy = player.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -132,9 +205,9 @@ class Zombie {
         if (dist > 0) {
             this.x += (dx / dist) * this.speed * dt;
             this.y += (dy / dist) * this.speed * dt;
+            this.walkAnimation += dt * 5;
         }
         
-        // Проверка столкновения с игроком
         if (dist < (this.width + player.width) / 2) {
             player.health -= this.damage * dt * 2;
             player.hitFlash = 0.1;
@@ -152,22 +225,58 @@ class Zombie {
         if (!this.alive) return;
         
         ctx.save();
-        ctx.translate(this.x, this.y);
+        ctx.translate(this.x - camera.x, this.y - camera.y);
+        
+        // Тень
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(0, this.height / 2, this.width / 2, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Ноги с анимацией
+        const legSwing = Math.sin(this.walkAnimation) * 4;
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(-8, this.height / 2 - 10 + legSwing, 6, 10);
+        ctx.fillRect(2, this.height / 2 - 10 - legSwing, 6, 10);
         
         // Тело
-        ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : this.color;
+        ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : this.clothes;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
-        // Глаза
+        // Рваная одежда
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2 + 2, -this.height / 4, this.width - 4, this.height / 2);
+        
+        // Руки
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2 - 4, -this.height / 4 + legSwing, 4, 15);
+        ctx.fillRect(this.width / 2, -this.height / 4 - legSwing, 4, 15);
+        
+        // Голова
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(0, -this.height / 2 - 5, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Глаза (светящиеся)
         ctx.fillStyle = '#ff0000';
-        ctx.fillRect(-this.width / 4, -this.height / 4, 6, 6);
-        ctx.fillRect(this.width / 4 - 6, -this.height / 4, 6, 6);
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(-3, -this.height / 2 - 6, 2, 0, Math.PI * 2);
+        ctx.arc(3, -this.height / 2 - 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Рот
+        ctx.fillStyle = '#8b0000';
+        ctx.fillRect(-4, -this.height / 2 - 2, 8, 2);
         
         ctx.restore();
     }
 }
 
-// Класс пули
+// Класс пули с эффектами
 class Bullet {
     constructor(x, y, angle) {
         this.x = x;
@@ -178,20 +287,23 @@ class Bullet {
         this.alive = true;
         this.vx = Math.cos(angle) * this.speed;
         this.vy = Math.sin(angle) * this.speed;
-        this.life = 2; // секунды
+        this.life = 2;
+        this.trail = [];
     }
 
     update(dt) {
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > 10) this.trail.shift();
+        
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.life -= dt;
         
-        if (this.life <= 0 || this.x < 0 || this.x > CANVAS_WIDTH || 
-            this.y < 0 || this.y > CANVAS_HEIGHT) {
+        if (this.life <= 0 || this.x < 0 || this.x > worldWidth || 
+            this.y < 0 || this.y > worldHeight) {
             this.alive = false;
         }
         
-        // Проверка попадания
         for (let zombie of zombies) {
             if (!zombie.alive) continue;
             const dist = Math.sqrt((this.x - zombie.x) ** 2 + (this.y - zombie.y) ** 2);
@@ -204,7 +316,7 @@ class Bullet {
                     zombie.alive = false;
                     kills++;
                     score += 10;
-                    spawnParticles(zombie.x, zombie.y, zombie.color);
+                    spawnParticles(zombie.x, zombie.y, zombie.color, 20);
                 }
                 break;
             }
@@ -213,33 +325,47 @@ class Bullet {
 
     draw(ctx) {
         if (!this.alive) return;
+        
+        // Траектория
+        for (let i = 0; i < this.trail.length; i++) {
+            const alpha = i / this.trail.length;
+            ctx.fillStyle = `rgba(255, 255, 0, ${alpha * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(this.trail[i].x - camera.x, this.trail[i].y - camera.y, this.radius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Пуля
         ctx.fillStyle = '#ffff00';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(this.x - camera.x, this.y - camera.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
+        
+        // Свечение
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius / 2, 0, Math.PI * 2);
+        ctx.arc(this.x - camera.x, this.y - camera.y, this.radius * 2, 0, Math.PI * 2);
         ctx.fill();
     }
 }
 
-// Класс пикапа
+// Класс пикапа с детальной графикой
 class Pickup {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'health' или 'ammo'
+        this.type = type;
         this.width = 20;
         this.height = 20;
         this.alive = true;
         this.bob = Math.random() * Math.PI * 2;
+        this.glow = 0;
     }
 
     update(dt) {
         this.bob += dt * 3;
+        this.glow += dt * 2;
         
-        // Проверка подбора
         const dist = Math.sqrt((this.x - player.x) ** 2 + (this.y - player.y) ** 2);
         if (dist < (this.width + player.width) / 2) {
             if (this.type === 'health') {
@@ -248,65 +374,133 @@ class Pickup {
                 player.ammo = Math.min(player.maxAmmo, player.ammo + 6);
             }
             this.alive = false;
+            spawnParticles(this.x, this.y, '#ffffff', 10);
         }
     }
 
     draw(ctx) {
         if (!this.alive) return;
         
-        const bounceY = this.y + Math.sin(this.bob) * 5;
+        const bounceY = this.y + Math.sin(this.bob) * 5 - camera.y;
+        const x = this.x - camera.x;
+        
+        // Свечение
+        const glowAlpha = 0.3 + Math.sin(this.glow) * 0.2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha})`;
+        ctx.beginPath();
+        ctx.arc(x, bounceY, 25, 0, Math.PI * 2);
+        ctx.fill();
         
         ctx.save();
-        ctx.translate(this.x, bounceY);
+        ctx.translate(x, bounceY);
         
         if (this.type === 'health') {
             // Аптечка
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(-10, -10, 20, 20);
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-10, -10, 20, 20);
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(-6, -2, 12, 4);
             ctx.fillRect(-2, -6, 4, 12);
         } else {
             // Патроны
             ctx.fillStyle = '#ffaa00';
-            ctx.fillRect(-8, -4, 8, 8);
-            ctx.fillRect(0, -4, 8, 8);
+            ctx.fillRect(-8, -6, 7, 12);
+            ctx.fillRect(1, -6, 7, 12);
             ctx.fillStyle = '#cc8800';
-            ctx.fillRect(-8, -8, 16, 4);
+            ctx.fillRect(-8, -10, 16, 4);
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(-5, -8, 2, 8);
+            ctx.fillRect(3, -8, 2, 8);
         }
         
         ctx.restore();
     }
 }
 
-// Частицы
+// Класс частиц
 class Particle {
-    constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        this.vx = (Math.random() - 0.5) * 200;
-        this.vy = (Math.random() - 0.5) * 200;
-        this.life = 0.5;
-        this.maxLife = 0.5;
-        this.color = color;
-        this.radius = Math.random() * 3 + 1;
+    constructor(x, y, color, count = 10) {
+        this.particles = [];
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 200,
+                vy: (Math.random() - 0.5) * 200,
+                life: Math.random() * 0.5 + 0.5,
+                maxLife: 1,
+                color: color,
+                radius: Math.random() * 4 + 1,
+                gravity: Math.random() * 100 + 50
+            });
+        }
+        this.alive = true;
     }
 
     update(dt) {
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-        this.life -= dt;
-        this.vy += 200 * dt; // гравитация
+        for (let p of this.particles) {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            p.vy += p.gravity * dt;
+        }
+        this.particles = this.particles.filter(p => p.life > 0);
+        if (this.particles.length === 0) this.alive = false;
     }
 
     draw(ctx) {
-        const alpha = this.life / this.maxLife;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
+        for (let p of this.particles) {
+            const alpha = p.life / p.maxLife;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x - camera.x, p.y - camera.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.globalAlpha = 1;
+    }
+}
+
+// Функции окружения
+function drawGround(ctx) {
+    // Основной пол
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, '#5a7a5a');
+    gradient.addColorStop(1, '#3a5a3a');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    // Трава (детали)
+    for (let x = 0; x < CANVAS_WIDTH; x += 20) {
+        for (let y = 0; y < CANVAS_HEIGHT; y += 20) {
+            if (Math.random() < 0.3) {
+                ctx.fillStyle = '#4a6a4a';
+                ctx.fillRect(x, y, 2, 5);
+            }
+        }
+    }
+    
+    // Дорожки
+    ctx.strokeStyle = '#6a8a6a';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, CANVAS_HEIGHT / 2);
+    ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Камни
+    for (let i = 0; i < 10; i++) {
+        const x = (i * 137) % CANVAS_WIDTH;
+        const y = (i * 89) % CANVAS_HEIGHT;
+        ctx.fillStyle = '#666';
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
@@ -315,11 +509,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
-
-// Джойстик
-let joystickActive = false;
-let joystickDX = 0;
-let joystickDY = 0;
 
 // Функции экранов
 function showMainMenu() {
@@ -373,7 +562,7 @@ function gameOver() {
 }
 
 function resetGame() {
-    player = new Player(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+    player = new Player(worldWidth / 2, worldHeight / 2);
     zombies = [];
     bullets = [];
     pickups = [];
@@ -383,9 +572,9 @@ function resetGame() {
     gameTime = 0;
     difficulty = 1;
     spawnTimer = 0;
+    camera = { x: 0, y: 0 };
     
-    // Начальные пикапы
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
         spawnPickup();
     }
 }
@@ -393,44 +582,44 @@ function resetGame() {
 function spawnZombie() {
     const type = Math.random();
     let zombieType = 'normal';
-    if (type < 0.7) zombieType = 'normal';
-    else if (type < 0.9) zombieType = 'fast';
+    if (type < 0.6) zombieType = 'normal';
+    else if (type < 0.85) zombieType = 'fast';
     else zombieType = 'tank';
     
-    // Спавн за пределами экрана
     let x, y;
     const side = Math.floor(Math.random() * 4);
     switch(side) {
-        case 0: x = Math.random() * CANVAS_WIDTH; y = -20; break;
-        case 1: x = Math.random() * CANVAS_WIDTH; y = CANVAS_HEIGHT + 20; break;
-        case 2: x = -20; y = Math.random() * CANVAS_HEIGHT; break;
-        case 3: x = CANVAS_WIDTH + 20; y = Math.random() * CANVAS_HEIGHT; break;
+        case 0: x = Math.random() * worldWidth; y = -20; break;
+        case 1: x = Math.random() * worldWidth; y = worldHeight + 20; break;
+        case 2: x = -20; y = Math.random() * worldHeight; break;
+        case 3: x = worldWidth + 20; y = Math.random() * worldHeight; break;
     }
     
     zombies.push(new Zombie(x, y, zombieType));
 }
 
 function spawnPickup() {
-    const x = Math.random() * (CANVAS_WIDTH - 40) + 20;
-    const y = Math.random() * (CANVAS_HEIGHT - 40) + 20;
+    const x = Math.random() * (worldWidth - 40) + 20;
+    const y = Math.random() * (worldHeight - 40) + 20;
     const type = Math.random() < 0.5 ? 'health' : 'ammo';
     pickups.push(new Pickup(x, y, type));
 }
 
-function spawnParticles(x, y, color) {
-    for (let i = 0; i < 10; i++) {
-        particles.push(new Particle(x, y, color));
-    }
+function spawnParticles(x, y, color, count = 10) {
+    particles.push(new Particle(x, y, color, count));
 }
 
 function shoot() {
     const now = Date.now();
-    if (now - lastShotTime < 300) return; // Ограничение скорострельности
+    if (now - lastShotTime < 300) return;
     if (player.ammo <= 0) return;
     
     lastShotTime = now;
     player.ammo--;
     bullets.push(new Bullet(player.x, player.y, player.angle));
+    spawnParticles(player.x + Math.cos(player.angle) * 20, 
+                    player.y + Math.sin(player.angle) * 20, 
+                    '#ffff00', 5);
 }
 
 // Обработчики ввода
@@ -451,30 +640,31 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) {
-        shooting = true;
-    }
+    if (e.button === 0) shooting = true;
 });
 
 canvas.addEventListener('mouseup', (e) => {
-    if (e.button === 0) {
-        shooting = false;
-    }
+    if (e.button === 0) shooting = false;
 });
 
 // Мобильное управление
-const joystick = document.getElementById('joystick');
+const joystickBase = document.getElementById('joystickBase');
 const joystickKnob = document.getElementById('joystickKnob');
 const shootBtn = document.getElementById('shootBtn');
 
-joystick.addEventListener('touchstart', (e) => {
+joystickBase.addEventListener('touchstart', handleJoystickStart);
+joystickBase.addEventListener('touchmove', handleJoystickMove);
+joystickBase.addEventListener('touchend', handleJoystickEnd);
+
+function handleJoystickStart(e) {
     e.preventDefault();
     joystickActive = true;
-});
+    handleJoystickMove(e);
+}
 
-joystick.addEventListener('touchmove', (e) => {
+function handleJoystickMove(e) {
     e.preventDefault();
-    const rect = joystick.getBoundingClientRect();
+    const rect = joystickBase.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     const touch = e.touches[0];
@@ -491,15 +681,15 @@ joystick.addEventListener('touchmove', (e) => {
     joystickDX = dx;
     joystickDY = dy;
     
-    joystickKnob.style.transform = `translate(${dx * 30}px, ${dy * 30}px)`;
-});
+    joystickKnob.style.transform = `translate(calc(-50% + ${dx * 35}px), calc(-50% + ${dy * 35}px))`;
+}
 
-joystick.addEventListener('touchend', (e) => {
+function handleJoystickEnd(e) {
     joystickActive = false;
     joystickDX = 0;
     joystickDY = 0;
     joystickKnob.style.transform = 'translate(-50%, -50%)';
-});
+}
 
 shootBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
@@ -520,61 +710,75 @@ function gameLoop() {
     
     if (gameState === 'playing') {
         update(dt);
+        updateCamera();
     }
     
     draw();
     requestAnimationFrame(gameLoop);
 }
 
+function updateCamera() {
+    // Центрирование камеры на игроке
+    camera.x = player.x - CANVAS_WIDTH / 2;
+    camera.y = player.y - CANVAS_HEIGHT / 2;
+    
+    // Ограничение камеры
+    camera.x = Math.max(0, Math.min(worldWidth - CANVAS_WIDTH, camera.x));
+    camera.y = Math.max(0, Math.min(worldHeight - CANVAS_HEIGHT, camera.y));
+}
+
 function update(dt) {
     gameTime += dt;
-    difficulty = 1 + gameTime / 30; // Увеличение сложности
+    difficulty = 1 + gameTime / 30;
     
-    // Обновление игрока
     player.update(dt);
     
-    // Стрельба
     if (shooting && player.alive) {
         shoot();
     }
     
-    // Спавн зомби
+    // Обновление индикатора автоприцеливания
+    const autoAimIndicator = document.getElementById('autoAimIndicator');
+    if (autoAimTarget && joystickActive) {
+        autoAimIndicator.classList.remove('hidden');
+        const screenX = autoAimTarget.x - camera.x;
+        const screenY = autoAimTarget.y - camera.y;
+        autoAimIndicator.style.left = screenX + 'px';
+        autoAimIndicator.style.top = screenY + 'px';
+    } else {
+        autoAimIndicator.classList.add('hidden');
+    }
+    
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
         spawnZombie();
         spawnTimer = Math.max(0.5, 2 - difficulty * 0.2);
     }
     
-    // Обновление зомби
     for (let zombie of zombies) {
         zombie.update(dt);
     }
     zombies = zombies.filter(z => z.alive);
     
-    // Обновление пуль
     for (let bullet of bullets) {
         bullet.update(dt);
     }
     bullets = bullets.filter(b => b.alive);
     
-    // Обновление пикапов
     for (let pickup of pickups) {
         pickup.update(dt);
     }
     pickups = pickups.filter(p => p.alive);
     
-    // Спавн пикапов
-    if (pickups.length < 2 && Math.random() < 0.01) {
+    if (pickups.length < 3 && Math.random() < 0.02) {
         spawnPickup();
     }
     
-    // Обновление частиц
     for (let particle of particles) {
         particle.update(dt);
     }
-    particles = particles.filter(p => p.life > 0);
+    particles = particles.filter(p => p.alive);
     
-    // Обновление HUD
     updateHUD();
 }
 
@@ -588,51 +792,57 @@ function updateHUD() {
 
 function draw() {
     // Очистка
-    ctx.fillStyle = '#3a5a3a';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    
-    // Сетка (пол)
-    ctx.strokeStyle = '#2a4a2a';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < CANVAS_WIDTH; x += 50) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, CANVAS_HEIGHT);
-        ctx.stroke();
-    }
-    for (let y = 0; y < CANVAS_HEIGHT; y += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(CANVAS_WIDTH, y);
-        ctx.stroke();
-    }
+    drawGround(ctx);
     
     if (gameState === 'playing' || gameState === 'dead') {
-        // Рисование пикапов
+        // Рисование в мировых координатах
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+        
+        // Пикапы
         for (let pickup of pickups) {
             pickup.draw(ctx);
         }
         
-        // Рисование зомби
+        // Зомби
         for (let zombie of zombies) {
             zombie.draw(ctx);
         }
         
-        // Рисование пуль
+        // Пули
         for (let bullet of bullets) {
             bullet.draw(ctx);
         }
         
-        // Рисование игрока
+        // Игрок
         player.draw(ctx);
         
-        // Рисование частиц
+        // Частицы
         for (let particle of particles) {
             particle.draw(ctx);
         }
+        
+        ctx.restore();
     }
+    
+    // Виньетка
+    const vignetteGradient = ctx.createRadialGradient(
+        CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT / 2,
+        CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_WIDTH
+    );
+    vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+    vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vignetteGradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 // Запуск игры
 showMainMenu();
 gameLoop();
+
+// Предотвращение скролла на мобильных
+document.addEventListener('touchmove', (e) => {
+    if (gameState === 'playing') {
+        e.preventDefault();
+    }
+}, { passive: false });
