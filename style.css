@@ -32,11 +32,54 @@ body {
     align-items: center;
 }
 
+/* Оверлей поворота */
+#rotateOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #1a1a2e;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+}
+
+.rotate-content {
+    color: #fff;
+}
+
+.rotate-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: rotatePhone 2s infinite;
+}
+
+@keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+
+.rotate-content h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #ffaa00;
+}
+
+.rotate-content p {
+    font-size: 1rem;
+    color: #aaa;
+}
+
 #gameContainer {
     position: relative;
     width: 100vw;
     height: 100vh;
-    height: 100dvh; /* Для мобильных */
+    height: 100dvh;
     overflow: hidden;
     background: #1a1a1a;
 }
@@ -71,25 +114,25 @@ body {
 
 .loading-title {
     color: #ffaa00;
-    font-size: clamp(1.5rem, 5vw, 2rem);
-    margin-bottom: 20px;
+    font-size: clamp(1.2rem, 3vh, 1.8rem);
+    margin-bottom: 15px;
     animation: pulse 1s infinite;
 }
 
 .loading-bar {
-    width: min(200px, 60vw);
-    height: 10px;
+    width: min(200px, 30vw);
+    height: 8px;
     background: #333;
-    border-radius: 5px;
+    border-radius: 4px;
     overflow: hidden;
-    margin: 20px auto;
+    margin: 15px auto;
 }
 
 .loading-fill {
     width: 0%;
     height: 100%;
     background: linear-gradient(90deg, #ffaa00, #ff4400);
-    animation: loading 2s ease-in-out infinite;
+    animation: loading 1.5s ease-in-out infinite;
 }
 
 @keyframes loading {
@@ -100,7 +143,7 @@ body {
 
 .loading-text {
     color: #aaa;
-    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+    font-size: clamp(0.7rem, 2vh, 0.9rem);
 }
 
 /* Главное меню */
@@ -131,62 +174,69 @@ body {
     z-index: 1;
     text-align: center;
     width: 100%;
+    max-width: 600px;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
 .game-title {
-    font-size: clamp(2rem, 10vw, 3.5rem);
+    font-size: clamp(1.8rem, 8vh, 3rem);
     color: #ff4444;
     text-shadow: 
         3px 3px 0px #8b0000, 
         6px 6px 0px rgba(0,0,0,0.5),
         0 0 30px rgba(255,0,0,0.5);
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     letter-spacing: 3px;
     animation: pulse 2s infinite;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    50% { transform: scale(1.03); }
 }
 
 .subtitle {
     color: #aaa;
-    font-size: clamp(0.9rem, 3.5vw, 1.2rem);
-    margin-bottom: 25px;
+    font-size: clamp(0.8rem, 2.5vh, 1rem);
+    margin-bottom: 15px;
     text-align: center;
 }
 
 .menu-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    justify-content: center;
     width: 100%;
-    max-width: 300px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .menu-btn {
     background: rgba(74, 74, 74, 0.9);
     color: #fff;
     border: 2px solid #666;
-    padding: clamp(12px, 2.5vh, 18px) clamp(20px, 6vw, 35px);
-    font-size: clamp(1rem, 4vw, 1.3rem);
+    padding: clamp(8px, 2vh, 12px) clamp(15px, 3vw, 25px);
+    font-size: clamp(0.8rem, 2.5vh, 1rem);
     cursor: pointer;
-    border-radius: 12px;
+    border-radius: 10px;
     transition: all 0.2s;
     font-family: inherit;
     font-weight: bold;
-    width: 100%;
+    min-width: 120px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    min-height: 50px;
+    min-height: 40px;
     touch-action: manipulation;
+    flex: 1;
+    max-width: 180px;
 }
 
 .menu-btn:active {
@@ -196,8 +246,8 @@ body {
 
 .best-score-display {
     color: #ffaa00;
-    font-size: clamp(0.9rem, 3vw, 1.1rem);
-    margin-top: 15px;
+    font-size: clamp(0.8rem, 2.5vh, 1rem);
+    margin-top: 5px;
 }
 
 /* Экраны */
@@ -207,24 +257,27 @@ body {
 
 .screen-title {
     color: #ffaa00;
-    font-size: clamp(1.5rem, 6vw, 2.5rem);
-    margin-bottom: 20px;
+    font-size: clamp(1.2rem, 5vh, 1.8rem);
+    margin-bottom: 10px;
     text-shadow: 2px 2px 0px #000;
 }
 
 .controls-info, .about-info {
     color: #ccc;
-    font-size: clamp(0.85rem, 3vw, 1.1rem);
-    line-height: 1.6;
-    margin-bottom: 20px;
+    font-size: clamp(0.7rem, 2vh, 0.9rem);
+    line-height: 1.4;
+    margin-bottom: 10px;
     text-align: left;
-    padding: 15px;
+    padding: 12px;
     background: rgba(255,255,255,0.1);
-    border-radius: 10px;
-    width: min(90%, 500px);
-    max-height: 60vh;
+    border-radius: 8px;
+    width: min(80%, 500px);
+    max-height: 50vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 /* Игровой экран */
@@ -248,9 +301,6 @@ body {
     right: calc(var(--safe-right) + 10px);
     z-index: 5;
     pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
 }
 
 .hud-top {
@@ -260,54 +310,51 @@ body {
     gap: 10px;
 }
 
-.hud-left, .hud-right {
+.hud-left, .hud-center, .hud-right {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    flex: 1;
+    gap: 4px;
+}
+
+.hud-center {
+    align-items: center;
 }
 
 .hud-right {
     align-items: flex-end;
 }
 
-.hud-bottom {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: auto;
-    margin-bottom: 10px;
-}
-
 .hud-item {
     background: rgba(0, 0, 0, 0.75);
-    padding: clamp(6px, 1.5vh, 10px) clamp(8px, 2vw, 12px);
-    border-radius: 8px;
+    padding: clamp(4px, 1vh, 6px) clamp(6px, 1.5vw, 10px);
+    border-radius: 6px;
     color: #fff;
-    font-size: clamp(0.75rem, 2.5vw, 1rem);
+    font-size: clamp(0.6rem, 1.8vh, 0.8rem);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
-    min-height: 30px;
+    min-height: 24px;
+    white-space: nowrap;
 }
 
 .hud-icon {
-    font-size: clamp(1rem, 3vw, 1.2em);
+    font-size: clamp(0.8rem, 2.5vh, 1rem);
 }
 
 .hud-text {
     font-weight: bold;
-    min-width: 20px;
+    min-width: 15px;
     text-align: center;
+    font-size: clamp(0.6rem, 1.8vh, 0.8rem);
 }
 
 .health-bar, .armor-bar {
-    width: clamp(60px, 15vw, 100px);
-    height: clamp(8px, 2vh, 12px);
+    width: clamp(50px, 10vw, 80px);
+    height: clamp(6px, 1.5vh, 8px);
     background: #333;
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
 }
 
@@ -316,7 +363,7 @@ body {
     height: 100%;
     background: linear-gradient(90deg, #ff0000, #ffaa00, #00ff00);
     transition: width 0.3s;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 #armorFill {
@@ -324,7 +371,7 @@ body {
     height: 100%;
     background: linear-gradient(90deg, #666, #aaa, #fff);
     transition: width 0.3s;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 /* Мини-карта */
@@ -334,13 +381,13 @@ body {
     right: calc(var(--safe-right) + 5px);
     z-index: 4;
     pointer-events: none;
-    opacity: 0.7;
+    opacity: 0.6;
 }
 
 #minimapCanvas {
-    width: clamp(60px, 15vw, 80px);
-    height: clamp(60px, 15vw, 80px);
-    border-radius: 8px;
+    width: clamp(50px, 10vw, 70px);
+    height: clamp(50px, 10vw, 70px);
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     background: rgba(0, 0, 0, 0.5);
 }
@@ -348,19 +395,19 @@ body {
 /* Мобильное управление */
 #mobileControls {
     position: absolute;
-    bottom: calc(var(--safe-bottom) + 15px);
+    bottom: calc(var(--safe-bottom) + 10px);
     left: calc(var(--safe-left) + 15px);
     right: calc(var(--safe-right) + 15px);
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
     z-index: 6;
     pointer-events: none;
 }
 
 #joystickZone {
-    width: clamp(100px, 30vw, 130px);
-    height: clamp(100px, 30vw, 130px);
+    width: clamp(80px, 15vw, 100px);
+    height: clamp(80px, 15vw, 100px);
     position: relative;
     pointer-events: auto;
     touch-action: none;
@@ -373,15 +420,15 @@ body {
     border-radius: 50%;
     border: 3px solid rgba(255, 255, 255, 0.4);
     position: relative;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     touch-action: none;
 }
 
 #joystickKnob {
-    width: clamp(40px, 12vw, 50px);
-    height: clamp(40px, 12vw, 50px);
+    width: clamp(35px, 7vw, 45px);
+    height: clamp(35px, 7vw, 45px);
     background: rgba(255, 255, 255, 0.7);
     border-radius: 50%;
     position: absolute;
@@ -389,7 +436,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     transition: transform 0.05s;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     pointer-events: none;
 }
 
@@ -402,10 +449,10 @@ body {
 }
 
 .action-btn {
-    width: clamp(60px, 18vw, 75px);
-    height: clamp(60px, 18vw, 75px);
+    width: clamp(50px, 10vw, 65px);
+    height: clamp(50px, 10vw, 65px);
     border-radius: 50%;
-    font-size: clamp(1.5rem, 6vw, 2rem);
+    font-size: clamp(1.2rem, 4vh, 1.8rem);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -422,13 +469,13 @@ body {
 .shoot-btn {
     background: rgba(255, 0, 0, 0.6);
     border: 3px solid #ff0000;
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
 }
 
 .dash-btn {
     background: rgba(0, 0, 255, 0.6);
     border: 3px solid #0066ff;
-    box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 0, 255, 0.5);
 }
 
 .action-btn:active {
@@ -438,7 +485,7 @@ body {
 /* Индикаторы */
 #autoAimIndicator {
     position: absolute;
-    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-size: clamp(1.2rem, 4vh, 1.8rem);
     pointer-events: none;
     z-index: 4;
     animation: aimPulse 0.5s infinite;
@@ -454,7 +501,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: clamp(2rem, 8vw, 3rem);
+    font-size: clamp(1.5rem, 6vh, 2.5rem);
     pointer-events: none;
     z-index: 4;
     animation: damageFlash 0.5s;
@@ -470,7 +517,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: clamp(2rem, 8vw, 3rem);
+    font-size: clamp(1.5rem, 6vh, 2.5rem);
     pointer-events: none;
     z-index: 4;
     animation: dashEffect 0.3s;
@@ -490,8 +537,8 @@ body {
 
 .death-title {
     color: #ff0000;
-    font-size: clamp(2rem, 8vw, 3rem);
-    margin-bottom: 25px;
+    font-size: clamp(1.5rem, 6vh, 2.5rem);
+    margin-bottom: 15px;
     text-shadow: 2px 2px 0px #8b0000;
     animation: deathShake 0.5s infinite;
 }
@@ -504,92 +551,80 @@ body {
 
 .stats {
     color: #fff;
-    font-size: clamp(0.9rem, 3.5vw, 1.2rem);
-    line-height: 1.8;
-    margin-bottom: 25px;
+    font-size: clamp(0.8rem, 2.5vh, 1rem);
+    line-height: 1.6;
+    margin-bottom: 15px;
     text-align: center;
     background: rgba(0,0,0,0.5);
-    padding: 20px;
-    border-radius: 10px;
-    width: min(85%, 350px);
+    padding: 15px;
+    border-radius: 8px;
+    width: min(70%, 350px);
 }
 
 .achievement {
     color: #ffaa00;
-    font-size: clamp(1rem, 4vw, 1.3rem);
-    margin-bottom: 20px;
+    font-size: clamp(0.9rem, 3vh, 1.2rem);
+    margin-bottom: 15px;
     text-align: center;
     font-weight: bold;
 }
 
-/* Адаптация под разные размеры экранов */
-@media (min-width: 768px) {
-    #gameContainer {
-        max-width: 100%;
-        max-height: 100%;
+/* Ориентация экрана */
+@media (orientation: portrait) {
+    #rotateOverlay {
+        display: flex !important;
     }
     
-    #mobileControls {
+    #gameContainer {
+        display: none !important;
+    }
+}
+
+@media (orientation: landscape) {
+    #rotateOverlay {
         display: none !important;
     }
     
-    #gameCanvas {
-        cursor: crosshair;
+    #gameContainer {
+        display: block !important;
     }
 }
 
-@media (max-width: 767px) {
-    #mobileControls {
-        display: flex !important;
-    }
-}
-
-/* Для очень маленьких экранов */
-@media (max-width: 320px) {
+/* Для очень маленьких экранов в альбомной ориентации */
+@media (max-height: 400px) and (orientation: landscape) {
     .game-title {
-        font-size: 1.8rem;
-    }
-    
-    #joystickZone {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .action-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-    }
-}
-
-/* Для ландшафтной ориентации на телефоне */
-@media (max-height: 500px) and (orientation: landscape) {
-    .game-title {
-        font-size: 2rem;
-        margin-bottom: 10px;
+        font-size: 1.5rem;
+        margin-bottom: 5px;
     }
     
     .subtitle {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     
     .menu-buttons {
-        gap: 8px;
+        gap: 5px;
     }
     
     .menu-btn {
-        padding: 10px 20px;
-        min-height: 40px;
+        padding: 6px 12px;
+        min-height: 35px;
+        font-size: 0.75rem;
     }
     
     #joystickZone {
-        width: 80px;
-        height: 80px;
+        width: 70px;
+        height: 70px;
     }
     
     .action-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 1.3rem;
+        width: 45px;
+        height: 45px;
+        font-size: 1rem;
+    }
+    
+    .hud-item {
+        padding: 3px 5px;
+        min-height: 20px;
+        font-size: 0.6rem;
     }
 }
