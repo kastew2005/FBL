@@ -1,10 +1,10 @@
-// Игровые константы
+// ============ КОНСТАНТЫ И НАСТРОЙКИ ============
 let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 400;
 let worldWidth = 1600;
 let worldHeight = 800;
 
-// Состояние игры
+// ============ СОСТОЯНИЕ ИГРЫ ============
 let gameState = 'loading';
 let player, zombies = [], bullets = [], pickups = [], particles = [];
 let score = 0, kills = 0, gameTime = 0;
@@ -14,10 +14,33 @@ let lastShotTime = 0;
 let spawnTimer = 0;
 let difficulty = 1;
 let bestScore = localStorage.getItem('bestScore') || 0;
+let totalKills = parseInt(localStorage.getItem('totalKills')) || 0;
 let camera = { x: 0, y: 0 };
 let gameLevel = 1;
+let isPaused = false;
 
-// Джойстик
+// ============ ДОСТИЖЕНИЯ ============
+const achievements = [
+    { id: 'first_blood', name: 'Первая кровь', description: 'Убейте первого зомби', icon: '🩸', condition: () => kills >= 1 },
+    { id: 'killer_10', name: 'Убийца', description: 'Убейте 10 зомби', icon: '⚔️', condition: () => kills >= 10 },
+    { id: 'killer_50', name: 'Охотник', description: 'Убейте 50 зомби', icon: '🏹', condition: () => kills >= 50 },
+    { id: 'killer_100', name: 'Истребитель', description: 'Убейте 100 зомби', icon: '💀', condition: () => kills >= 100 },
+    { id: 'survivor_1', name: 'Выживший', description: 'Проживите 1 минуту', icon: '⏱️', condition: () => gameTime >= 60 },
+    { id: 'survivor_5', name: 'Стойкий', description: 'Проживите 5 минут', icon: '🛡️', condition: () => gameTime >= 300 },
+    { id: 'survivor_10', name: 'Легенда', description: 'Проживите 10 минут', icon: '👑', condition: () => gameTime >= 600 },
+    { id: 'collector_10', name: 'Коллекционер', description: 'Соберите 10 предметов', icon: '📦', condition: () => totalPickups >= 10 },
+    { id: 'dasher', name: 'Быстрый', description: 'Используйте рывок 5 раз', icon: '💨', condition: () => totalDashes >= 5 },
+    { id: 'level_5', name: 'Опытный', description: 'Достигните 5 уровня', icon: '📊', condition: () => gameLevel >= 5 },
+    { id: 'level_10', name: 'Мастер', description: 'Достигните 10 уровня', icon: '🎯', condition: () => gameLevel >= 10 },
+    { id: 'no_damage', name: 'Неуязвимый', description: 'Проживите 2 минуты без урона', icon: '✨', condition: () => gameTime >= 120 && damageTaken === 0 }
+];
+
+let unlockedAchievements = JSON.parse(localStorage.getItem('achievements')) || [];
+let totalPickups = 0;
+let totalDashes = 0;
+let damageTaken = 0;
+
+// ============ ДЖОЙСТИК ============
 let joystickActive = false;
 let joystickDX = 0;
 let joystickDY = 0;
@@ -28,14 +51,14 @@ let dashTimer = 0;
 let mouseX = 0;
 let mouseY = 0;
 
-// Класс игрока (компактный для альбомной ориентации)
+// ============ КЛАСС ИГРОКА ============
 class Player {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 22;
-        this.height = 22;
-        this.speed = 180;
+        this.width = 24;
+        this.height = 24;
+        this.speed = 200;
         this.health = 100;
         this.maxHealth = 100;
         this.armor = 0;
@@ -43,16 +66,19 @@ class Player {
         this.ammo = 12;
         this.maxAmmo = 12;
         this.energy = 0;
+        this.maxEnergy = 100;
         this.angle = 0;
         this.alive = true;
         this.hitFlash = 0;
         this.walkAnimation = 0;
         this.moving = false;
-        this.dashSpeed = 350;
+        this.dashSpeed = 400;
+        this.weaponLevel = 1;
+        this.damageMultiplier = 1;
     }
 
     update(dt) {
-        if (!this.alive) return;
+        if (!this.alive || isPaused) return;
         
         let dx = 0, dy = 0;
         if (keys['w'] || keys['arrowup']) dy = -1;
@@ -83,9 +109,11 @@ class Player {
             this.y += dy * this.speed * dt;
         }
         
+        // Границы мира
         this.x = Math.max(this.width / 2, Math.min(worldWidth - this.width / 2, this.x));
         this.y = Math.max(this.height / 2, Math.min(worldHeight - this.height / 2, this.y));
         
+        // Автоприцеливание
         if (joystickActive) {
             autoAimTarget = this.findNearestZombie();
             if (autoAimTarget) {
@@ -100,6 +128,11 @@ class Player {
         
         if (this.hitFlash > 0) this.hitFlash -= dt;
         if (dashCooldown > 0) dashCooldown -= dt;
+        
+        // Регенерация энергии
+        if (this.energy < this.maxEnergy) {
+            this.energy += dt * 2;
+        }
     }
 
     findNearestZombie() {
@@ -108,7 +141,7 @@ class Player {
         for (let zombie of zombies) {
             if (!zombie.alive) continue;
             const dist = Math.sqrt((this.x - zombie.x) ** 2 + (this.y - zombie.y) ** 2);
-            if (dist < minDist && dist < 350) {
+            if (dist < minDist && dist < 400) {
                 minDist = dist;
                 nearest = zombie;
             }
@@ -124,6 +157,7 @@ class Player {
         }
         this.health -= damage;
         this.hitFlash = 0.1;
+        damageTaken += damage;
         
         if (navigator.vibrate) {
             navigator.vibrate(50);
@@ -150,46 +184,59 @@ class Player {
         ctx.ellipse(0, this.height / 2, this.width / 2, 4, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Ноги
+        // Ноги с анимацией
         const legSwing = this.moving ? Math.sin(this.walkAnimation) * 3 : 0;
         ctx.fillStyle = '#3a3a3a';
         ctx.fillRect(-5, this.height / 2 - 7 + legSwing, 4, 8);
         ctx.fillRect(1, this.height / 2 - 7 - legSwing, 4, 8);
         
-        // Тело
-        ctx.fillStyle = this.hitFlash > 0 ? '#ff4444' : '#5a8f5a';
+        // Тело с градиентом
+        const bodyGradient = ctx.createLinearGradient(-this.width/2, -this.height/2, this.width/2, this.height/2);
+        bodyGradient.addColorStop(0, this.hitFlash > 0 ? '#ff4444' : '#5a8f5a');
+        bodyGradient.addColorStop(1, this.hitFlash > 0 ? '#cc0000' : '#3a6f3a');
+        ctx.fillStyle = bodyGradient;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
         // Броня
         if (this.armor > 0) {
             ctx.fillStyle = '#4a4a4a';
             ctx.fillRect(-this.width / 2 + 2, -this.height / 4, this.width - 4, this.height / 2);
+            ctx.fillStyle = '#666';
+            ctx.fillRect(-this.width / 2 + 4, -this.height / 4 + 2, this.width - 8, 2);
         }
         
         // Голова
         ctx.fillStyle = '#d4a574';
         ctx.beginPath();
-        ctx.arc(0, -this.height / 2 - 3, 5, 0, Math.PI * 2);
+        ctx.arc(0, -this.height / 2 - 3, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Волосы
+        ctx.fillStyle = '#4a3728';
+        ctx.beginPath();
+        ctx.arc(0, -this.height / 2 - 4, 6, Math.PI, Math.PI * 2);
         ctx.fill();
         
         // Оружие
         ctx.save();
         ctx.rotate(this.angle);
         ctx.fillStyle = '#2a2a2a';
-        ctx.fillRect(5, -1.5, 14, 3);
+        ctx.fillRect(5, -1.5, 16, 3);
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(18, -2, 4, 4);
         ctx.restore();
         
         ctx.restore();
     }
 }
 
-// Класс зомби
+// ============ КЛАСС ЗОМБИ ============
 class Zombie {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.width = 20;
-        this.height = 20;
+        this.width = 22;
+        this.height = 22;
         this.type = type || 'normal';
         this.alive = true;
         this.hitFlash = 0;
@@ -197,42 +244,65 @@ class Zombie {
         
         switch(this.type) {
             case 'fast':
-                this.speed = 130 + difficulty * 5;
-                this.health = 30;
-                this.damage = 5;
+                this.speed = 140 + difficulty * 5;
+                this.health = 35;
+                this.damage = 6;
                 this.color = '#ff9900';
+                this.clothes = '#8b4513';
                 break;
             case 'tank':
-                this.speed = 45 + difficulty * 2;
-                this.health = 100;
-                this.damage = 12;
-                this.width = 28;
-                this.height = 28;
+                this.speed = 50 + difficulty * 2;
+                this.health = 120;
+                this.damage = 15;
+                this.width = 30;
+                this.height = 30;
                 this.color = '#ff0000';
+                this.clothes = '#4a4a4a';
                 break;
             case 'exploder':
-                this.speed = 90 + difficulty * 3;
-                this.health = 20;
+                this.speed = 100 + difficulty * 3;
+                this.health = 25;
                 this.damage = 20;
+                this.width = 20;
+                this.height = 20;
                 this.color = '#ffff00';
-                this.explodeRadius = 45;
+                this.clothes = '#ff8c00';
+                this.explodeRadius = 50;
+                break;
+            case 'spitter':
+                this.speed = 70 + difficulty * 3;
+                this.health = 40;
+                this.damage = 8;
+                this.width = 20;
+                this.height = 20;
+                this.color = '#00ff00';
+                this.clothes = '#006400';
+                this.spitRange = 250;
+                this.spitCooldown = 0;
                 break;
             default:
-                this.speed = 75 + difficulty * 5;
-                this.health = 35;
-                this.damage = 7;
+                this.speed = 80 + difficulty * 5;
+                this.health = 40;
+                this.damage = 8;
                 this.color = '#66aa66';
+                this.clothes = '#6b8e23';
         }
     }
 
     update(dt) {
-        if (!this.alive) return;
+        if (!this.alive || isPaused) return;
         
         const dx = player.x - this.x;
         const dy = player.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist > 0) {
+        if (this.type === 'spitter' && dist < this.spitRange) {
+            this.spitCooldown -= dt;
+            if (this.spitCooldown <= 0) {
+                this.spit();
+                this.spitCooldown = 2;
+            }
+        } else if (dist > 0) {
             this.x += (dx / dist) * this.speed * dt;
             this.y += (dy / dist) * this.speed * dt;
             this.walkAnimation += dt * 5;
@@ -249,12 +319,17 @@ class Zombie {
         if (this.hitFlash > 0) this.hitFlash -= dt;
     }
     
+    spit() {
+        const angle = Math.atan2(player.y - this.y, player.x - this.x);
+        bullets.push(new Bullet(this.x, this.y, angle, 'enemy'));
+    }
+    
     explode() {
         const dist = Math.sqrt((this.x - player.x) ** 2 + (this.y - player.y) ** 2);
         if (dist < this.explodeRadius) {
             player.takeDamage(this.damage);
         }
-        spawnParticles(this.x, this.y, '#ffff00', 15);
+        spawnParticles(this.x, this.y, '#ffff00', 20);
         this.alive = false;
     }
 
@@ -264,46 +339,71 @@ class Zombie {
         ctx.save();
         ctx.translate(this.x - camera.x, this.y - camera.y);
         
+        // Тень
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
         ctx.ellipse(0, this.height / 2, this.width / 2, 3, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : this.color;
+        // Ноги
+        const legSwing = Math.sin(this.walkAnimation) * 3;
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(-5, this.height / 2 - 7 + legSwing, 4, 8);
+        ctx.fillRect(1, this.height / 2 - 7 - legSwing, 4, 8);
+        
+        // Тело
+        ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : this.clothes;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
+        // Руки
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2 - 3, -this.height / 4 + legSwing, 3, 12);
+        ctx.fillRect(this.width / 2, -this.height / 4 - legSwing, 3, 12);
+        
+        // Голова
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(0, -this.height / 2 - 3, 5, 0, Math.PI * 2);
+        ctx.arc(0, -this.height / 2 - 4, 6, 0, Math.PI * 2);
         ctx.fill();
         
+        // Глаза
         ctx.fillStyle = '#ff0000';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#ff0000';
         ctx.beginPath();
-        ctx.arc(-2, -this.height / 2 - 4, 1.5, 0, Math.PI * 2);
-        ctx.arc(2, -this.height / 2 - 4, 1.5, 0, Math.PI * 2);
+        ctx.arc(-2, -this.height / 2 - 5, 1.5, 0, Math.PI * 2);
+        ctx.arc(2, -this.height / 2 - 5, 1.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.shadowBlur = 0;
         
         ctx.restore();
     }
 }
 
-// Класс пули
+// ============ КЛАСС ПУЛИ ============
 class Bullet {
     constructor(x, y, angle, type = 'player') {
         this.x = x;
         this.y = y;
-        this.speed = type === 'player' ? 450 : 180;
+        this.speed = type === 'player' ? 500 : 200;
         this.damage = type === 'player' ? 25 : 8;
-        this.radius = 3;
+        this.radius = type === 'player' ? 3 : 2;
         this.alive = true;
         this.type = type;
         this.vx = Math.cos(angle) * this.speed;
         this.vy = Math.sin(angle) * this.speed;
         this.life = 1.5;
         this.color = type === 'player' ? '#ffff00' : '#00ff00';
+        this.trail = [];
     }
 
     update(dt) {
+        if (isPaused) return;
+        
+        // Траектория
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > 5) this.trail.shift();
+        
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.life -= dt;
@@ -326,7 +426,10 @@ class Bullet {
                         zombie.alive = false;
                         kills++;
                         score += 10;
-                        spawnParticles(zombie.x, zombie.y, zombie.color, 12);
+                        totalKills++;
+                        localStorage.setItem('totalKills', totalKills);
+                        spawnParticles(zombie.x, zombie.y, zombie.color, 15);
+                        checkAchievements();
                         
                         if (Math.random() < 0.3) {
                             pickups.push(new Pickup(zombie.x, zombie.y, 'energy'));
@@ -347,6 +450,16 @@ class Bullet {
     draw(ctx) {
         if (!this.alive) return;
         
+        // Траектория
+        for (let i = 0; i < this.trail.length; i++) {
+            const alpha = i / this.trail.length;
+            ctx.fillStyle = `rgba(255, 255, 0, ${alpha * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(this.trail[i].x - camera.x, this.trail[i].y - camera.y, this.radius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Пуля
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x - camera.x, this.y - camera.y, this.radius, 0, Math.PI * 2);
@@ -354,20 +467,24 @@ class Bullet {
     }
 }
 
-// Класс пикапа
+// ============ КЛАСС ПИКАПА ============
 class Pickup {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
         this.type = type;
-        this.width = 14;
-        this.height = 14;
+        this.width = 16;
+        this.height = 16;
         this.alive = true;
         this.bob = Math.random() * Math.PI * 2;
+        this.glow = 0;
     }
 
     update(dt) {
+        if (isPaused) return;
+        
         this.bob += dt * 3;
+        this.glow += dt * 2;
         
         const dist = Math.sqrt((this.x - player.x) ** 2 + (this.y - player.y) ** 2);
         if (dist < (this.width + player.width) / 2) {
@@ -382,23 +499,27 @@ class Pickup {
                     player.armor = Math.min(player.maxArmor, player.armor + 25);
                     break;
                 case 'energy':
-                    player.energy += 10;
+                    player.energy = Math.min(player.maxEnergy, player.energy + 20);
                     break;
             }
+            totalPickups++;
             this.alive = false;
-            spawnParticles(this.x, this.y, '#ffffff', 6);
+            spawnParticles(this.x, this.y, '#ffffff', 10);
+            checkAchievements();
         }
     }
 
     draw(ctx) {
         if (!this.alive) return;
         
-        const bounceY = this.y + Math.sin(this.bob) * 3 - camera.y;
+        const bounceY = this.y + Math.sin(this.bob) * 4 - camera.y;
         const x = this.x - camera.x;
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        // Свечение
+        const glowAlpha = 0.3 + Math.sin(this.glow) * 0.2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha})`;
         ctx.beginPath();
-        ctx.arc(x, bounceY, 15, 0, Math.PI * 2);
+        ctx.arc(x, bounceY, 20, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.save();
@@ -407,31 +528,38 @@ class Pickup {
         switch(this.type) {
             case 'health':
                 ctx.fillStyle = '#ffffff';
-                ctx.fillRect(-7, -7, 14, 14);
+                ctx.fillRect(-8, -8, 16, 16);
+                ctx.strokeStyle = '#cccccc';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-8, -8, 16, 16);
                 ctx.fillStyle = '#ff0000';
-                ctx.fillRect(-3, -1, 7, 2);
-                ctx.fillRect(-1, -3, 2, 7);
+                ctx.fillRect(-4, -1, 8, 3);
+                ctx.fillRect(-1, -4, 3, 8);
                 break;
             case 'ammo':
                 ctx.fillStyle = '#ffaa00';
-                ctx.fillRect(-5, -3, 4, 7);
-                ctx.fillRect(1, -3, 4, 7);
+                ctx.fillRect(-6, -4, 5, 8);
+                ctx.fillRect(1, -4, 5, 8);
+                ctx.fillStyle = '#cc8800';
+                ctx.fillRect(-6, -8, 12, 4);
                 break;
             case 'armor':
                 ctx.fillStyle = '#666';
-                ctx.fillRect(-7, -7, 14, 14);
+                ctx.fillRect(-8, -8, 16, 16);
                 ctx.fillStyle = '#999';
-                ctx.fillRect(-5, -5, 10, 10);
+                ctx.fillRect(-6, -6, 12, 12);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-4, -4, 8, 8);
                 break;
             case 'energy':
                 ctx.fillStyle = '#00ffff';
                 ctx.beginPath();
-                ctx.moveTo(0, -7);
-                ctx.lineTo(3, -2);
-                ctx.lineTo(7, -2);
-                ctx.lineTo(0, 7);
-                ctx.lineTo(-3, 2);
-                ctx.lineTo(-7, 2);
+                ctx.moveTo(0, -8);
+                ctx.lineTo(4, -2);
+                ctx.lineTo(8, -2);
+                ctx.lineTo(0, 8);
+                ctx.lineTo(-4, 2);
+                ctx.lineTo(-8, 2);
                 ctx.closePath();
                 ctx.fill();
                 break;
@@ -441,30 +569,34 @@ class Pickup {
     }
 }
 
-// Класс частиц
+// ============ КЛАСС ЧАСТИЦ ============
 class Particle {
-    constructor(x, y, color, count = 8) {
+    constructor(x, y, color, count = 10) {
         this.particles = [];
         for (let i = 0; i < count; i++) {
             this.particles.push({
                 x: x,
                 y: y,
-                vx: (Math.random() - 0.5) * 120,
-                vy: (Math.random() - 0.5) * 120,
-                life: Math.random() * 0.4 + 0.3,
-                maxLife: 0.7,
+                vx: (Math.random() - 0.5) * 150,
+                vy: (Math.random() - 0.5) * 150,
+                life: Math.random() * 0.5 + 0.3,
+                maxLife: 0.8,
                 color: color,
-                radius: Math.random() * 2 + 1
+                radius: Math.random() * 3 + 1,
+                gravity: Math.random() * 100 + 50
             });
         }
         this.alive = true;
     }
 
     update(dt) {
+        if (isPaused) return;
+        
         for (let p of this.particles) {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.life -= dt;
+            p.vy += p.gravity * dt;
         }
         this.particles = this.particles.filter(p => p.life > 0);
         if (this.particles.length === 0) this.alive = false;
@@ -483,7 +615,7 @@ class Particle {
     }
 }
 
-// Инициализация
+// ============ ИНИЦИАЛИЗАЦИЯ ============
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -497,9 +629,8 @@ function resizeCanvas() {
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
     
-    // Адаптация мира под альбомную ориентацию
-    worldWidth = Math.max(CANVAS_WIDTH * 1.8, 1200);
-    worldHeight = Math.max(CANVAS_HEIGHT * 1.8, 600);
+    worldWidth = Math.max(CANVAS_WIDTH * 2, 1200);
+    worldHeight = Math.max(CANVAS_HEIGHT * 2, 600);
     
     if (player) {
         camera.x = player.x - CANVAS_WIDTH / 2;
@@ -507,21 +638,31 @@ function resizeCanvas() {
     }
 }
 
-// Функции экранов
+// ============ ФУНКЦИИ ЭКРАНОВ ============
 function showMainMenu() {
     gameState = 'menu';
+    isPaused = false;
     document.getElementById('mainMenu').classList.remove('hidden');
     document.getElementById('controlsScreen').classList.add('hidden');
     document.getElementById('aboutScreen').classList.add('hidden');
+    document.getElementById('achievementsScreen').classList.add('hidden');
     document.getElementById('gameScreen').classList.add('hidden');
     document.getElementById('deathScreen').classList.add('hidden');
+    document.getElementById('pauseScreen').classList.add('hidden');
     
     document.getElementById('menuBestScore').textContent = bestScore;
+    document.getElementById('menuTotalKills').textContent = totalKills;
 }
 
 function showControls() {
     document.getElementById('mainMenu').classList.add('hidden');
     document.getElementById('controlsScreen').classList.remove('hidden');
+}
+
+function showAchievements() {
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('achievementsScreen').classList.remove('hidden');
+    renderAchievements();
 }
 
 function showAbout() {
@@ -531,17 +672,34 @@ function showAbout() {
 
 function startGame() {
     gameState = 'playing';
+    isPaused = false;
     document.getElementById('mainMenu').classList.add('hidden');
     document.getElementById('gameScreen').classList.remove('hidden');
     document.getElementById('deathScreen').classList.add('hidden');
+    document.getElementById('pauseScreen').classList.add('hidden');
     
     resetGame();
 }
 
 function restartGame() {
     document.getElementById('deathScreen').classList.add('hidden');
+    document.getElementById('pauseScreen').classList.add('hidden');
     document.getElementById('gameScreen').classList.remove('hidden');
+    isPaused = false;
     resetGame();
+}
+
+function pauseGame() {
+    if (gameState !== 'playing') return;
+    isPaused = true;
+    document.getElementById('pauseScreen').classList.remove('hidden');
+    document.getElementById('pauseKills').textContent = kills;
+    document.getElementById('pauseTime').textContent = Math.floor(gameTime) + 'с';
+}
+
+function resumeGame() {
+    isPaused = false;
+    document.getElementById('pauseScreen').classList.add('hidden');
 }
 
 function gameOver() {
@@ -580,6 +738,9 @@ function resetGame() {
     dashCooldown = 0;
     isDashing = false;
     dashTimer = 0;
+    totalPickups = 0;
+    totalDashes = 0;
+    damageTaken = 0;
     
     camera.x = player.x - CANVAS_WIDTH / 2;
     camera.y = player.y - CANVAS_HEIGHT / 2;
@@ -591,11 +752,58 @@ function resetGame() {
     updateHUD();
 }
 
+// ============ СИСТЕМА ДОСТИЖЕНИЙ ============
+function checkAchievements() {
+    for (let achievement of achievements) {
+        if (!unlockedAchievements.includes(achievement.id) && achievement.condition()) {
+            unlockedAchievements.push(achievement.id);
+            localStorage.setItem('achievements', JSON.stringify(unlockedAchievements));
+            showAchievementPopup(achievement);
+        }
+    }
+}
+
+function showAchievementPopup(achievement) {
+    const popup = document.getElementById('achievementPopup');
+    popup.innerHTML = `
+        <div class="achievement-icon">${achievement.icon}</div>
+        <strong>${achievement.name}</strong>
+        <p>${achievement.description}</p>
+    `;
+    popup.classList.remove('hidden');
+    
+    setTimeout(() => {
+        popup.classList.add('hidden');
+    }, 3000);
+}
+
+function renderAchievements() {
+    const list = document.getElementById('achievementsList');
+    list.innerHTML = '';
+    
+    for (let achievement of achievements) {
+        const isUnlocked = unlockedAchievements.includes(achievement.id);
+        const item = document.createElement('div');
+        item.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
+        item.innerHTML = `
+            <span class="achievement-icon">${achievement.icon}</span>
+            <div class="achievement-info">
+                <strong>${achievement.name}</strong>
+                <p>${achievement.description}</p>
+            </div>
+        `;
+        list.appendChild(item);
+    }
+}
+
+// ============ СПАВН ============
 function spawnZombie() {
     let type = 'normal';
     const random = Math.random();
     
-    if (gameTime > 30 && random < 0.1) {
+    if (gameTime > 60 && random < 0.1) {
+        type = 'spitter';
+    } else if (gameTime > 30 && random < 0.2) {
         type = 'exploder';
     } else if (random < 0.5) {
         type = 'normal';
@@ -631,10 +839,11 @@ function spawnPickup() {
     pickups.push(new Pickup(x, y, type));
 }
 
-function spawnParticles(x, y, color, count = 8) {
+function spawnParticles(x, y, color, count = 10) {
     particles.push(new Particle(x, y, color, count));
 }
 
+// ============ ИНДИКАТОРЫ ============
 function showDamageIndicator() {
     const indicator = document.getElementById('damageIndicator');
     indicator.classList.remove('hidden');
@@ -644,28 +853,30 @@ function showDamageIndicator() {
     }, 400);
 }
 
+// ============ ДЕЙСТВИЯ ============
 function shoot() {
     const now = Date.now();
     if (now - lastShotTime < 200) return;
-    if (player.ammo <= 0) return;
+    if (player.ammo <= 0 || !player.alive) return;
     
     lastShotTime = now;
     player.ammo--;
     bullets.push(new Bullet(player.x, player.y, player.angle, 'player'));
-    spawnParticles(player.x + Math.cos(player.angle) * 12, 
-                    player.y + Math.sin(player.angle) * 12, 
-                    '#ffff00', 3);
+    spawnParticles(player.x + Math.cos(player.angle) * 15, 
+                    player.y + Math.sin(player.angle) * 15, 
+                    '#ffff00', 5);
 }
 
 function dash() {
-    if (dashCooldown > 0 || player.energy < 20) return;
+    if (dashCooldown > 0 || player.energy < 20 || !player.alive) return;
     
     player.energy -= 20;
     dashCooldown = 1.5;
     isDashing = true;
     dashTimer = 0.15;
+    totalDashes++;
     
-    spawnParticles(player.x, player.y, '#00ffff', 8);
+    spawnParticles(player.x, player.y, '#00ffff', 10);
     
     const indicator = document.getElementById('dashIndicator');
     indicator.classList.remove('hidden');
@@ -674,13 +885,19 @@ function dash() {
         isDashing = false;
         indicator.classList.add('hidden');
     }, 150);
+    
+    checkAchievements();
 }
 
-// Обработчики ввода
+// ============ ОБРАБОТЧИКИ ВВОДА ============
 document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === ' ' && gameState === 'playing') {
         dash();
+    }
+    if (e.key === 'Escape' && gameState === 'playing') {
+        if (isPaused) resumeGame();
+        else pauseGame();
     }
 });
 
@@ -695,7 +912,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) shooting = true;
+    if (e.button === 0 && gameState === 'playing') shooting = true;
 });
 
 canvas.addEventListener('mouseup', (e) => {
@@ -707,6 +924,7 @@ const joystickBase = document.getElementById('joystickBase');
 const joystickKnob = document.getElementById('joystickKnob');
 const shootBtn = document.getElementById('shootBtn');
 const dashBtn = document.getElementById('dashBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 
 joystickBase.addEventListener('touchstart', handleJoystickStart, { passive: false });
 joystickBase.addEventListener('touchmove', handleJoystickMove, { passive: false });
@@ -749,7 +967,7 @@ function handleJoystickEnd(e) {
 
 shootBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    shooting = true;
+    if (gameState === 'playing') shooting = true;
 });
 
 shootBtn.addEventListener('touchend', (e) => {
@@ -758,10 +976,14 @@ shootBtn.addEventListener('touchend', (e) => {
 
 dashBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    dash();
+    if (gameState === 'playing') dash();
 });
 
-// Игровой цикл
+pauseBtn.addEventListener('click', () => {
+    if (gameState === 'playing') pauseGame();
+});
+
+// ============ ИГРОВОЙ ЦИКЛ ============
 let lastTime = Date.now();
 
 function gameLoop() {
@@ -769,7 +991,7 @@ function gameLoop() {
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
     
-    if (gameState === 'playing') {
+    if (gameState === 'playing' && !isPaused) {
         update(dt);
         updateCamera();
     }
@@ -796,6 +1018,7 @@ function update(dt) {
     if (newLevel > gameLevel) {
         gameLevel = newLevel;
         difficulty = 1 + gameTime / 30;
+        checkAchievements();
     }
     
     player.update(dt);
@@ -861,7 +1084,7 @@ function updateHUD() {
     document.getElementById('armorFill').style.width = armorPercent + '%';
     
     document.getElementById('ammoCount').textContent = `${player.ammo}/${player.maxAmmo}`;
-    document.getElementById('energyCount').textContent = player.energy;
+    document.getElementById('energyCount').textContent = Math.floor(player.energy);
     document.getElementById('killCount').textContent = kills;
     document.getElementById('timeCount').textContent = Math.floor(gameTime) + 'с';
     document.getElementById('levelCount').textContent = `Ур. ${gameLevel}`;
@@ -899,13 +1122,28 @@ function updateMinimap() {
     }
 }
 
+// ============ ОТРИСОВКА ============
 function drawGround(ctx) {
-    // Основной пол
+    // Основной пол с градиентом
     const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
     gradient.addColorStop(0, '#4a6a4a');
     gradient.addColorStop(1, '#3a5a3a');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    // Трава (детали)
+    for (let i = 0; i < 100; i++) {
+        const x = (i * 73 + 20) % worldWidth;
+        const y = (i * 47 + 40) % worldHeight;
+        const screenX = x - camera.x;
+        const screenY = y - camera.y;
+        
+        if (screenX > -10 && screenX < CANVAS_WIDTH + 10 && 
+            screenY > -10 && screenY < CANVAS_HEIGHT + 10) {
+            ctx.fillStyle = 'rgba(74, 106, 74, 0.5)';
+            ctx.fillRect(screenX, screenY, 2, 6);
+        }
+    }
     
     // Дорожки
     ctx.strokeStyle = 'rgba(80, 110, 80, 0.4)';
@@ -933,6 +1171,22 @@ function drawGround(ctx) {
     }
     
     ctx.setLineDash([]);
+    
+    // Камни
+    for (let i = 0; i < 30; i++) {
+        const x = (i * 137 + 50) % worldWidth;
+        const y = (i * 89 + 30) % worldHeight;
+        const screenX = x - camera.x;
+        const screenY = y - camera.y;
+        
+        if (screenX > -10 && screenX < CANVAS_WIDTH + 10 && 
+            screenY > -10 && screenY < CANVAS_HEIGHT + 10) {
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.6)';
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, 4 + (i % 2), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
 }
 
 function draw() {
@@ -974,7 +1228,7 @@ function draw() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
-// Инициализация
+// ============ ИНИЦИАЛИЗАЦИЯ ============
 function init() {
     resizeCanvas();
     
