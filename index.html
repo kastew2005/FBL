@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wasteland Survivor - Постапокалиптическая игра</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,24 +10,25 @@
     <div id="gameContainer">
         <!-- Главное меню -->
         <div id="mainMenu" class="screen">
+            <div class="menu-background"></div>
             <h1 class="game-title">WASTELAND<br>SURVIVOR</h1>
             <p class="subtitle">Выживи в постапокалиптическом мире</p>
             <button class="menu-btn" onclick="startGame()">▶ ИГРАТЬ</button>
             <button class="menu-btn" onclick="showControls()">🎮 УПРАВЛЕНИЕ</button>
             <button class="menu-btn" onclick="showAbout()">ℹ ОБ ИГРЕ</button>
-            <div class="version">v1.0</div>
+            <div class="version">v2.0 Mobile</div>
         </div>
 
         <!-- Экран управления -->
         <div id="controlsScreen" class="screen hidden">
             <h2 class="screen-title">УПРАВЛЕНИЕ</h2>
             <div class="controls-info">
-                <p>🕹️ <strong>WASD / Стрелки</strong> — движение</p>
-                <p>🖱️ <strong>Левая кнопка мыши</strong> — стрельба</p>
-                <p>📱 <strong>На телефоне:</strong> виртуальный джойстик</p>
-                <p>🎯 <strong>Цель:</strong> выжить как можно дольше</p>
+                <p>📱 <strong>Джойстик слева</strong> — движение</p>
+                <p>🔫 <strong>Кнопка справа</strong> — стрельба</p>
+                <p>🔄 <strong>Автоприцеливание</strong> — стреляет в ближайшего зомби</p>
                 <p>💊 Собирайте аптечки для восстановления здоровья</p>
                 <p>🔫 Собирайте патроны для стрельбы</p>
+                <p>🎯 <strong>Цель:</strong> выжить как можно дольше</p>
             </div>
             <button class="menu-btn" onclick="showMainMenu()">← НАЗАД</button>
         </div>
@@ -54,32 +55,50 @@
             
             <!-- HUD -->
             <div id="hud">
-                <div class="hud-item">
-                    <span class="hud-label">❤️ Здоровье</span>
-                    <div class="health-bar">
-                        <div id="healthFill"></div>
+                <div class="hud-top">
+                    <div class="hud-item">
+                        <span class="hud-icon">❤️</span>
+                        <div class="health-bar">
+                            <div id="healthFill"></div>
+                        </div>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">🔫</span>
+                        <span id="ammoCount">12/12</span>
                     </div>
                 </div>
-                <div class="hud-item">
-                    <span class="hud-label">🔫 Патроны</span>
-                    <span id="ammoCount">12/12</span>
-                </div>
-                <div class="hud-item">
-                    <span class="hud-label">💀 Убито</span>
-                    <span id="killCount">0</span>
-                </div>
-                <div class="hud-item">
-                    <span class="hud-label">⏱️ Время</span>
-                    <span id="timeCount">0с</span>
+                <div class="hud-bottom">
+                    <div class="hud-item">
+                        <span class="hud-icon">💀</span>
+                        <span id="killCount">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">⏱️</span>
+                        <span id="timeCount">0с</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Мобильное управление -->
             <div id="mobileControls">
-                <div id="joystick">
-                    <div id="joystickKnob"></div>
+                <!-- Джойстик -->
+                <div id="joystickZone">
+                    <div id="joystickBase">
+                        <div id="joystickKnob"></div>
+                    </div>
                 </div>
-                <button id="shootBtn">🔫</button>
+                
+                <!-- Кнопки действий -->
+                <div id="actionButtons">
+                    <button id="shootBtn" class="action-btn">
+                        <span class="btn-icon">🔫</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Индикатор автоприцеливания -->
+            <div id="autoAimIndicator" class="hidden">
+                🎯
             </div>
         </div>
 
