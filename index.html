@@ -1,64 +1,78 @@
 ```html
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>Flappy Bird</title>
-<style>
-body{display:flex;justify-content:center;align-items:center;height:100vh;background:#70c5ce;margin:0}
-canvas{background:#70c5ce;display:block}
-</style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Flappy Bird - графика</title>
+<style>html,body{height:100%;margin:0;background:#70c5ce;display:flex;justify-content:center;align-items:center}canvas{max-width:420px;width:100%;height:auto}</style>
 </head>
 <body>
-<canvas id="c" width="400" height="600"></canvas>
+<canvas id="c" width="420" height="720"></canvas>
 <script>
-const cvs=document.getElementById('c'),ctx=cvs.getContext('2d');
-const W=cvs.width,H=cvs.height;
-let bird={x:80,y:H/2,r:14,vy:0},g=0.6,jump=-10,frames=0,score=0,high=0;
-let pipes=[];let gap=140,pipeW=60,spd=2,gameOver=false,started=false;
-function reset(){bird.y=H/2;bird.vy=0;pipes=[];frames=0;score=0;gameOver=false;started=false;}
-function spawn(){let top = 50 + Math.random()*(H-gap-150); pipes.push({x:W,top:top});}
-function draw(){
- ctx.clearRect(0,0,W,H);
- // bird
- ctx.fillStyle="#FFD54A";ctx.beginPath();ctx.arc(bird.x,bird.y,bird.r,0,Math.PI*2);ctx.fill();
- // pipes
- ctx.fillStyle="#3EA055"; for(let p of pipes){
-   ctx.fillRect(p.x,0,pipeW,p.top); ctx.fillRect(p.x,p.top+gap,pipeW,H);
- }
- // ground
- ctx.fillStyle="#DEB887";ctx.fillRect(0,H-40,W,40);
- // score
- ctx.fillStyle="#fff";ctx.font="30px Arial";ctx.fillText(score,10,50);
- if(!started){ctx.fillStyle="#fff";ctx.font="20px Arial";ctx.fillText("Клик или пробел чтобы стартовать",50,H/2);}
- if(gameOver){ctx.fillStyle="#fff";ctx.font="30px Arial";ctx.fillText("Game Over - клик для рестарта",20,H/2+40);}
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+let W=c.width,H=c.height;
+addEventListener('resize',()=>{const r=Math.min(innerWidth,420);c.style.width=r+'px';});
+let bird={x:100,y:H/2,r:18,vy:0,frame:0},g=0.55,jump=-11,frames=0,score=0,gameOver=false,started=false;
+let pipes=[],gap=150,pipeW=80,spd=2.2,clouds=[...Array(6)].map((_,i)=>({x:i*150+50,y:50+Math.random()*60,s:0.6+Math.random()*0.8})));
+function spawn(){let top=80+Math.random()*(H-gap-220);pipes.push({x:W,top,passed:false});}
+function drawBG(){
+  // sky gradient
+  let g1=ctx.createLinearGradient(0,0,0,H);g1.addColorStop(0,'#70c5ce');g1.addColorStop(1,'#a0e9ff');ctx.fillStyle=g1;ctx.fillRect(0,0,W,H);
+  // sun
+  ctx.beginPath();ctx.fillStyle='#ffd96b';ctx.arc(W-80,80,40,0,7);ctx.fill();
+  // clouds
+  ctx.fillStyle='rgba(255,255,255,0.9)';for(let cl of clouds){ctx.beginPath();ctx.ellipse(cl.x,cl.y,50*cl.s,30*cl.s,0,0,7);ctx.fill();}
+}
+function drawGround(){
+  ctx.fillStyle='#d2a679';ctx.fillRect(0,H-60,W,60);
+  ctx.fillStyle='#caa36e';for(let i=0;i<W;i+=24)ctx.fillRect(i,H-60,12,10);
+}
+function drawBird(){
+  // body
+  ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-0.6,Math.min(0.6,bird.vy/10)));
+  ctx.fillStyle='#ffdd57';ctx.beginPath();ctx.ellipse(0,0, bird.r*1.2,bird.r,0,0,7);ctx.fill();
+  // wing (flap)
+  let wf=Math.sin(bird.frame/6)*8;
+  ctx.fillStyle='#ffb347';ctx.beginPath();ctx.ellipse(-5,5,12,6,0,0,7);ctx.rotate(wf*0.02);ctx.fill();
+  ctx.restore();
+}
+function drawPipes(){
+  for(let p of pipes){
+    let grad=ctx.createLinearGradient(p.x,0,p.x+pipeW,0);grad.addColorStop(0,'#2f8f45');grad.addColorStop(1,'#1e6b33');ctx.fillStyle=grad;
+    ctx.fillRect(p.x,0,pipeW,p.top);ctx.fillRect(p.x,p.top+gap,pipeW,H);
+    // rim
+    ctx.fillStyle='#0e3f22';ctx.fillRect(p.x-6,p.top-6,pipeW+12,6);ctx.fillRect(p.x-6,p.top+gap,p.w+12,6);
+  }
 }
 function update(){
- if(!started) return;
- bird.vy += g; bird.y += bird.vy;
- if(bird.y+bird.r>H-40) {gameOver=true;started=false; high=Math.max(high,score);}
- if(bird.y-bird.r<0) bird.y=bird.r, bird.vy=0;
- if(frames%90==0) spawn();
- for(let i=pipes.length-1;i>=0;i--){
-   let p=pipes[i]; p.x -= spd;
-   if(p.x+pipeW<0) pipes.splice(i,1);
-   // score
-   if(!p.passed && p.x+pipeW < bird.x){ score++; p.passed=true;}
-   // collision
-   if(bird.x+bird.r>p.x && bird.x-bird.r<p.x+pipeW){
-     if(bird.y-bird.r < p.top || bird.y+bird.r > p.top+gap){ gameOver=true; started=false; high=Math.max(high,score);}
-   }
- }
- frames++;
+  if(!started) return;
+  bird.vy+=g;bird.y+=bird.vy;bird.frame++;
+  if(bird.y+bird.r>H-60){gameOver=true;started=false;}
+  if(frames%90==0)spawn();
+  for(let i=pipes.length-1;i>=0;i--){
+    let p=pipes[i];p.x-=spd;
+    if(!p.passed && p.x+pipeW<bird.x){score++;p.passed=true;}
+    if(p.x+pipeW< -50)pipes.splice(i,1);
+    if(bird.x+bird.r>p.x && bird.x-bird.r<p.x+pipeW){
+      if(bird.y-bird.r < p.top || bird.y+bird.r > p.top+gap){gameOver=true;started=false;}
+    }
+  }
+  clouds.forEach(cl=>{cl.x-=0.3; if(cl.x<-80)cl.x=W+80;});
+  frames++;
 }
-function loop(){update();draw(); requestAnimationFrame(loop);}
-cvs.addEventListener('click',()=>{
- if(gameOver) reset();
- if(!started) started=true;
- bird.vy=jump;
-});
-window.addEventListener('keydown',e=>{ if(e.code==='Space'){ e.preventDefault(); if(gameOver) reset(); if(!started) started=true; bird.vy=jump;}});
-reset();loop();
+function draw(){
+  ctx.clearRect(0,0,W,H);drawBG();drawPipes();drawBird();drawGround();
+  ctx.fillStyle='white';ctx.font='28px sans-serif';ctx.fillText(score,20,50);
+  if(!started){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.font='18px sans-serif';ctx.fillText('Нажмите или коснитесь экрана чтобы стартовать',40,H/2);}
+  if(gameOver){ctx.fillStyle='rgba(0,0,0,0.6)';ctx.font='30px sans-serif';ctx.fillText('Game Over — тап для рестарта',30,H/2+60);}
+  // mobile flap button
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(W-60,H-80,44,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='22px sans-serif';ctx.fillText('FLAP',W-84,H-74);
+}
+function loop(){update();draw();requestAnimationFrame(loop);}
+c.addEventListener('pointerdown',e=>{ if(gameOver){pipes=[];score=0;gameOver=false;} started=true; bird.vy=jump;});
+window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(gameOver){pipes=[];score=0;gameOver=false;} started=true; bird.vy=jump;}});
+// tilt control (optional)
+if(window.DeviceOrientationEvent)window.addEventListener('deviceorientation',ev=>{ if(ev.beta) bird.vy += (ev.gamma||0)/700; });
+loop();
 </script>
 </body>
 </html>
