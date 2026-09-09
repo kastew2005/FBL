@@ -1,12 +1,9 @@
 let gameStarted = false;
 let scene, camera, renderer, world, player;
-let materials;
-let handMesh;
+let materials, highlightBox, handMesh, sun;
 let selectedBlockType = 1;
 let hotbarSlots = [1, 2, 3, 4, 5, 6, 7];
-
-// Выделение блока
-let highlightBox;
+let dayTime = 0;
 
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -17,19 +14,17 @@ function toggleFullscreen() {
 function initGame() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x8cb8ff);
-    scene.fog = new THREE.FogExp2(0x8cb8ff, 0.02);
+    scene.fog = new THREE.FogExp2(0x8cb8ff, 0.025);
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById('game-screen').appendChild(renderer.domElement);
 
-    // Свет
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    let sun = new THREE.DirectionalLight(0xffffff, 0.5);
-    sun.position.set(20, 50, 20);
-    sun.castShadow = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    sun = new THREE.DirectionalLight(0xffffff, 0.6);
+    sun.position.set(20, 40, 20);
     scene.add(sun);
 
     materials = createBlockMaterials();
@@ -38,14 +33,12 @@ function initGame() {
 
     player = new Player();
 
-    // Создаем подсвечивающийся контур для блоков
     let wireGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01));
-    highlightBox = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
+    highlightBox = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: 0x000000 }));
     highlightBox.visible = false;
     scene.add(highlightBox);
 
-    // Создаем 3D руку игрока
-    let handGeo = new THREE.BoxGeometry(0.2, 0.2, 0.4);
+    let handGeo = new THREE.BoxGeometry(0.2, 0.2, 0.35);
     handMesh = new THREE.Mesh(handGeo, materials[1]);
     camera.add(handMesh);
     scene.add(camera);
@@ -54,30 +47,41 @@ function initGame() {
     initInventoryUI();
     initControls();
 
+    window.addEventListener('resize', onWindowResize);
+
     animate();
 }
 
-// РЕНДЕР ХОТБАРА
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Отрисовка текстурных иконок блоков в UI
+function drawBlockIcon(canvas, type) {
+    let ctx = canvas.getContext('2d');
+    let { canvas: texCanvas } = generateHDTexture(type, 'side');
+    ctx.drawImage(texCanvas, 0, 0, 64, 64, 0, 0, canvas.width, canvas.height);
+}
+
 function renderHotbar() {
     const hb = document.getElementById('hotbar');
     hb.innerHTML = '';
-    hotbarSlots.forEach((type, index) => {
+    hotbarSlots.forEach((type) => {
         let slot = document.createElement('div');
         slot.className = `hotbar-slot ${type === selectedBlockType ? 'selected' : ''}`;
         slot.onclick = () => { selectedBlockType = type; renderHotbar(); };
         
         let cvs = document.createElement('canvas');
-        cvs.className = 'slot-canvas'; cvs.width = 16; cvs.height = 16;
-        let ctx = cvs.getContext('2d');
-        ctx.fillStyle = BLOCK_TYPES[type].color;
-        ctx.fillRect(0,0,16,16);
+        cvs.className = 'slot-canvas'; cvs.width = 32; cvs.height = 32;
+        drawBlockIcon(cvs, type);
 
         slot.appendChild(cvs);
         hb.appendChild(slot);
     });
 }
 
-// ИНВЕНТАРЬ UI
 function initInventoryUI() {
     const grid = document.getElementById('inventory-grid');
     grid.innerHTML = '';
@@ -92,10 +96,8 @@ function initInventoryUI() {
             document.getElementById('inventory-modal').style.display = 'none';
         };
         let cvs = document.createElement('canvas');
-        cvs.className = 'slot-canvas'; cvs.width = 16; cvs.height = 16;
-        let ctx = cvs.getContext('2d');
-        ctx.fillStyle = BLOCK_TYPES[type].color;
-        ctx.fillRect(0,0,16,16);
+        cvs.className = 'slot-canvas'; cvs.width = 32; cvs.height = 32;
+        drawBlockIcon(cvs, type);
         slot.appendChild(cvs);
         grid.appendChild(slot);
     }
@@ -108,7 +110,6 @@ function initInventoryUI() {
     };
 }
 
-// УПРАВЛЕНИЕ: КОРOТКОЕ / ДОЛГОЕ НАЖАТИЕ
 let moveState = { forward: false, back: false, left: false, right: false };
 let touchLookId = null, lastTouchX = 0, lastTouchY = 0;
 let touchStartTime = 0, touchTimer = null;
@@ -127,10 +128,9 @@ function initControls() {
 
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (player.y <= 2.1) { player.vy = 0.13; sounds.playJump(); }
+        if (player.y <= 2.1) { player.vy = 0.12; sounds.playJump(); }
     });
 
-    // Обработка клика/касания по 3D миру (Короткое -> Ставить, Долгое -> Ломать)
     window.addEventListener('touchstart', (e) => {
         sounds.init();
         for (let i = 0; i < e.touches.length; i++) {
@@ -140,11 +140,10 @@ function initControls() {
                 lastTouchX = t.clientX; lastTouchY = t.clientY;
                 touchStartTime = Date.now();
 
-                // Таймер долгого зажатия (Сломать)
                 touchTimer = setTimeout(() => {
-                    raycastAction(false); // Ломать
+                    raycastAction(false);
                     touchTimer = null;
-                }, 350);
+                }, 320);
             }
         }
     });
@@ -156,10 +155,8 @@ function initControls() {
                 let dx = t.clientX - lastTouchX;
                 let dy = t.clientY - lastTouchY;
                 
-                // Если зажатый палец двигается — отменяем ломание, это вращение
-                if (Math.hypot(dx, dy) > 5 && touchTimer) {
-                    clearTimeout(touchTimer);
-                    touchTimer = null;
+                if (Math.hypot(dx, dy) > 6 && touchTimer) {
+                    clearTimeout(touchTimer); touchTimer = null;
                 }
 
                 player.rotationY -= dx * 0.004;
@@ -175,19 +172,14 @@ function initControls() {
             if (e.changedTouches[i].identifier === touchLookId) {
                 touchLookId = null;
                 if (touchTimer) {
-                    clearTimeout(touchTimer);
-                    touchTimer = null;
-                    // Если удержание было коротким — ставить блок
-                    if (Date.now() - touchStartTime < 350) {
-                        raycastAction(true); // Ставить
-                    }
+                    clearTimeout(touchTimer); touchTimer = null;
+                    if (Date.now() - touchStartTime < 320) raycastAction(true);
                 }
             }
         }
     });
 }
 
-// ВЗАИМОДЕЙСТВИЕ С БЛОКАМИ
 const raycaster = new THREE.Raycaster();
 const centerVector = new THREE.Vector2(0, 0);
 
@@ -201,9 +193,8 @@ function raycastAction(isPlace) {
         let p = hit.point.clone();
         let normal = hit.face.normal.clone();
 
-        // Анимация удара рукой
         handMesh.position.z = -0.3;
-        setTimeout(() => handMesh.position.z = -0.5, 100);
+        setTimeout(() => handMesh.position.z = -0.5, 90);
 
         if (isPlace) {
             p.addScaledVector(normal, 0.5);
@@ -217,7 +208,6 @@ function raycastAction(isPlace) {
     }
 }
 
-// Обновление подсветки выбранного блока
 function updateHighlight() {
     raycaster.setFromCamera(centerVector, camera);
     let meshes = Object.values(world.blocks).map(b => b.mesh);
@@ -236,6 +226,11 @@ function updateHighlight() {
 function animate() {
     requestAnimationFrame(animate);
     if (!gameStarted) return;
+
+    // Вращение Солнца ("От себя": Смена дня и ночи)
+    dayTime += 0.0005;
+    sun.position.x = Math.cos(dayTime) * 40;
+    sun.position.y = Math.sin(dayTime) * 40;
 
     player.update(moveState, camera, handMesh);
     world.updateParticles();
