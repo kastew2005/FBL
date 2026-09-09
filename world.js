@@ -3,7 +3,7 @@ class World {
         this.scene = scene;
         this.materials = materials;
         this.blocks = new Map();
-        this.size = 40;
+        this.size = 48;
     }
 
     getBlockKey(x, y, z) {
@@ -21,16 +21,53 @@ class World {
     }
 
     generate() {
+        // Рельеф
         for (let x = -this.size / 2; x < this.size / 2; x++) {
             for (let z = -this.size / 2; z < this.size / 2; z++) {
-                let height = Math.floor(Math.sin(x * 0.1) * Math.cos(z * 0.1) * 3) + 4;
+                let height = Math.floor(Math.sin(x * 0.08) * Math.cos(z * 0.08) * 4) + 5;
                 for (let y = 0; y <= height; y++) {
                     let type = (y === height) ? 2 : (y > height - 3 ? 1 : 3);
                     this.setBlock(x, y, z, type);
                 }
+
+                // Спавн деревьев
+                if (Math.random() < 0.02 && (Math.abs(x) > 8 || Math.abs(z) > 8)) {
+                    this.spawnTree(x, height + 1, z);
+                }
             }
         }
+
+        // Спавн Деревни жителей и Алтаря Дракона
+        this.spawnVillage(5, 6, 5);
         this.buildMesh();
+    }
+
+    spawnTree(x, y, z) {
+        for (let i = 0; i < 4; i++) this.setBlock(x, y + i, z, 4);
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = 2; dy <= 4; dy++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    if (this.getBlock(x + dx, y + dy, z + dz) === 0) {
+                        this.setBlock(x + dx, y + dy, z + dz, 5);
+                    }
+                }
+            }
+        }
+    }
+
+    spawnVillage(vx, vy, vz) {
+        // Домик жителей
+        for (let x = 0; x < 5; x++) {
+            for (let z = 0; z < 5; z++) {
+                for (let y = 0; y < 3; y++) {
+                    if (x === 0 || x === 4 || z === 0 || z === 4) {
+                        this.setBlock(vx + x, vy + y, vz + z, 10);
+                    }
+                }
+            }
+        }
+        // Алтарь Дракона (фиолетовый блок)
+        this.setBlock(vx + 2, vy, vz + 2, 6);
     }
 
     buildMesh() {
