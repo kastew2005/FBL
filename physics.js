@@ -16,7 +16,7 @@ class PhysicsEngine {
             for (let y = minY; y < maxY; y++) {
                 for (let z = minZ; z < maxZ; z++) {
                     const block = this.world.getBlock(x, y, z);
-                    if (block !== 0 && block !== 9) { // Пропускаем воздух и воду
+                    if (block !== 0 && block !== 9) { // Воду и воздух игнорируем при коллизии
                         return true;
                     }
                 }
@@ -38,6 +38,16 @@ class PhysicsEngine {
             player.velocity.y = 0;
         } else {
             player.isGrounded = false;
+        }
+
+        // Проверка погружения в воду
+        const currentBlock = this.world.getBlock(player.position.x, player.position.y, player.position.z);
+        const waterOverlay = document.getElementById('water-overlay');
+        if (currentBlock === 9) {
+            if (waterOverlay) waterOverlay.style.display = 'block';
+            player.velocity.y *= 0.8; // Сопротивление воды
+        } else {
+            if (waterOverlay) waterOverlay.style.display = 'none';
         }
     }
 }
