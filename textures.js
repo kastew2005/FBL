@@ -1,72 +1,53 @@
 const BLOCK_TYPES = {
-    1: { name: 'Земля', color: '#7a5230' },
-    2: { name: 'Трава', color: '#4c8a2a' },
-    3: { name: 'Камень', color: '#6e6e6e' },
-    4: { name: 'Дерево', color: '#4a3525' },
-    5: { name: 'Листва', color: '#2b6632' },
-    6: { name: 'Кирпич', color: '#8f3b2c' },
-    7: { name: 'Доски', color: '#a07236' },
-    8: { name: 'Песок', color: '#d1be73' }
+    1: { name: 'Земля', color: '#5a3d28', accent: '#3d2717' },
+    2: { name: 'Трава', color: '#3b7a20', accent: '#5ca338' },
+    3: { name: 'Камень', color: '#686868', accent: '#484848' },
+    4: { name: 'Дерево', color: '#5c4028', accent: '#3b2818' },
+    5: { name: 'Листва', color: '#2d5a1e', accent: '#1f4014' },
+    6: { name: 'Верстак', color: '#a07040', accent: '#604020' },
+    7: { name: 'Печка', color: '#4a4a4a', accent: '#ff5500' },
+    8: { name: 'Песок', color: '#d8c27a', accent: '#b5a05b' },
+    9: { name: 'Вода', color: '#1e68b5', accent: '#3b82d6', transparent: true },
+    10: { name: 'Булыжник', color: '#444444', accent: '#222222' }
 };
 
-// Генератор высокадетализированных 64x64 текстур
-function generateHDTexture(type, side = 'side') {
+function generateUltraHDTexture(type) {
     const canvas = document.createElement('canvas');
-    canvas.width = 64; canvas.height = 64;
+    canvas.width = 128; 
+    canvas.height = 128;
     const ctx = canvas.getContext('2d');
 
-    let base = BLOCK_TYPES[type].color;
-    ctx.fillStyle = base;
-    ctx.fillRect(0, 0, 64, 64);
+    const config = BLOCK_TYPES[type] || BLOCK_TYPES[1];
+    
+    // Базовый цвет
+    ctx.fillStyle = config.color;
+    ctx.fillRect(0, 0, 128, 128);
 
-    // Детализированный шумовой слой 64x64
-    for (let x = 0; x < 64; x++) {
-        for (let y = 0; y < 64; y++) {
-            if (Math.random() > 0.5) {
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)';
-                ctx.fillRect(x, y, 1, 1);
+    // Генерируем детальный узор/микрорельеф 128x128
+    for (let x = 0; x < 128; x += 4) {
+        for (let y = 0; y < 128; y += 4) {
+            const rand = Math.random();
+            if (rand > 0.6) {
+                ctx.fillStyle = config.accent;
+                ctx.globalAlpha = rand * 0.3;
+                ctx.fillRect(x, y, 4, 4);
+            } else if (rand < 0.2) {
+                ctx.fillStyle = '#000000';
+                ctx.globalAlpha = 0.15;
+                ctx.fillRect(x, y, 4, 4);
             }
         }
     }
+    ctx.globalAlpha = 1.0;
 
-    // Текстура Травы (64x64)
-    if (type === 2 && side === 'side') {
-        ctx.fillStyle = '#7a5230';
-        ctx.fillRect(0, 18, 64, 46);
-        ctx.fillStyle = '#4c8a2a';
-        ctx.fillRect(0, 0, 64, 18);
-        for (let x = 0; x < 64; x += 2) {
-            let h = Math.floor(Math.random() * 8);
-            ctx.fillRect(x, 18, 2, h);
-        }
-    }
-
-    // Текстура Торца Дерева
-    if (type === 4 && side === 'top') {
-        ctx.fillStyle = '#825a33';
-        ctx.fillRect(0, 0, 64, 64);
-        ctx.strokeStyle = '#4a3525';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(8, 8, 48, 48);
-        ctx.strokeRect(20, 20, 24, 24);
-    }
-
-    // Текстура Кирпича
-    if (type === 6) {
-        ctx.strokeStyle = '#401911';
-        ctx.lineWidth = 2;
-        for (let y = 0; y < 64; y += 16) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(64, y); ctx.stroke();
-            let offset = (y / 16) % 2 === 0 ? 0 : 16;
-            for (let x = offset; x < 64; x += 32) {
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 16); ctx.stroke();
-            }
-        }
-    }
+    // Рамка блока для имитации HD объёма
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, 128, 128);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.LinearMipMapLinearFilter;
     return { texture, canvas };
 }
 
@@ -74,19 +55,14 @@ function createBlockMaterials() {
     let mats = {};
     for (let id in BLOCK_TYPES) {
         let type = parseInt(id);
-        if (type === 2) {
-            let top = new THREE.MeshLambertMaterial({ map: generateHDTexture(2, 'top').texture });
-            let side = new THREE.MeshLambertMaterial({ map: generateHDTexture(2, 'side').texture });
-            let bottom = new THREE.MeshLambertMaterial({ map: generateHDTexture(1, 'top').texture });
-            mats[type] = [side, side, top, bottom, side, side];
-        } else if (type === 4) {
-            let side = new THREE.MeshLambertMaterial({ map: generateHDTexture(4, 'side').texture });
-            let top = new THREE.MeshLambertMaterial({ map: generateHDTexture(4, 'top').texture });
-            mats[type] = [side, side, top, top, side, side];
-        } else {
-            let mat = new THREE.MeshLambertMaterial({ map: generateHDTexture(type, 'side').texture });
-            mats[type] = mat;
-        }
+        let isWater = (type === 9);
+        mats[type] = new THREE.MeshStandardMaterial({
+            map: generateUltraHDTexture(type).texture,
+            roughness: isWater ? 0.1 : 0.8,
+            metalness: isWater ? 0.1 : 0.1,
+            transparent: isWater,
+            opacity: isWater ? 0.75 : 1.0
+        });
     }
     return mats;
 }
