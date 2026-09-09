@@ -2,252 +2,42 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
-    <title>Minecraft Pocket Edition JS</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Press Start 2P', monospace;
-        }
-
-        /* Предупреждение для портретной ориентации */
-        #orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #111; color: #fff;
-            z-index: 9999;
-            align-items: center; justify-content: center;
-            text-align: center; font-size: 12px; padding: 20px;
-            line-height: 1.8;
-        }
-
-        @media screen and (orientation: portrait) {
-            #orientation-warning { display: flex; }
-        }
-
-        /* --- ГЛАВНОЕ МЕНЮ --- */
-        #menu-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), 
-                        radial-gradient(circle, #2a4365 0%, #0f172a 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-
-        .mc-title {
-            color: #fff;
-            font-size: 28px;
-            text-shadow: 4px 4px #000;
-            margin-bottom: 35px;
-            text-align: center;
-            line-height: 1.3;
-        }
-
-        .mc-btn {
-            width: 320px;
-            height: 48px;
-            background-color: #6e6e6e;
-            border: 3px solid #222;
-            border-top-color: #aaaaaa;
-            border-left-color: #aaaaaa;
-            color: #fff;
-            font-family: 'Press Start 2P', monospace;
-            font-size: 11px;
-            text-shadow: 2px 2px #000;
-            margin: 6px 0;
-            cursor: pointer;
-            box-shadow: inset 0 0 0 2px #4a4a4a;
-        }
-
-        .mc-btn:active {
-            background-color: #4a4a4a;
-            border-top-color: #222;
-            border-left-color: #222;
-            border-bottom-color: #aaaaaa;
-            border-right-color: #aaaaaa;
-        }
-
-        /* --- ИГРОВОЙ ИНТЕРФЕЙС (HUD) --- */
-        #game-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            z-index: 10;
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 18px; height: 18px;
-            transform: translate(-50%, -50%);
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><path d="M8 0h2v18H8zM0 8h18v2H0z" fill="white" fill-opacity="0.8"/></svg>') no-repeat center;
-            pointer-events: none;
-        }
-
-        /* Крестовина MCPE */
-        .dpad-container {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 150px;
-            height: 150px;
-        }
-
-        .dpad-btn {
-            position: absolute;
-            width: 48px;
-            height: 48px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            color: white;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-shadow: 1px 1px #000;
-        }
-
-        .dpad-btn:active, .action-btn:active {
-            background: rgba(255, 255, 255, 0.4) !important;
-        }
-
-        #btn-up { top: 0; left: 51px; }
-        #btn-left { top: 51px; left: 0; }
-        #btn-right { top: 51px; left: 102px; }
-        #btn-down { top: 102px; left: 51px; }
-
-        /* Кнопки действия и прыжка */
-        .right-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-        }
-
-        .action-column {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .action-btn {
-            width: 58px;
-            height: 58px;
-            background: rgba(0, 0, 0, 0.45);
-            border: 2px solid rgba(255, 255, 255, 0.35);
-            border-radius: 8px;
-            color: white;
-            font-size: 8px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            text-shadow: 1px 1px #000;
-        }
-
-        #btn-jump {
-            width: 68px;
-            height: 68px;
-            background: rgba(30, 140, 30, 0.45);
-            border-color: rgba(100, 255, 100, 0.4);
-            border-radius: 50%;
-            font-size: 9px;
-        }
-
-        /* Инвентарь (Хотбар) */
-        #hotbar {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            background: rgba(0, 0, 0, 0.65);
-            border: 2px solid #3b3b3b;
-            padding: 3px;
-            gap: 3px;
-            border-radius: 4px;
-        }
-
-        .hotbar-slot {
-            width: 38px;
-            height: 38px;
-            background: #737373;
-            border: 2px solid #222;
-            border-bottom-color: #fff;
-            border-right-color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .hotbar-slot.selected {
-            border: 2px solid #fff;
-            outline: 2px solid #fff;
-        }
-
-        .slot-preview {
-            width: 24px;
-            height: 24px;
-            border-radius: 2px;
-        }
-    </style>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.json">
+    <title>Minecraft Mobile</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="orientation-warning">
-        Пожалуйста, поверните устройство в альбомный режим (Landscape) для игры.
+        Пожалуйста, поверните устройство в альбомный режим (Landscape)
     </div>
 
     <!-- МЕНЮ -->
     <div id="menu-screen">
-        <div class="mc-title">Minecraft<br><span style="font-size: 11px; color: #ff4444;">Pocket Edition</span></div>
-        <button class="mc-btn" onclick="startGame()">Одиночная игра</button>
-        <button class="mc-btn" onclick="alert('Управление: Левая крестовина — шаг, Правый свайп — камера.')">Настройки</button>
-        <div style="position: absolute; bottom: 12px; left: 12px; color: #888; font-size: 8px;">v0.3.0_landscape</div>
+        <div class="mc-title">Minecraft<br><span style="font-size: 11px; color: #ff4444;">Pocket Edition HD</span></div>
+        <button class="mc-btn" id="start-btn">Одиночная игра</button>
+        <button class="mc-btn" onclick="toggleFullscreen()">На весь экран</button>
+        <div class="version-text">v0.4.0 Modular PWA</div>
     </div>
 
-    <!-- ИГРА -->
+    <!-- ИГРОВОЙ ЭКРАН -->
     <div id="game-screen">
         <div id="crosshair"></div>
         
-        <!-- Хотбар с 7 блоками -->
-        <div id="hotbar">
-            <div class="hotbar-slot selected" onclick="selectBlock(1)" data-id="1"><div class="slot-preview" style="background:#866043;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(2)" data-id="2"><div class="slot-preview" style="background:#5b8731;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(3)" data-id="3"><div class="slot-preview" style="background:#7a7a7a;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(4)" data-id="4"><div class="slot-preview" style="background:#543d2b;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(5)" data-id="5"><div class="slot-preview" style="background:#2e6f40;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(6)" data-id="6"><div class="slot-preview" style="background:#923c28;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(7)" data-id="7"><div class="slot-preview" style="background:#b38240;"></div></div>
+        <!-- Хотбар + Кнопка инвентаря -->
+        <div id="hud-top">
+            <div id="hotbar"></div>
+            <button id="inventory-btn">[...]</button>
         </div>
 
-        <!-- Исправленная Крестовина -->
+        <!-- Управление -->
         <div class="dpad-container">
             <div class="dpad-btn" id="btn-up">▲</div>
             <div class="dpad-btn" id="btn-left">◀</div>
@@ -255,284 +45,27 @@
             <div class="dpad-btn" id="btn-down">▼</div>
         </div>
 
-        <!-- Действия справа -->
         <div class="right-controls">
-            <div class="action-column">
-                <div class="action-btn" id="btn-break" style="background: rgba(180, 40, 40, 0.45);">ЛОМАТЬ</div>
-                <div class="action-btn" id="btn-place" style="background: rgba(40, 100, 200, 0.45);">СТАВИТЬ</div>
-            </div>
             <div class="action-btn" id="btn-jump">ПРЫЖОК</div>
         </div>
     </div>
 
-    <script>
-        let gameStarted = false;
-        let scene, camera, renderer;
-        let worldBlocks = {};
-        let selectedBlockType = 1;
+    <!-- ОКНО ИНВЕНТАРЯ -->
+    <div id="inventory-modal">
+        <div class="inventory-box">
+            <div class="inventory-header">
+                <span>Инвентарь</span>
+                <button id="close-inventory-btn">✕</button>
+            </div>
+            <div id="inventory-grid"></div>
+        </div>
+    </div>
 
-        let player = {
-            x: 0, y: 12, z: 0,
-            rotationX: 0, rotationY: 0,
-            speed: 0.1, vy: 0
-        };
-
-        // Генерация реалистичных пиксельных текстур
-        function createPixelTexture(type) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 16; canvas.height = 16;
-            const ctx = canvas.getContext('2d');
-
-            let baseColor, dColor, lColor;
-            if (type === 1) { baseColor='#866043'; dColor='#5c4033'; lColor='#9e7352'; } // Земля
-            else if (type === 2) { baseColor='#5b8731'; dColor='#436622'; lColor='#6ca33a'; } // Трава
-            else if (type === 3) { baseColor='#7a7a7a'; dColor='#545454'; lColor='#9e9e9e'; } // Камень
-            else if (type === 4) { baseColor='#543d2b'; dColor='#38281b'; lColor='#6e5138'; } // Дерево
-            else if (type === 5) { baseColor='#2e6f40'; dColor='#1c4a29'; lColor='#3e8e53'; } // Листва
-            else if (type === 6) { baseColor='#923c28'; dColor='#632315'; lColor='#b55038'; } // Кирпич
-            else if (type === 7) { baseColor='#b38240'; dColor='#8a6129'; lColor='#c99955'; } // Доски
-
-            ctx.fillStyle = baseColor;
-            ctx.fillRect(0, 0, 16, 16);
-
-            // Добавление шума/детализации
-            for (let i = 0; i < 35; i++) {
-                ctx.fillStyle = Math.random() > 0.5 ? dColor : lColor;
-                ctx.fillRect(Math.floor(Math.random()*16), Math.floor(Math.random()*16), 1, 1);
-            }
-
-            // Швы для кирпича
-            if (type === 6) {
-                ctx.fillStyle = '#cfc6b8';
-                ctx.fillRect(0, 7, 16, 1); ctx.fillRect(0, 15, 16, 1);
-                ctx.fillRect(7, 0, 1, 7); ctx.fillRect(15, 8, 1, 7);
-            }
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.magFilter = THREE.NearestFilter;
-            texture.minFilter = THREE.NearestFilter;
-            return texture;
-        }
-
-        let materials = {};
-
-        function startGame() {
-            document.getElementById('menu-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'block';
-            gameStarted = true;
-            init3D();
-            initControls();
-        }
-
-        function init3D() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x8cb8ff);
-            scene.fog = new THREE.FogExp2(0x8cb8ff, 0.025);
-
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.getElementById('game-screen').appendChild(renderer.domElement);
-
-            // Инициализация текстур
-            for(let i=1; i<=7; i++) {
-                materials[i] = new THREE.MeshLambertMaterial({ map: createPixelTexture(i) });
-            }
-
-            // Свет
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
-            scene.add(ambientLight);
-
-            const sun = new THREE.DirectionalLight(0xffffff, 0.5);
-            sun.position.set(30, 60, 20);
-            sun.castShadow = true;
-            scene.add(sun);
-
-            // УВЕЛИЧЕННЫЙ МИР (61x61 БЛОКОВ)
-            const mapSize = 30;
-            for (let x = -mapSize; x <= mapSize; x++) {
-                for (let z = -mapSize; z <= mapSize; z++) {
-                    let h = Math.floor(Math.sin(x * 0.2) * Math.cos(z * 0.2) * 2);
-                    
-                    createBlock(x, -2 + h, z, 3);
-                    createBlock(x, -1 + h, z, 1);
-                    createBlock(x, 0 + h, z, 2);
-
-                    // Деревья
-                    if (x % 9 === 0 && z % 9 === 0 && Math.abs(x) > 3) {
-                        let th = 1 + h;
-                        for(let i=0; i<4; i++) createBlock(x, th + i, z, 4);
-                        for(let lx=-1; lx<=1; lx++) {
-                            for(let lz=-1; lz<=1; lz++) {
-                                for(let ly=3; ly<=4; ly++) {
-                                    if(lx===0 && lz===0 && ly===3) continue;
-                                    createBlock(x + lx, th + ly, z + lz, 5);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            player.x = 0; player.y = 5; player.z = 0;
-            animate();
-        }
-
-        function createBlock(x, y, z, type) {
-            const key = `${x},${y},${z}`;
-            if (worldBlocks[key]) return;
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials[type]);
-            mesh.position.set(x, y, z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            scene.add(mesh);
-            worldBlocks[key] = { mesh: mesh, type: type };
-        }
-
-        function removeBlock(x, y, z) {
-            const key = `${x},${y},${z}`;
-            if (worldBlocks[key]) {
-                scene.remove(worldBlocks[key].mesh);
-                delete worldBlocks[key];
-            }
-        }
-
-        // ИСПРАВЛЕННОЕ УПРАВЛЕНИЕ КРЕСТОВИНОЙ
-        let moveState = { forward: false, back: false, left: false, right: false };
-        let touchLookId = null;
-        let lastTouchX = 0, lastTouchY = 0;
-
-        function initControls() {
-            bindBtn('btn-up', 'forward');
-            bindBtn('btn-down', 'back');
-            bindBtn('btn-left', 'left');
-            bindBtn('btn-right', 'right');
-
-            function bindBtn(id, key) {
-                const el = document.getElementById(id);
-                const start = (e) => { e.preventDefault(); moveState[key] = true; };
-                const end = (e) => { e.preventDefault(); moveState[key] = false; };
-                el.addEventListener('touchstart', start);
-                el.addEventListener('touchend', end);
-                el.addEventListener('mousedown', start);
-                el.addEventListener('mouseup', end);
-            }
-
-            document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (player.y <= 3.5) player.vy = 0.13;
-            });
-            document.getElementById('btn-break').addEventListener('touchstart', (e) => { e.preventDefault(); raycastAction(false); });
-            document.getElementById('btn-place').addEventListener('touchstart', (e) => { e.preventDefault(); raycastAction(true); });
-
-            // Обзор правой стороной экрана
-            window.addEventListener('touchstart', (e) => {
-                for (let i = 0; i < e.touches.length; i++) {
-                    let t = e.touches[i];
-                    if (t.clientX >= window.innerWidth / 2 && touchLookId === null) {
-                        touchLookId = t.identifier;
-                        lastTouchX = t.clientX;
-                        lastTouchY = t.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchmove', (e) => {
-                for (let i = 0; i < e.touches.length; i++) {
-                    let t = e.touches[i];
-                    if (t.identifier === touchLookId) {
-                        let dx = t.clientX - lastTouchX;
-                        let dy = t.clientY - lastTouchY;
-                        player.rotationY -= dx * 0.004;
-                        player.rotationX -= dy * 0.004;
-                        player.rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotationX));
-                        lastTouchX = t.clientX;
-                        lastTouchY = t.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchend', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchLookId) touchLookId = null;
-                }
-            });
-        }
-
-        function selectBlock(type) {
-            selectedBlockType = type;
-            document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('selected'));
-            document.querySelector(`[data-id="${type}"]`).classList.add('selected');
-        }
-
-        const raycaster = new THREE.Raycaster();
-        const mouseCenter = new THREE.Vector2(0, 0);
-
-        function raycastAction(isPlace) {
-            raycaster.setFromCamera(mouseCenter, camera);
-            let meshes = [];
-            for (let k in worldBlocks) meshes.push(worldBlocks[k].mesh);
-
-            let intersects = raycaster.intersectObjects(meshes);
-            if (intersects.length > 0) {
-                let hit = intersects[0];
-                let p = hit.point.clone();
-                let normal = hit.face.normal.clone();
-
-                if (isPlace) {
-                    p.addScaledVector(normal, 0.5);
-                    createBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z), selectedBlockType);
-                } else {
-                    p.addScaledVector(normal, -0.5);
-                    removeBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z));
-                }
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (!gameStarted) return;
-
-            // Точный расчет векторов движения
-            let forwardVector = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotationY);
-            let sideVector = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotationY);
-
-            let moveDir = new THREE.Vector3(0, 0, 0);
-
-            if (moveState.forward) moveDir.add(forwardVector);
-            if (moveState.back) moveDir.sub(forwardVector);
-            if (moveState.right) moveDir.add(sideVector);
-            if (moveState.left) moveDir.sub(sideVector);
-
-            if (moveDir.length() > 0) {
-                moveDir.normalize();
-                player.x += moveDir.x * player.speed;
-                player.z += moveDir.z * player.speed;
-            }
-
-            // Простая физика гравитации
-            player.vy -= 0.007;
-            player.y += player.vy;
-            if (player.y < 2) {
-                player.y = 2;
-                player.vy = 0;
-            }
-
-            camera.position.set(player.x, player.y + 1.6, player.z);
-            camera.quaternion.setFromEuler(new THREE.Euler(player.rotationX, player.rotationY, 0, 'YXZ'));
-
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            if (!gameStarted) return;
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+    <!-- Модули JS -->
+    <script src="audio.js"></script>
+    <script src="textures.js"></script>
+    <script src="world.js"></script>
+    <script src="player.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
