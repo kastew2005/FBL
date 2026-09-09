@@ -8,36 +8,34 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
-    <title>Minecraft Mobile</title>
+    <title>Minecraft HD Edition</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="orientation-warning">
-        Пожалуйста, поверните устройство в альбомный режим (Landscape)
+        Пожалуйста, поверните устройство горизонтально
     </div>
 
     <!-- МЕНЮ -->
     <div id="menu-screen">
-        <div class="mc-title">Minecraft<br><span style="font-size: 11px; color: #ff4444;">Pocket Edition HD</span></div>
-        <button class="mc-btn" id="start-btn">Одиночная игра</button>
+        <div class="mc-title">MINECRAFT<br><span style="font-size: 10px; color: #4caf50;">64x64 HD Noise Edition</span></div>
+        <button class="mc-btn" id="start-btn">Новый мир</button>
         <button class="mc-btn" onclick="toggleFullscreen()">На весь экран</button>
-        <div class="version-text">v0.4.0 Modular PWA</div>
     </div>
 
     <!-- ИГРОВОЙ ЭКРАН -->
     <div id="game-screen">
         <div id="crosshair"></div>
         
-        <!-- Хотбар + Кнопка инвентаря -->
-        <div id="hud-top">
+        <!-- ХОТБАР -->
+        <div id="hud-bottom">
             <div id="hotbar"></div>
             <button id="inventory-btn">[...]</button>
         </div>
 
-        <!-- Управление -->
+        <!-- УПРАВЛЕНИЕ -->
         <div class="dpad-container">
             <div class="dpad-btn" id="btn-up">▲</div>
             <div class="dpad-btn" id="btn-left">◀</div>
@@ -50,7 +48,7 @@
         </div>
     </div>
 
-    <!-- ОКНО ИНВЕНТАРЯ -->
+    <!-- ИНВЕНТАРЬ -->
     <div id="inventory-modal">
         <div class="inventory-box">
             <div class="inventory-header">
@@ -61,7 +59,7 @@
         </div>
     </div>
 
-    <!-- Модули JS -->
+    <!-- Скрипты -->
     <script src="audio.js"></script>
     <script src="textures.js"></script>
     <script src="world.js"></script>
