@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Minecraft PE Ultra HD</title>
     
-    <!-- Подключение Three.js -->
+    <!-- Three.js (r128) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
@@ -17,7 +17,7 @@
         <div class="loader-content">
             <h1 class="mc-title">ГЕНЕРАЦИЯ МИРА...</h1>
             <div class="progress-bar"><div id="progress-fill"></div></div>
-            <p id="loading-tip">Загрузка ресурсов и структуры...</p>
+            <p id="loading-tip">Загрузка ресурсов и процедурных структур...</p>
         </div>
     </div>
 
@@ -38,12 +38,26 @@
         </div>
     </div>
 
-    <!-- ИГРОВОЙ ЭКРАН -->
+    <!-- ИГРОВОЙ ЭКРАН / UI -->
     <div id="game-screen">
         <div id="crosshair"></div>
         <div id="water-overlay"></div>
         <div id="aura-status">✨ АУРА ДРАКОНА АКТИВНА [F]</div>
+
+        <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
+        <div id="mobile-controls">
+            <div id="joystick-zone">
+                <div id="joystick-base">
+                    <div id="joystick-stick"></div>
+                </div>
+            </div>
+            <div id="touch-buttons">
+                <button class="touch-btn" id="btn-jump">ПРЫЖОК</button>
+                <button class="touch-btn" id="btn-aura">АУРА</button>
+            </div>
+        </div>
         
+        <!-- ХОТБАР -->
         <div id="hud-bottom">
             <div id="hotbar">
                 <div class="hotbar-slot active">1</div>
@@ -57,7 +71,7 @@
 
     <canvas id="game-canvas"></canvas>
 
-    <!-- Подключение модулей в нужном порядке -->
+    <!-- Подключение JS файлов -->
     <script src="textures.js"></script>
     <script src="physics.js"></script>
     <script src="world.js"></script>
