@@ -2,57 +2,243 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minecraft PE Ultra HD</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Ultra HD Edition</title>
+    <!-- Подключаем Three.js с надежного CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Press Start 2P', monospace; background: #000; }
+        
+        #game-canvas { width: 100vw; height: 100vh; display: block; }
+
+        /* ЭКРАН ЗАГРУЗКИ */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #111; color: white; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; transition: opacity 0.5s ease;
+        }
+        .progress-bar { width: 300px; height: 20px; background: #222; border: 3px solid #fff; margin-top: 20px; }
+        #progress-fill { width: 0%; height: 100%; background: #55ff55; transition: width 0.2s; }
+
+        /* МЕНЮ */
+        #menu-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.6); z-index: 500;
+        }
+        .menu-card {
+            background: rgba(15, 15, 15, 0.85); padding: 30px; border-radius: 8px;
+            border: 2px solid #555; text-align: center; display: flex;
+            flex-direction: column; gap: 15px; width: 320px; color: #fff;
+        }
+        .mc-btn {
+            padding: 12px; background: #555; color: #fff; border: 2px solid #fff;
+            font-family: 'Press Start 2P', monospace; cursor: pointer; font-size: 10px;
+        }
+        .mc-btn:hover { background: #777; }
+
+        /* HUD И ИНТЕРФЕЙС */
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; width: 14px; height: 14px;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 100;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(255, 255, 255, 0.8);
+        }
+        #crosshair::before { top: 6px; left: 0; width: 14px; height: 2px; }
+        #crosshair::after { top: 0; left: 6px; width: 2px; height: 14px; }
+
+        #hotbar {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 5px; background: rgba(0, 0, 0, 0.5); padding: 5px;
+            border: 2px solid #333; z-index: 100;
+        }
+        .slot {
+            width: 36px; height: 36px; border: 2px solid #777;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; color: #fff; background: rgba(0,0,0,0.3);
+        }
+        .slot.active { border-color: #fff; background: rgba(255,255,255,0.2); }
+
+        #aura-status {
+            position: fixed; top: 20px; left: 20px; color: #ffaa00;
+            font-size: 10px; text-shadow: 2px 2px 0 #000; z-index: 100; display: none;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ЗАГРУЗКИ (LOADING SCREEN) -->
+    <!-- Экраны -->
     <div id="loading-screen">
-        <div class="loader-content">
-            <h1 class="mc-title">ГЕНЕРАЦИЯ МИРА...</h1>
-            <div class="progress-bar"><div id="progress-fill"></div></div>
-            <p id="loading-tip">Совет: Алтарь заставляет вас прыгать выше!</p>
-        </div>
+        <h2>ГЕНЕРАЦИЯ МИРА...</h2>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
     </div>
 
-    <!-- КИНЕМАТОГРАФИЧНОЕ ГЛАВНОЕ МЕНЮ -->
     <div id="menu-screen">
         <div class="menu-card">
-            <div class="mc-title">MINECRAFT<br><span class="subtitle">ULTRA HD EDITION</span></div>
-            
-            <div class="menu-options">
-                <label>Режим:</label>
-                <select id="game-mode">
-                    <option value="survival">Выживание</option>
-                    <option value="creative">Творчество</option>
-                </select>
-
-                <label>Мир:</label>
-                <select id="world-type">
-                    <option value="normal">Обычный (HD)</option>
-                    <option value="flat">Плоский</option>
-                </select>
-            </div>
-
+            <h1 style="font-size: 14px; color: #ffaa00;">MINECRAFT HD</h1>
+            <p style="font-size: 8px; color: #aaa;">Исправленная версия 2.0</p>
             <button class="mc-btn" id="start-btn">ИГРАТЬ</button>
         </div>
     </div>
 
-    <!-- ИГРОВОЙ ЭКРАН И UI -->
-    <div id="game-screen">
-        <div id="crosshair"></div>
-        <div id="water-overlay"></div>
-        <div id="hud-bottom">
-            <div id="hotbar"></div>
-        </div>
+    <div id="crosshair"></div>
+    <div id="aura-status">✨ АУРА ДРАКОНА АКТИВНА [F]</div>
+
+    <div id="hotbar">
+        <div class="slot active">1</div>
+        <div class="slot">2</div>
+        <div class="slot">3</div>
+        <div class="slot">4</div>
+        <div class="slot">5</div>
     </div>
 
-    <script src="textures.js"></script>
-    <script src="effects.js"></script>
-    <script src="world.js"></script>
-    <script src="game.js"></script>
+    <canvas id="game-canvas"></canvas>
+
+    <script>
+        // Гарантируем запуск после полной загрузки DOM
+        window.addEventListener('DOMContentLoaded', () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const progressFill = document.getElementById('progress-fill');
+            const menuScreen = document.getElementById('menu-screen');
+            const startBtn = document.getElementById('start-btn');
+            const canvas = document.getElementById('game-canvas');
+            const auraStatus = document.getElementById('aura-status');
+
+            let progress = 0;
+            const loadInterval = setInterval(() => {
+                progress += 20;
+                progressFill.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(loadInterval);
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => loadingScreen.style.display = 'none', 500);
+                }
+            }, 100);
+
+            // Инициализация WebGL сцены
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            // Освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            sunLight.position.set(50, 80, 50);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+
+            // Генерация HD Процедурной текстуры 128x128
+            function createHDTexture(colorHex) {
+                const cvs = document.createElement('canvas');
+                cvs.width = 128; cvs.height = 128;
+                const ctx = cvs.getContext('2d');
+                ctx.fillStyle = colorHex;
+                ctx.fillRect(0, 0, 128, 128);
+
+                for (let i = 0; i < 500; i++) {
+                    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                    ctx.fillRect(Math.random()*128, Math.random()*128, 4, 4);
+                }
+                const tex = new THREE.CanvasTexture(cvs);
+                tex.magFilter = THREE.NearestFilter;
+                return tex;
+            }
+
+            // Материалы
+            const materials = {
+                grass: new THREE.MeshStandardMaterial({ map: createHDTexture('#4e8727') }),
+                dirt: new THREE.MeshStandardMaterial({ map: createHDTexture('#5c4028') }),
+                stone: new THREE.MeshStandardMaterial({ map: createHDTexture('#616161') }),
+                wood: new THREE.MeshStandardMaterial({ map: createHDTexture('#3b2818') }),
+                leaves: new THREE.MeshStandardMaterial({ map: createHDTexture('#1f4014'), transparent: true, opacity: 0.9 })
+            };
+
+            // Генерация Простой Карты
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const instancedGrass = new THREE.InstancedMesh(geometry, materials.grass, 2500);
+            const dummy = new THREE.Object3D();
+            let idx = 0;
+
+            for (let x = -25; x < 25; x++) {
+                for (let z = -25; z < 25; z++) {
+                    let y = Math.floor(Math.sin(x * 0.2) * Math.cos(z * 0.2) * 2);
+                    dummy.position.set(x, y, z);
+                    dummy.updateMatrix();
+                    instancedGrass.setMatrixAt(idx++, dummy.matrix);
+                }
+            }
+            scene.add(instancedGrass);
+
+            // Игрок и управление
+            camera.position.set(0, 5, 0);
+            let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+            let auraActive = false;
+
+            startBtn.addEventListener('click', () => {
+                menuScreen.style.display = 'none';
+                canvas.requestPointerLock();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyW') moveForward = true;
+                if (e.code === 'KeyS') moveBackward = true;
+                if (e.code === 'KeyA') moveLeft = true;
+                if (e.code === 'KeyD') moveRight = true;
+                if (e.code === 'KeyF') {
+                    auraActive = !auraActive;
+                    auraStatus.style.display = auraActive ? 'block' : 'none';
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'KeyW') moveForward = false;
+                if (e.code === 'KeyS') moveBackward = false;
+                if (e.code === 'KeyA') moveLeft = false;
+                if (e.code === 'KeyD') moveRight = false;
+            });
+
+            // Вращение Камеры
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === canvas) {
+                    camera.rotation.y -= e.movementX * 0.002;
+                    camera.rotation.x -= e.movementY * 0.002;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+                }
+            });
+
+            // Главный Рендер Цикл
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const speed = auraActive ? 0.2 : 0.1;
+                if (moveForward) camera.translateZ(-speed);
+                if (moveBackward) camera.translateZ(speed);
+                if (moveLeft) camera.translateX(-speed);
+                if (moveRight) camera.translateX(speed);
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Адаптивный экран
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        });
+    </script>
 </body>
 </html>
