@@ -2,68 +2,57 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="manifest.json">
-    <title>Minecraft HD Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minecraft PE Ultra HD</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="orientation-warning">
-        Пожалуйста, поверните устройство горизонтально
+    <!-- ЭКРАН ЗАГРУЗКИ (LOADING SCREEN) -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <h1 class="mc-title">ГЕНЕРАЦИЯ МИРА...</h1>
+            <div class="progress-bar"><div id="progress-fill"></div></div>
+            <p id="loading-tip">Совет: Алтарь заставляет вас прыгать выше!</p>
+        </div>
     </div>
 
-    <!-- МЕНЮ -->
+    <!-- КИНЕМАТОГРАФИЧНОЕ ГЛАВНОЕ МЕНЮ -->
     <div id="menu-screen">
-        <div class="mc-title">MINECRAFT<br><span style="font-size: 10px; color: #4caf50;">64x64 HD Noise Edition</span></div>
-        <button class="mc-btn" id="start-btn">Новый мир</button>
-        <button class="mc-btn" onclick="toggleFullscreen()">На весь экран</button>
+        <div class="menu-card">
+            <div class="mc-title">MINECRAFT<br><span class="subtitle">ULTRA HD EDITION</span></div>
+            
+            <div class="menu-options">
+                <label>Режим:</label>
+                <select id="game-mode">
+                    <option value="survival">Выживание</option>
+                    <option value="creative">Творчество</option>
+                </select>
+
+                <label>Мир:</label>
+                <select id="world-type">
+                    <option value="normal">Обычный (HD)</option>
+                    <option value="flat">Плоский</option>
+                </select>
+            </div>
+
+            <button class="mc-btn" id="start-btn">ИГРАТЬ</button>
+        </div>
     </div>
 
-    <!-- ИГРОВОЙ ЭКРАН -->
+    <!-- ИГРОВОЙ ЭКРАН И UI -->
     <div id="game-screen">
         <div id="crosshair"></div>
-        
-        <!-- ХОТБАР -->
+        <div id="water-overlay"></div>
         <div id="hud-bottom">
             <div id="hotbar"></div>
-            <button id="inventory-btn">[...]</button>
-        </div>
-
-        <!-- УПРАВЛЕНИЕ -->
-        <div class="dpad-container">
-            <div class="dpad-btn" id="btn-up">▲</div>
-            <div class="dpad-btn" id="btn-left">◀</div>
-            <div class="dpad-btn" id="btn-right">▶</div>
-            <div class="dpad-btn" id="btn-down">▼</div>
-        </div>
-
-        <div class="right-controls">
-            <div class="action-btn" id="btn-jump">ПРЫЖОК</div>
         </div>
     </div>
 
-    <!-- ИНВЕНТАРЬ -->
-    <div id="inventory-modal">
-        <div class="inventory-box">
-            <div class="inventory-header">
-                <span>Инвентарь</span>
-                <button id="close-inventory-btn">✕</button>
-            </div>
-            <div id="inventory-grid"></div>
-        </div>
-    </div>
-
-    <!-- Скрипты -->
-    <script src="audio.js"></script>
     <script src="textures.js"></script>
+    <script src="effects.js"></script>
     <script src="world.js"></script>
-    <script src="player.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
