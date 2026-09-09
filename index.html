@@ -1,79 +1,271 @@
-```html
-<!DOCTYPE html>
-<html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Flappy Bird - графика</title>
-<style>html,body{height:100%;margin:0;background:#70c5ce;display:flex;justify-content:center;align-items:center}canvas{max-width:420px;width:100%;height:auto}</style>
-</head>
-<body>
-<canvas id="c" width="420" height="720"></canvas>
-<script>
-const c=document.getElementById('c'),ctx=c.getContext('2d');
-let W=c.width,H=c.height;
-addEventListener('resize',()=>{const r=Math.min(innerWidth,420);c.style.width=r+'px';});
-let bird={x:100,y:H/2,r:18,vy:0,frame:0},g=0.55,jump=-11,frames=0,score=0,gameOver=false,started=false;
-let pipes=[],gap=150,pipeW=80,spd=2.2,clouds=[...Array(6)].map((_,i)=>({x:i*150+50,y:50+Math.random()*60,s:0.6+Math.random()*0.8})));
-function spawn(){let top=80+Math.random()*(H-gap-220);pipes.push({x:W,top,passed:false});}
-function drawBG(){
-  // sky gradient
-  let g1=ctx.createLinearGradient(0,0,0,H);g1.addColorStop(0,'#70c5ce');g1.addColorStop(1,'#a0e9ff');ctx.fillStyle=g1;ctx.fillRect(0,0,W,H);
-  // sun
-  ctx.beginPath();ctx.fillStyle='#ffd96b';ctx.arc(W-80,80,40,0,7);ctx.fill();
-  // clouds
-  ctx.fillStyle='rgba(255,255,255,0.9)';for(let cl of clouds){ctx.beginPath();ctx.ellipse(cl.x,cl.y,50*cl.s,30*cl.s,0,0,7);ctx.fill();}
+// Обновленный TypeScript-код с гравитацией и физикой обрушения блоков (Teardown style)
+// Блоки теряют опору, падают вниз под действием гравитации и разрушаются при падении.
+
+document.body.style.margin = '0';
+document.body.style.overflow = 'hidden';
+document.body.style.background = '#111';
+
+const canvas = document.createElement('canvas');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+const ctx = canvas.getContext('2d')!;
+
+interface Block {
+    x: number;
+    y: number;
+    color: string;
+    health: number;
+    maxHealth: number;
 }
-function drawGround(){
-  ctx.fillStyle='#d2a679';ctx.fillRect(0,H-60,W,60);
-  ctx.fillStyle='#caa36e';for(let i=0;i<W;i+=24)ctx.fillRect(i,H-60,12,10);
+
+interface FallingBlock {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    color: string;
+    size: number;
 }
-function drawBird(){
-  // body
-  ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-0.6,Math.min(0.6,bird.vy/10)));
-  ctx.fillStyle='#ffdd57';ctx.beginPath();ctx.ellipse(0,0, bird.r*1.2,bird.r,0,0,7);ctx.fill();
-  // wing (flap)
-  let wf=Math.sin(bird.frame/6)*8;
-  ctx.fillStyle='#ffb347';ctx.beginPath();ctx.ellipse(-5,5,12,6,0,0,7);ctx.rotate(wf*0.02);ctx.fill();
-  ctx.restore();
+
+interface Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    color: string;
+    life: number;
 }
-function drawPipes(){
-  for(let p of pipes){
-    let grad=ctx.createLinearGradient(p.x,0,p.x+pipeW,0);grad.addColorStop(0,'#2f8f45');grad.addColorStop(1,'#1e6b33');ctx.fillStyle=grad;
-    ctx.fillRect(p.x,0,pipeW,p.top);ctx.fillRect(p.x,p.top+gap,pipeW,H);
-    // rim
-    ctx.fillStyle='#0e3f22';ctx.fillRect(p.x-6,p.top-6,pipeW+12,6);ctx.fillRect(p.x-6,p.top+gap,p.w+12,6);
-  }
-}
-function update(){
-  if(!started) return;
-  bird.vy+=g;bird.y+=bird.vy;bird.frame++;
-  if(bird.y+bird.r>H-60){gameOver=true;started=false;}
-  if(frames%90==0)spawn();
-  for(let i=pipes.length-1;i>=0;i--){
-    let p=pipes[i];p.x-=spd;
-    if(!p.passed && p.x+pipeW<bird.x){score++;p.passed=true;}
-    if(p.x+pipeW< -50)pipes.splice(i,1);
-    if(bird.x+bird.r>p.x && bird.x-bird.r<p.x+pipeW){
-      if(bird.y-bird.r < p.top || bird.y+bird.r > p.top+gap){gameOver=true;started=false;}
+
+class TeardownGravityGame {
+    private player = { x: canvas.width / 2, y: canvas.height / 2, size: 16, speed: 3 };
+    private blocks: (Block | null)[][] = [];
+    private fallingBlocks: FallingBlock[] = [];
+    private particles: Particle[] = [];
+    private keys: { [key: string]: boolean } = {};
+    private touchMove = { x: 0, y: 0, active: false };
+
+    private readonly GRID_SIZE = 24;
+    private cols = Math.ceil(canvas.width / this.GRID_SIZE);
+    private rows = Math.ceil(canvas.height / this.GRID_SIZE);
+
+    constructor() {
+        this.initMap();
+        this.initInput();
+        this.loop();
     }
-  }
-  clouds.forEach(cl=>{cl.x-=0.3; if(cl.x<-80)cl.x=W+80;});
-  frames++;
+
+    private initMap() {
+        this.blocks = [];
+        const colors = ['#555', '#777', '#8B4513', '#A0522D', '#CD853F'];
+        
+        for (let r = 0; r < this.rows; r++) {
+            this.blocks[r] = [];
+            for (let c = 0; c < this.cols; c++) {
+                const isWall = (r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1 || 
+                               (Math.random() < 0.25 && (Math.abs(c - this.cols/2) > 3 || Math.abs(r - this.rows/2) > 3)));
+                
+                if (isWall) {
+                    const maxHp = 3;
+                    this.blocks[r][c] = {
+                        x: c * this.GRID_SIZE,
+                        y: r * this.GRID_SIZE,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        health: maxHp,
+                        maxHealth: maxHp
+                    };
+                } else {
+                    this.blocks[r][c] = null;
+                }
+            }
+        }
+    }
+
+    private initInput() {
+        window.addEventListener('keydown', e => this.keys[e.code] = true);
+        window.addEventListener('keyup', e => this.keys[e.code] = false);
+
+        canvas.addEventListener('touchstart', e => this.handleTouch(e), { passive: false });
+        canvas.addEventListener('touchmove', e => this.handleTouch(e), { passive: false });
+        canvas.addEventListener('touchend', e => this.handleTouch(e), { passive: false });
+        canvas.addEventListener('mousedown', e => this.destroyAt(e.clientX, e.clientY));
+    }
+
+    private handleTouch(e: TouchEvent) {
+        e.preventDefault();
+        this.touchMove.active = false;
+
+        for (let i = 0; i < e.touches.length; i++) {
+            const t = e.touches[i];
+            if (t.clientX < canvas.width / 2) {
+                this.touchMove = { x: t.clientX, y: t.clientY, active: true };
+            } else {
+                this.destroyAt(t.clientX, t.clientY);
+            }
+        }
+    }
+
+    private destroyAt(px: number, py: number) {
+        const c = Math.floor(px / this.GRID_SIZE);
+        const r = Math.floor(py / this.GRID_SIZE);
+
+        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
+            const block = this.blocks[r][c];
+            if (block) {
+                block.health -= 3; // Уничтожаем блок кувалдой
+                this.spawnParticles(px, py, block.color, 6);
+
+                if (block.health <= 0) {
+                    this.blocks[r][c] = null;
+                    this.checkGravityCollapse(r, c); // Запускаем проверку обрушения по вертикали
+                }
+            }
+        }
+    }
+
+    // Проверка гравитации: если под блоком пусто, он превращается в падающий объект
+    private checkGravityCollapse(destroyedR: number, destroyedC: number) {
+        // Проверяем все блоки, находящиеся строго выше разрушенного в том же столбце
+        for (let r = destroyedR - 1; r >= 0; r--) {
+            const block = this.blocks[r][destroyedC];
+            if (block) {
+                // Превращаем висящий блок в падающий под действием гравитации
+                this.fallingBlocks.push({
+                    x: block.x,
+                    y: block.y,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: 0,
+                    color: block.color,
+                    size: this.GRID_SIZE - 2
+                });
+                this.blocks[r][destroyedC] = null;
+            } else {
+                break; // Если встретили пустоту, выше цепочка не падает
+            }
+        }
+    }
+
+    private spawnParticles(x: number, y: number, color: string, count: number) {
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                color,
+                life: 25
+            });
+        }
+    }
+
+    private update() {
+        let dx = 0, dy = 0;
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) dy -= 1;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) dy += 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) dx -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) dx += 1;
+
+        if (this.touchMove.active) {
+            dx = (this.touchMove.x - canvas.width / 4) / 50;
+            dy = (this.touchMove.y - canvas.height / 2) / 50;
+            const len = Math.hypot(dx, dy);
+            if (len > 1) { dx /= len; dy /= len; }
+        }
+
+        // Движение игрока с коллизией
+        const nextX = this.player.x + dx * this.player.speed;
+        const nextY = this.player.y + dy * this.player.speed;
+        const colIdx = Math.floor(nextX / this.GRID_SIZE);
+        const rowIdx = Math.floor(nextY / this.GRID_SIZE);
+
+        if (rowIdx >= 0 && rowIdx < this.rows && colIdx >= 0 && colIdx < this.cols && !this.blocks[rowIdx][colIdx]) {
+            this.player.x = nextX;
+            this.player.y = nextY;
+        }
+
+        // Физика падающих блоков (Гравитация)
+        for (let i = this.fallingBlocks.length - 1; i >= 0; i--) {
+            const fb = this.fallingBlocks[i];
+            fb.vy += 0.4; // Ускорение свободного падения
+            fb.x += fb.vx;
+            fb.y += fb.vy;
+
+            // Столкновение с полом или нижними границами сетки
+            const targetR = Math.floor((fb.y + fb.size) / this.GRID_SIZE);
+            const targetC = Math.floor((fb.x + fb.size / 2) / this.GRID_SIZE);
+
+            if (targetR >= this.rows - 1 || (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols && this.blocks[targetR][targetC])) {
+                // Приземление: превращаем обратно в статический блок или разбиваем в пыль
+                if (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols) {
+                    const safeR = Math.min(targetR, this.rows - 2);
+                    if (!this.blocks[safeR][targetC]) {
+                        this.blocks[safeR][targetC] = {
+                            x: targetC * this.GRID_SIZE,
+                            y: safeR * this.GRID_SIZE,
+                            color: fb.color,
+                            health: 2,
+                            maxHealth: 3
+                        };
+                    }
+                }
+                this.spawnParticles(fb.x, fb.y, fb.color, 4);
+                this.fallingBlocks.splice(i, 1);
+            }
+        }
+
+        // Обновление частиц
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    private render() {
+        ctx.fillStyle = '#151515';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Отрисовка сетки блоков
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const b = this.blocks[r][c];
+                if (b) {
+                    ctx.fillStyle = b.color;
+                    ctx.fillRect(b.x, b.y, this.GRID_SIZE - 1, this.GRID_SIZE - 1);
+                }
+            }
+        }
+
+        // Отрисовка летящих/падающих под гравитацией блоков
+        for (const fb of this.fallingBlocks) {
+            ctx.fillStyle = fb.color;
+            ctx.fillRect(fb.x, fb.y, fb.size, fb.size);
+        }
+
+        // Отрисовка частиц
+        for (const p of this.particles) {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 2, 2);
+        }
+
+        // Игрок
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.arc(this.player.x, this.player.y, this.player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Подсказка
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '13px sans-serif';
+        ctx.fillText('Снесите нижнюю часть стены, чтобы активировать гравитацию и обрушение!', 20, 30);
+    }
+
+    private loop = () => {
+        this.update();
+        this.render();
+        requestAnimationFrame(this.loop);
+    }
 }
-function draw(){
-  ctx.clearRect(0,0,W,H);drawBG();drawPipes();drawBird();drawGround();
-  ctx.fillStyle='white';ctx.font='28px sans-serif';ctx.fillText(score,20,50);
-  if(!started){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.font='18px sans-serif';ctx.fillText('Нажмите или коснитесь экрана чтобы стартовать',40,H/2);}
-  if(gameOver){ctx.fillStyle='rgba(0,0,0,0.6)';ctx.font='30px sans-serif';ctx.fillText('Game Over — тап для рестарта',30,H/2+60);}
-  // mobile flap button
-  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(W-60,H-80,44,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='22px sans-serif';ctx.fillText('FLAP',W-84,H-74);
-}
-function loop(){update();draw();requestAnimationFrame(loop);}
-c.addEventListener('pointerdown',e=>{ if(gameOver){pipes=[];score=0;gameOver=false;} started=true; bird.vy=jump;});
-window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(gameOver){pipes=[];score=0;gameOver=false;} started=true; bird.vy=jump;}});
-// tilt control (optional)
-if(window.DeviceOrientationEvent)window.addEventListener('deviceorientation',ev=>{ if(ev.beta) bird.vy += (ev.gamma||0)/700; });
-loop();
-</script>
-</body>
-</html>
-```
+
+new TeardownGravityGame();
