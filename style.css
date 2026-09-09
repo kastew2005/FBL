@@ -1,168 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-* {
-    box-sizing: border-box;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
-    margin: 0; padding: 0;
+#loading-screen {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #111; color: white; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    z-index: 1000; font-family: 'Press Start 2P', monospace;
 }
 
-html, body {
-    width: 100vw; height: 100vh;
-    overflow: hidden;
-    background-color: #000;
-    font-family: 'Press Start 2P', monospace;
-    position: fixed;
-    top: 0; left: 0;
+.progress-bar {
+    width: 300px; height: 20px; background: #333;
+    border: 3px solid #fff; margin-top: 20px;
 }
 
-#orientation-warning {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: #111; color: #fff;
-    z-index: 9999;
-    align-items: center; justify-content: center;
-    text-align: center; font-size: 11px; padding: 20px;
+#progress-fill { width: 0%; height: 100%; background: #4caf50; transition: width 0.2s; }
+
+#water-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(30, 104, 181, 0.35); pointer-events: none;
+    display: none; backdrop-filter: blur(2px); z-index: 15;
 }
 
-@media screen and (orientation: portrait) {
-    #orientation-warning { display: flex; }
-}
-
-/* МЕНЮ */
-#menu-screen {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), 
-                radial-gradient(circle, #2a4365 0%, #0f172a 100%);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 100;
-}
-
-.mc-title {
-    color: #fff; font-size: 24px; text-shadow: 4px 4px #000;
-    margin-bottom: 25px; text-align: center; line-height: 1.4;
-}
-
-.mc-btn {
-    width: 260px; height: 42px;
-    background-color: #6e6e6e;
-    border: 3px solid #222;
-    border-top-color: #aaa; border-left-color: #aaa;
-    color: #fff; font-family: 'Press Start 2P', monospace;
-    font-size: 9px; text-shadow: 2px 2px #000;
-    margin: 6px 0; cursor: pointer;
-}
-
-.mc-btn:active { background-color: #4a4a4a; }
-
-/* HUD & ПОЛНЫЙ ЭКРАН БЕЗ ПОЛОС */
-#game-screen {
-    position: fixed; top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    display: none; z-index: 10;
-}
-
-#crosshair {
-    position: absolute; top: 50%; left: 50%;
-    width: 16px; height: 16px;
-    transform: translate(-50%, -50%);
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M7 0h2v16H7zM0 7h16v2H0z" fill="white" fill-opacity="0.8"/></svg>') no-repeat center;
-    pointer-events: none;
-}
-
-#hud-bottom {
-    position: absolute;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    left: 50%; transform: translateX(-50%);
-    display: flex; gap: 6px; align-items: center;
-}
-
-#hotbar {
-    display: flex; background: rgba(0, 0, 0, 0.65);
-    border: 2px solid #3b3b3b; padding: 2px; gap: 4px; border-radius: 4px;
-}
-
-.hotbar-slot {
-    width: 42px; height: 42px;
-    background: #737373;
-    border: 2px solid #222; border-bottom-color: #fff; border-right-color: #fff;
-    display: flex; align-items: center; justify-content: center;
-}
-
-.hotbar-slot.selected { border: 2px solid #fff; outline: 2px solid #fff; }
-
-.slot-canvas { width: 32px; height: 32px; image-rendering: pixelated; }
-
-#inventory-btn {
-    width: 44px; height: 44px;
-    background: #555; border: 2px solid #fff;
-    color: white; font-size: 10px; border-radius: 4px;
-}
-
-/* ЭЛЕМЕНТЫ УПРАВЛЕНИЯ */
-.dpad-container {
-    position: absolute;
-    bottom: calc(15px + env(safe-area-inset-bottom));
-    left: calc(15px + env(safe-area-inset-left));
-    width: 135px; height: 135px;
-}
-
-.dpad-btn {
-    position: absolute; width: 42px; height: 42px;
-    background: rgba(0, 0, 0, 0.45); border: 2px solid rgba(255, 255, 255, 0.35);
-    border-radius: 6px; color: white; font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-}
-
-#btn-up { top: 0; left: 46px; }
-#btn-left { top: 46px; left: 0; }
-#btn-right { top: 46px; left: 92px; }
-#btn-down { top: 92px; left: 46px; }
-
-.right-controls {
-    position: absolute;
-    bottom: calc(15px + env(safe-area-inset-bottom));
-    right: calc(15px + env(safe-area-inset-right));
-}
-
-#btn-jump {
-    width: 60px; height: 60px;
-    background: rgba(30, 140, 30, 0.45); border: 2px solid rgba(100, 255, 100, 0.4);
-    border-radius: 50%; color: white; font-size: 8px;
-    display: flex; align-items: center; justify-content: center;
-}
-
-/* ИНВЕНТАРЬ */
-#inventory-modal {
-    display: none; position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 500;
-    align-items: center; justify-content: center;
-}
-
-.inventory-box {
-    width: 85%; max-width: 460px; background: #c6c6c6;
-    border: 4px solid #373737; padding: 10px; border-radius: 4px;
-}
-
-.inventory-header {
-    display: flex; justify-content: space-between;
-    font-size: 10px; margin-bottom: 10px; color: #222;
-}
-
-#close-inventory-btn { background: #8b0000; color: white; border: none; padding: 4px 8px; font-family: inherit; }
-
-#inventory-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 8px; background: #8b8b8b; padding: 8px; border: 2px solid #373737;
-}
-
-.inv-slot {
-    width: 100%; height: 50px; background: #8b8b8b;
-    border: 2px solid #373737; border-bottom-color: #fff; border-right-color: #fff;
-    display: flex; align-items: center; justify-content: center;
+.menu-card {
+    background: rgba(0, 0, 0, 0.65);
+    padding: 30px; border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex; flex-direction: column; align-items: center;
 }
