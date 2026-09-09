@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minecraft Pocket Edition (JS)</title>
+    <title>Minecraft PE (Classic Controls)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -20,18 +20,20 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #1a1a1a;
+            background-color: #111;
             font-family: 'Press Start 2P', monospace;
         }
 
-        /* --- ГЛАВНОЕ МЕНЮ --- */
+        /* --- ГЛАВНОЕ МЕНЮ С ФОНОМ --- */
         #menu-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://i.imgur.com/714493L.png') center/cover;
+            background: linear-gradient(135deg, #1e1e2f 0%, #0d0d15 100%), 
+                        radial-gradient(circle, rgba(255,255,255,0.05) 10%, transparent 10%);
+            background-size: 100% 100%, 20px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -41,52 +43,54 @@
 
         .mc-title {
             color: #fff;
-            font-size: 24px;
-            text-shadow: 3px 3px #000;
-            margin-bottom: 40px;
+            font-size: 26px;
+            text-shadow: 4px 4px #000;
+            margin-bottom: 50px;
             text-align: center;
-            animation: bounce 1.5s infinite alternate;
+            line-height: 1.4;
+            animation: pulse 2s infinite alternate;
         }
 
-        @keyframes bounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(-5px); }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.03); }
         }
 
         .mc-btn {
-            width: 280px;
-            height: 45px;
+            width: 300px;
+            height: 50px;
             background-color: #727272;
-            border: 3px solid #373737;
-            border-top-color: #9e9e9e;
-            border-left-color: #9e9e9e;
+            border: 3px solid #282828;
+            border-top-color: #a0a0a0;
+            border-left-color: #a0a0a0;
             color: #fff;
             font-family: 'Press Start 2P', monospace;
-            font-size: 12px;
-            text-shadow: 2px 2px #373737;
-            margin: 6px 0;
+            font-size: 11px;
+            text-shadow: 2px 2px #111;
+            margin: 8px 0;
             cursor: pointer;
             box-shadow: inset 0 0 0 2px #555;
+            transition: background 0.1s;
         }
 
         .mc-btn:active {
             background-color: #555;
-            border-top-color: #373737;
-            border-left-color: #373737;
-            border-bottom-color: #9e9e9e;
-            border-right-color: #9e9e9e;
+            border-top-color: #282828;
+            border-left-color: #282828;
+            border-bottom-color: #a0a0a0;
+            border-right-color: #a0a0a0;
         }
 
         .version-text {
             position: absolute;
-            bottom: 10px;
-            left: 10px;
-            color: #a0a0a0;
-            font-size: 8px;
+            bottom: 15px;
+            left: 15px;
+            color: #777;
+            font-size: 9px;
             text-shadow: 1px 1px #000;
         }
 
-        /* --- ИГРОВОЙ ИНТЕРФЕЙС (HUD) --- */
+        /* --- ИГРОВОЙ ИНТЕРФЕЙС --- */
         #game-screen {
             position: absolute;
             top: 0;
@@ -104,88 +108,112 @@
             width: 16px;
             height: 16px;
             transform: translate(-50%, -50%);
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M7 0h2v16H7zM0 7h16v2H0z" fill="white" fill-opacity="0.6"/></svg>') no-repeat center;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M7 0h2v16H7zM0 7h16v2H0z" fill="white" fill-opacity="0.7"/></svg>') no-repeat center;
             pointer-events: none;
         }
 
-        /* Джойстик движения */
-        #joystick-base {
+        /* КЛАССИЧЕСКОЕ УПРАВЛЕНИЕ КНОПКАМИ (КАК В MCPE) */
+        .dpad-container {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+            bottom: 25px;
+            left: 25px;
+            width: 160px;
+            height: 160px;
             pointer-events: auto;
         }
 
-        #joystick-stick {
+        .dpad-btn {
             position: absolute;
-            top: 35px;
-            left: 35px;
             width: 50px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.6);
-            border-radius: 50%;
-            pointer-events: none;
-            transition: transform 0.05s linear;
+            background: rgba(0, 0, 0, 0.45);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 1px 1px #000;
         }
 
-        /* Кнопки справа (Прыжок и Действие) */
+        .dpad-btn:active, .action-btn:active {
+            background: rgba(255, 255, 255, 0.35) !important;
+        }
+
+        #btn-up { top: 0; left: 55px; }
+        #btn-left { top: 55px; left: 0; }
+        #btn-right { top: 55px; left: 110px; }
+        #btn-down { top: 110px; left: 55px; }
+
+        /* Кнопки справа (Прыжок и Действия) */
         .right-controls {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
+            bottom: 25px;
+            right: 25px;
             display: flex;
-            gap: 15px;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .action-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .action-btn {
-            width: 65px;
-            height: 65px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 3px solid rgba(255, 255, 255, 0.4);
+            width: 55px;
+            height: 55px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             color: white;
-            font-size: 10px;
+            font-size: 9px;
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             text-shadow: 1px 1px #000;
         }
-        .action-btn:active { background: rgba(255, 255, 255, 0.3); }
 
-        /* Хотбар (Инвентарь снизу) */
+        #btn-jump {
+            width: 65px;
+            height: 65px;
+            background: rgba(40, 160, 40, 0.4);
+            border-color: rgba(100, 255, 100, 0.4);
+            border-radius: 50%;
+            font-size: 11px;
+        }
+
+        /* Инвентарь (Хотбар) снизу */
         #hotbar {
             position: absolute;
-            bottom: 10px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.65);
             border: 2px solid #3b3b3b;
-            padding: 3px;
-            gap: 2px;
+            padding: 4px;
+            gap: 3px;
+            border-radius: 4px;
         }
 
         .hotbar-slot {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             background: #8b8b8b;
             border: 2px solid #373737;
-            border-top-color: #373737;
-            border-left-color: #373737;
+            border-top-color: #222;
+            border-left-color: #222;
             border-bottom-color: #fff;
             border-right-color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            position: relative;
         }
 
         .hotbar-slot.selected {
@@ -193,110 +221,208 @@
             outline: 2px solid #fff;
         }
 
-        .slot-icon {
+        .slot-canvas {
             width: 28px;
             height: 28px;
+            image-rendering: pixelated;
         }
     </style>
 
-    <!-- Подключаем Three.js для 3D графики -->
+    <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <!-- ГЛАВНОЕ МЕНЮ -->
     <div id="menu-screen">
-        <div class="mc-title">Minecraft<br><span style="font-size: 10px; color: #ff0px;">Pocket Edition</span></div>
+        <div class="mc-title">Minecraft<br><span style="font-size: 11px; color: #ff5555;">Pocket Edition</span></div>
         <button class="mc-btn" onclick="startGame()">Одиночная игра</button>
-        <button class="mc-btn" onclick="alert('Настройки: Управление сенсорное, графика стандартная.')">Настройки</button>
-        <button class="mc-btn" onclick="alert('Создатели: Mojang / Модификация для JS')">О программе</button>
-        <div class="version-text">Alpha 0.1.0_js</div>
+        <button class="mc-btn" onclick="alert('Управление: Кнопки слева для ходьбы, правая часть экрана для обзора.')">Настройки</button>
+        <button class="mc-btn" onclick="alert('Minecraft JS Edition. Создано по мотивам Mojang.')">О программе</button>
+        <div class="version-text">Alpha 0.2.1_mobile</div>
     </div>
 
     <!-- ИГРОВОЙ ЭКРАН -->
     <div id="game-screen">
         <div id="crosshair"></div>
         
-        <!-- Управление -->
-        <div id="joystick-base">
-            <div id="joystick-stick"></div>
-        </div>
-
-        <div class="right-controls">
-            <div class="action-btn" id="btn-break">ЛОМАТЬ</div>
-            <div class="action-btn" id="btn-place" style="background: rgba(0,100,200,0.4);">СТАВИТЬ</div>
-            <div class="action-btn" id="btn-jump">ПРЫЖОК</div>
-        </div>
-
-        <!-- Панель быстрого доступа -->
+        <!-- Хотбар вверху по центру -->
         <div id="hotbar">
-            <div class="hotbar-slot selected" onclick="selectBlock(1)" data-id="1"><div class="slot-icon" style="background:#5c4033;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(2)" data-id="2"><div class="slot-icon" style="background:#5c8a32;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(3)" data-id="3"><div class="slot-icon" style="background:#808080;"></div></div>
-            <div class="hotbar-slot" onclick="selectBlock(4)" data-id="4"><div class="slot-icon" style="background:#a0522d;"></div></div>
+            <div class="hotbar-slot selected" onclick="selectBlock(1)" data-id="1"><canvas class="slot-canvas" id="icon-1"></canvas></div>
+            <div class="hotbar-slot" onclick="selectBlock(2)" data-id="2"><canvas class="slot-canvas" id="icon-2"></canvas></div>
+            <div class="hotbar-slot" onclick="selectBlock(3)" data-id="3"><canvas class="slot-canvas" id="icon-3"></canvas></div>
+            <div class="hotbar-slot" onclick="selectBlock(4)" data-id="4"><canvas class="slot-canvas" id="icon-4"></canvas></div>
+        </div>
+
+        <!-- Кнопки движения (Крестовина MCPE) -->
+        <div class="dpad-container">
+            <div class="dpad-btn" id="btn-up">▲</div>
+            <div class="dpad-btn" id="btn-left">◀</div>
+            <div class="dpad-btn" id="btn-right">▶</div>
+            <div class="dpad-btn" id="btn-down">▼</div>
+        </div>
+
+        <!-- Кнопки действий справа -->
+        <div class="right-controls">
+            <div class="action-column">
+                <div class="action-btn" id="btn-break" style="background: rgba(180,40,40,0.4);">ЛОМАТЬ</div>
+                <div class="action-btn" id="btn-place" style="background: rgba(40,100,200,0.4);">СТАВИТЬ</div>
+            </div>
+            <div class="action-btn" id="btn-jump">ПРЫЖОК</div>
         </div>
     </div>
 
     <script>
         let gameStarted = false;
         let scene, camera, renderer;
-        let worldBlocks = {}; // Хранилище блоков { "x,y,z": mesh }
-        let selectedBlockType = 1; // 1: Земля, 2: Трава, 3: Камень, 4: Дерево
+        let worldBlocks = {};
+        let selectedBlockType = 1;
 
-        // Параметры игрока
         let player = {
-            x: 0, y: 10, z: 0,
+            x: 0, y: 15, z: 0,
             rotationX: 0, rotationY: 0,
             speed: 0.12,
-            vy: 0,
-            isJumping: false
+            vy: 0
         };
 
-        // Текстуры/Цвета блоков в стиле Minecraft
-        const blockMaterials = {
-            1: new THREE.MeshLambertMaterial({ color: 0x866043 }), // Земля
-            2: new THREE.MeshLambertMaterial({ color: 0x5b8731 }), // Трава
-            3: new THREE.MeshLambertMaterial({ color: 0x7a7a7a }), // Камень
-            4: new THREE.MeshLambertMaterial({ color: 0x6e4726 })  // Дерево
-        };
-        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        // Генератор реалистичных пиксельных текстур (возвращает THREE.CanvasTexture)
+        function generateTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 16;
+            canvas.height = 16;
+            const ctx = canvas.getContext('2d');
+
+            let baseColor, speckleColorDark, speckleColorLight;
+
+            if (type === 1) { // Земля
+                baseColor = '#866043';
+                speckleColorDark = '#5c4033';
+                speckleColorLight = '#9e7352';
+            } else if (type === 2) { // Трава (верх)
+                baseColor = '#5b8731';
+                speckleColorDark = '#436622';
+                speckleColorLight = '#6ca33a';
+            } else if (type === 3) { // Камень
+                baseColor = '#7a7a7a';
+                speckleColorDark = '#595959';
+                speckleColorLight = '#9e9e9e';
+            } else if (type === 4) { // Дерево (кора)
+                baseColor = '#543d2b';
+                speckleColorDark = '#38281b';
+                speckleColorLight = '#6e5138';
+            }
+
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 16, 16);
+
+            // Добавляем шум (пиксельную текстуру)
+            for (let i = 0; i < 40; i++) {
+                let x = Math.floor(Math.random() * 16);
+                let y = Math.floor(Math.random() * 16);
+                ctx.fillStyle = Math.random() > 0.5 ? speckleColorDark : speckleColorLight;
+                ctx.fillRect(x, y, 1, 1);
+            }
+
+            // Для травы сделаем боковину с переходом (зеленый верх, земля низ)
+            if (type === 2) {
+                // Если рисуем иконку или боковой блок, сымитируем травяной склон
+                ctx.fillStyle = '#866043';
+                ctx.fillRect(0, 12, 16, 4);
+                ctx.fillStyle = '#5b8731';
+                ctx.fillRect(0, 11, 16, 2);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        // Отрисовка иконок в хотбаре
+        function initIcons() {
+            for (let i = 1; i <= 4; i++) {
+                const cvs = document.getElementById(`icon-${i}`);
+                const ctx = cvs.getContext('2d');
+                cvs.width = 16; cvs.height = 16;
+                // Рисуем усеченную мини-текстуру
+                let tCanvas = document.createElement('canvas');
+                tCanvas.width = 16; tCanvas.height = 16;
+                let tCtx = tCanvas.getContext('2d');
+                // Заполним цветом в зависимости от типа
+                let colors = ['#866043', '#5b8731', '#7a7a7a', '#543d2b'];
+                tCtx.fillStyle = colors[i-1];
+                tCtx.fillRect(0,0,16,16);
+                ctx.drawImage(tCanvas, 0, 0);
+            }
+        }
+
+        let blockMaterials = {};
 
         function startGame() {
             document.getElementById('menu-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             gameStarted = true;
+            initIcons();
             init3D();
             initControls();
         }
 
         function init3D() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x8cb8ff); // Небо Minecraft PE
-            scene.fog = new THREE.FogExp2(0x8cb8ff, 0.05);
+            scene.background = new THREE.Color(0x8cb8ff);
+            scene.fog = new THREE.FogExp2(0x8cb8ff, 0.035);
 
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             
-            renderer = new THREE.WebGLRenderer({ antialias: false }); // Пиксельный стиль без сглаживания
+            renderer = new THREE.WebGLRenderer({ antialias: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('game-screen').appendChild(renderer.domElement);
 
+            // Создаем материалы с пиксельными текстурами
+            blockMaterials = {
+                1: new THREE.MeshLambertMaterial({ map: generateTexture(1) }),
+                2: new THREE.MeshLambertMaterial({ map: generateTexture(2) }),
+                3: new THREE.MeshLambertMaterial({ map: generateTexture(3) }),
+                4: new THREE.MeshLambertMaterial({ map: generateTexture(4) })
+            };
+
+            const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+
             // Освещение
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
-            dirLight.position.set(10, 20, 10);
+            dirLight.position.set(20, 40, 20);
             scene.add(dirLight);
 
-            // Генерация мира (плоский мир с холмами)
-            for (let x = -8; x <= 8; x++) {
-                for (let z = -8; z <= 8; z++) {
-                    createBlock(x, 0, z, 3); // Камень снизу
-                    createBlock(x, 1, z, 1); // Земля
-                    createBlock(x, 2, z, 2); // Трава сверху
+            // УВЕЛИЧЕННЫЙ МИР (41x41 блоков)
+            const mapSize = 20;
+            for (let x = -mapSize; x <= mapSize; x++) {
+                for (let z = -mapSize; z <= mapSize; z++) {
+                    // Процедурный рельеф (небольшие холмы)
+                    let h = Math.floor(Math.sin(x * 0.3) * Math.cos(z * 0.3) * 1.5);
+                    
+                    createBlock(x, -2 + h, z, 3);
+                    createBlock(x, -1 + h, z, 3);
+                    createBlock(x, 0 + h, z, 1);
+                    createBlock(x, 1 + h, z, 2);
+
+                    // Редкие деревья
+                    if (Math.abs(x) % 7 === 0 && Math.abs(z) % 7 === 0 && h >= 0) {
+                        let treeH = 2 + h;
+                        createBlock(x, treeH, z, 4);
+                        createBlock(x, treeH + 1, z, 4);
+                        createBlock(x, treeH + 2, z, 4);
+                        // Листва вокруг
+                        for(let dx = -1; dx <= 1; dx++) {
+                            for(let dz = -1; dz <= 1; dz++) {
+                                createBlock(x + dx, treeH + 3, z + dz, 2);
+                            }
+                        }
+                    }
                 }
             }
 
-            // Спавн игрока
             player.x = 0;
             player.y = 5;
             player.z = 0;
@@ -307,8 +433,7 @@
         function createBlock(x, y, z, type) {
             const key = `${x},${y},${z}`;
             if (worldBlocks[key]) return;
-
-            const mesh = new THREE.Mesh(boxGeo, blockMaterials[type]);
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), blockMaterials[type]);
             mesh.position.set(x, y, z);
             scene.add(mesh);
             worldBlocks[key] = { mesh: mesh, type: type };
@@ -322,29 +447,50 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ МОБИЛЬНОЕ (1 в 1) ---
-        let joystickActive = false;
-        let joystickData = { x: 0, y: 0 };
+        // УПРАВЛЕНИЕ КНОПКАМИ И СВАЙПАМИ
+        let moveState = { forward: false, back: false, left: false, right: false };
         let touchLookId = null;
         let lastTouchX = 0, lastTouchY = 0;
 
         function initControls() {
-            // Джойстик движения
-            const jBase = document.getElementById('joystick-base');
-            const jStick = document.getElementById('joystick-stick');
-            let baseRect = jBase.getBoundingClientRect();
+            // Кнопки крестовины
+            bindButton('btn-up', 'forward');
+            bindButton('btn-down', 'back');
+            bindButton('btn-left', 'left');
+            bindButton('btn-right', 'right');
 
-            jBase.addEventListener('touchstart', (e) => {
-                joystickActive = true;
-                updateJoystick(e.touches[0]);
+            function bindButton(id, stateKey) {
+                const el = document.getElementById(id);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); moveState[stateKey] = true; });
+                el.addEventListener('touchend', (e) => { e.preventDefault(); moveState[stateKey] = false; });
+                el.addEventListener('mousedown', () => { moveState[stateKey] = true; });
+                el.addEventListener('mouseup', () => { moveState[stateKey] = false; });
+            }
+
+            // Прыжок, ломать, ставить
+            document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (player.y <= 4) player.vy = 0.14;
+            });
+            document.getElementById('btn-break').addEventListener('touchstart', (e) => { e.preventDefault(); raycastAction(false); });
+            document.getElementById('btn-place').addEventListener('touchstart', (e) => { e.preventDefault(); raycastAction(true); });
+
+            // Свайп для обзора (правая сторона экрана)
+            window.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.touches.length; i++) {
+                    let t = e.touches[i];
+                    if (t.clientX >= window.innerWidth / 3 && touchLookId === null) {
+                        touchLookId = t.identifier;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
             });
 
             window.addEventListener('touchmove', (e) => {
                 for (let i = 0; i < e.touches.length; i++) {
                     let t = e.touches[i];
-                    if (joystickActive && t.clientX < window.innerWidth / 2) {
-                        updateJoystick(t);
-                    } else if (touchLookId === t.identifier) {
+                    if (t.identifier === touchLookId) {
                         let dx = t.clientX - lastTouchX;
                         let dy = t.clientY - lastTouchY;
                         player.rotationY -= dx * 0.005;
@@ -357,55 +503,11 @@
             });
 
             window.addEventListener('touchend', (e) => {
-                joystickActive = false;
-                joystickData = { x: 0, y: 0 };
-                jStick.style.transform = `translate(0px, 0px)`;
-                touchLookId = null;
-            });
-
-            // Обзор правой половиной экрана
-            window.addEventListener('touchstart', (e) => {
-                for (let i = 0; i < e.touches.length; i++) {
-                    let t = e.touches[i];
-                    if (t.clientX >= window.innerWidth / 2 && touchLookId === null && t.target.classList.contains('action-btn') === false) {
-                        touchLookId = t.identifier;
-                        lastTouchX = t.clientX;
-                        lastTouchY = t.clientY;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchLookId) {
+                        touchLookId = null;
                     }
                 }
-            });
-
-            function updateJoystick(touch) {
-                let centerX = baseRect.left + 60;
-                let centerY = baseRect.top + 60;
-                let dx = touch.clientX - centerX;
-                let dy = touch.clientY - centerY;
-                let dist = Math.hypot(dx, dy);
-                let maxDist = 40;
-
-                if (dist > maxDist) {
-                    dx = (dx / dist) * maxDist;
-                    dy = (dy / dist) * maxDist;
-                }
-
-                jStick.style.transform = `translate(${dx}px, ${dy}px)`;
-                joystickData.x = dx / maxDist;
-                joystickData.y = dy / maxDist;
-            }
-
-            // Кнопки действий
-            document.getElementById('btn-jump').addEventListener('touchstart', () => {
-                if (player.y <= 3) { // Простейшее условие прыжка от земли
-                    player.vy = 0.15;
-                }
-            });
-
-            document.getElementById('btn-break').addEventListener('touchstart', () => {
-                raycastAction(false); // Ломать блок перед собой
-            });
-
-            document.getElementById('btn-place').addEventListener('touchstart', () => {
-                raycastAction(true); // Ставить блок перед собой
             });
         }
 
@@ -415,13 +517,12 @@
             document.querySelector(`[data-id="${type}"]`).classList.add('selected');
         }
 
-        // Взаимодействие с блоками (Луч из камеры)
+        // Рейкастинг для взаимодействия с блоками
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(0, 0); // Центр экрана
+        const mouseCenter = new THREE.Vector2(0, 0);
 
         function raycastAction(isPlace) {
-            raycaster.setFromCamera(mouse, camera);
-            // Собираем все меши блоков в массив
+            raycaster.setFromCamera(mouseCenter, camera);
             let meshes = [];
             for (let k in worldBlocks) meshes.push(worldBlocks[k].mesh);
 
@@ -432,19 +533,11 @@
                 let normal = hit.face.normal.clone();
 
                 if (isPlace) {
-                    // Ставим блок чуть смещенным по нормали
                     p.addScaledVector(normal, 0.5);
-                    let bx = Math.round(p.x);
-                    let by = Math.round(p.y);
-                    let bz = Math.round(p.z);
-                    createBlock(bx, by, bz, selectedBlockType);
+                    createBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z), selectedBlockType);
                 } else {
-                    // Удаляем блок
                     p.addScaledVector(normal, -0.5);
-                    let bx = Math.round(p.x);
-                    let by = Math.round(p.y);
-                    let bz = Math.round(p.z);
-                    removeBlock(bx, by, bz);
+                    removeBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z));
                 }
             }
         }
@@ -452,12 +545,18 @@
         // Игровой цикл
         function animate() {
             requestAnimationFrame(animate);
-
             if (!gameStarted) return;
 
-            // Движение игрока
-            let moveX = -joystickData.x;
-            let moveZ = -joystickData.y;
+            let moveX = 0, moveZ = 0;
+            if (moveState.forward) moveZ -= 1;
+            if (moveState.back) moveZ += 1;
+            if (moveState.left) moveX -= 1;
+            if (moveState.right) moveX += 1;
+
+            if (moveX !== 0 || moveZ !== 0) {
+                let len = Math.hypot(moveX, moveZ);
+                moveX /= len; moveZ /= len;
+            }
 
             let cos = Math.cos(player.rotationY);
             let sin = Math.sin(player.rotationY);
@@ -469,18 +568,15 @@
             player.z += vz;
 
             // Гравитация
-            player.vy -= 0.01;
+            player.vy -= 0.008;
             player.y += player.vy;
             if (player.y < 3) {
                 player.y = 3;
                 player.vy = 0;
             }
 
-            // Обновление камеры
-            camera.position.set(player.x, player.y + 1.6, player.z); // Глаза игрока
-            
-            let euler = new THREE.Euler(player.rotationX, player.rotationY, 0, 'YXZ');
-            camera.quaternion.setFromEuler(euler);
+            camera.position.set(player.x, player.y + 1.6, player.z);
+            camera.quaternion.setFromEuler(new THREE.Euler(player.rotationX, player.rotationY, 0, 'YXZ'));
 
             renderer.render(scene, camera);
         }
