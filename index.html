@@ -3,631 +3,494 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pocket Terraria</title>
+    <title>Minecraft Pocket Edition (JS)</title>
     <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        body {
-            margin: 0; padding: 0; background: #050505; color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; touch-action: none;
-        }
-        canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-        /* UI Screens */
-        .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: linear-gradient(135deg, #120c1f 0%, #291b3b 50%, #0d1b2a 100%);
-            z-index: 10; transition: opacity 0.3s ease;
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
         }
-        .hidden { display: none !important; }
 
-        h1 {
-            font-size: 3rem; margin: 0 0 10px 0; color: #ffcc00;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.8), 0 0 20px #ff6600;
-            letter-spacing: 2px; text-align: center;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Press Start 2P', monospace;
         }
-        .subtitle { font-size: 1rem; color: #a0aec0; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
 
-        .menu-btn {
-            background: linear-gradient(to bottom, #4a3b6c, #2c2042);
-            border: 2px solid #8c73b0; color: white; padding: 14px 36px;
-            font-size: 1.2rem; font-weight: bold; border-radius: 8px; margin: 8px;
-            cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.5);
-            transition: transform 0.1s, background 0.2s; width: 240px; text-align: center;
+        /* --- ГЛАВНОЕ МЕНЮ --- */
+        #menu-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://i.imgur.com/714493L.png') center/cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
         }
-        .menu-btn:active { transform: scale(0.95); background: linear-gradient(to bottom, #5d4b88, #3b2c58); }
 
-        /* Skin Selector Grid */
-        .skins-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;
+        .mc-title {
+            color: #fff;
+            font-size: 24px;
+            text-shadow: 3px 3px #000;
+            margin-bottom: 40px;
+            text-align: center;
+            animation: bounce 1.5s infinite alternate;
         }
-        .skin-card {
-            background: rgba(255,255,255,0.05); border: 2px solid #4a3b6c; border-radius: 10px;
-            padding: 15px; text-align: center; cursor: pointer; width: 130px;
-        }
-        .skin-card.selected { border-color: #ffcc00; background: rgba(255,204,0,0.15); box-shadow: 0 0 15px rgba(255,204,0,0.3); }
-        .skin-preview { width: 40px; height: 60px; margin: 0 auto 10px auto; border-radius: 4px; position: relative; }
 
-        /* HUD & Controls Overlay */
-        #hud {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 5; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
         }
-        .top-bar { display: flex; justify-content: space-between; align-items: flex-start; }
-        .hud-panel {
-            background: rgba(15, 15, 25, 0.75); border: 2px solid #3d3256; border-radius: 10px;
-            padding: 10px 15px; backdrop-filter: blur(4px); pointer-events: auto;
-        }
-        .health-bar-container { width: 150px; height: 16px; background: #331111; border: 2px solid #552222; border-radius: 4px; overflow: hidden; }
-        .health-fill { width: 100%; height: 100%; background: linear-gradient(to right, #ff3333, #ff6666); transition: width 0.2s; }
 
-        /* Inventory Bar */
-        .hotbar { display: flex; gap: 6px; justify-content: center; pointer-events: auto; margin-bottom: 120px; }
-        .slot {
-            width: 46px; height: 46px; background: rgba(20, 20, 35, 0.8);
-            border: 2px solid #4a3b6c; border-radius: 8px; display: flex;
-            justify-content: center; align-items: center; position: relative; cursor: pointer;
+        .mc-btn {
+            width: 280px;
+            height: 45px;
+            background-color: #727272;
+            border: 3px solid #373737;
+            border-top-color: #9e9e9e;
+            border-left-color: #9e9e9e;
+            color: #fff;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            text-shadow: 2px 2px #373737;
+            margin: 6px 0;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 2px #555;
         }
-        .slot.active { border-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; background: rgba(50, 40, 70, 0.9); }
-        .slot-icon { width: 24px; height: 24px; background-size: contain; }
-        .slot-count { position: absolute; bottom: 2px; right: 4px; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px #000; }
 
-        /* Mobile Touch Layout */
-        .touch-controls {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
-            pointer-events: none; display: flex; justify-content: space-between; padding: 0 20px 20px 20px; align-items: flex-end; z-index: 6;
+        .mc-btn:active {
+            background-color: #555;
+            border-top-color: #373737;
+            border-left-color: #373737;
+            border-bottom-color: #9e9e9e;
+            border-right-color: #9e9e9e;
         }
-        .d-pad { display: flex; gap: 12px; pointer-events: auto; }
-        .action-pad { display: flex; gap: 12px; pointer-events: auto; }
-        
-        .t-btn {
-            width: 64px; height: 64px; background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; font-size: 24px; color: white;
-            backdrop-filter: blur(5px); user-select: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+        .version-text {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: #a0a0a0;
+            font-size: 8px;
+            text-shadow: 1px 1px #000;
         }
-        .t-btn:active { background: rgba(255, 204, 0, 0.4); border-color: #ffcc00; transform: scale(0.92); }
-        
-        #btn-jump { background: rgba(50, 205, 50, 0.25); border-color: rgba(50, 205, 50, 0.6); }
-        #btn-action { background: rgba(255, 100, 0, 0.25); border-color: rgba(255, 100, 0, 0.6); width: 76px; height: 76px; border-radius: 50%; font-size: 14px; font-weight: bold; text-align: center; line-height: 1.2; }
+
+        /* --- ИГРОВОЙ ИНТЕРФЕЙС (HUD) --- */
+        #game-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 10;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translate(-50%, -50%);
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M7 0h2v16H7zM0 7h16v2H0z" fill="white" fill-opacity="0.6"/></svg>') no-repeat center;
+            pointer-events: none;
+        }
+
+        /* Джойстик движения */
+        #joystick-base {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: auto;
+        }
+
+        #joystick-stick {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: transform 0.05s linear;
+        }
+
+        /* Кнопки справа (Прыжок и Действие) */
+        .right-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            text-shadow: 1px 1px #000;
+        }
+        .action-btn:active { background: rgba(255, 255, 255, 0.3); }
+
+        /* Хотбар (Инвентарь снизу) */
+        #hotbar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid #3b3b3b;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .hotbar-slot {
+            width: 40px;
+            height: 40px;
+            background: #8b8b8b;
+            border: 2px solid #373737;
+            border-top-color: #373737;
+            border-left-color: #373737;
+            border-bottom-color: #fff;
+            border-right-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .hotbar-slot.selected {
+            border: 2px solid #fff;
+            outline: 2px solid #fff;
+        }
+
+        .slot-icon {
+            width: 28px;
+            height: 28px;
+        }
     </style>
+
+    <!-- Подключаем Three.js для 3D графики -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- Главное Меню -->
-    <div id="main-menu" class="screen">
-        <h1>POCKET TERRARIA</h1>
-        <div class="subtitle">2D Sandbox Adventure</div>
-        <button class="menu-btn" onclick="startGame()">ИГРАТЬ</button>
-        <button class="menu-btn" onclick="openSkins()">СКИНЫ</button>
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="menu-screen">
+        <div class="mc-title">Minecraft<br><span style="font-size: 10px; color: #ff0px;">Pocket Edition</span></div>
+        <button class="mc-btn" onclick="startGame()">Одиночная игра</button>
+        <button class="mc-btn" onclick="alert('Настройки: Управление сенсорное, графика стандартная.')">Настройки</button>
+        <button class="mc-btn" onclick="alert('Создатели: Mojang / Модификация для JS')">О программе</button>
+        <div class="version-text">Alpha 0.1.0_js</div>
     </div>
 
-    <!-- Меню выбора скинов -->
-    <div id="skins-menu" class="screen hidden">
-        <h1>ВЫБОР СКИНА</h1>
-        <div class="subtitle">Настрой своего героя</div>
-        <div class="skins-grid">
-            <div class="skin-card selected" onclick="selectSkin(0, this)">
-                <div class="skin-preview" style="background: linear-gradient(to bottom, #3498db 40%, #e67e22 40%, #e67e22 70%, #2c3e50 70%);"></div>
-                <div>Искатель</div>
-            </div>
-            <div class="skin-card" onclick="selectSkin(1, this)">
-                <div class="skin-preview" style="background: linear-gradient(to bottom, #e74c3c 40%, #34495e 40%, #34495e 70%, #7f8c8d 70%);"></div>
-                <div>Воин Магмы</div>
-            </div>
-            <div class="skin-card" onclick="selectSkin(2, this)">
-                <div class="skin-preview" style="background: linear-gradient(to bottom, #2ecc71 40%, #f1c40f 40%, #f1c40f 70%, #d35400 70%);"></div>
-                <div>Леший</div>
-            </div>
-            <div class="skin-card" onclick="selectSkin(3, this)">
-                <div class="skin-preview" style="background: linear-gradient(to bottom, #9b59b6 40%, #ecf0f1 40%, #ecf0f1 70%, #34495e 70%);"></div>
-                <div>Странник</div>
-            </div>
-        </div>
-        <button class="menu-btn" onclick="closeSkins()">НАЗАД</button>
-    </div>
-
-    <!-- Игровой интерфейс (HUD) -->
-    <div id="hud" class="hidden">
-        <div class="top-bar">
-            <div class="hud-panel">
-                <div style="font-size: 11px; color: #a0aec0; margin-bottom: 4px;">ЗДОРОВЬЕ</div>
-                <div class="health-bar-container">
-                    <div id="health-fill" class="health-fill"></div>
-                </div>
-            </div>
-            <div class="hud-panel" style="text-align: right;">
-                <div style="font-size: 11px; color: #a0aec0;">ВРЕМЯ СУТОК</div>
-                <div id="time-text" style="font-size: 14px; font-weight: bold; color: #ffcc00;">День</div>
-            </div>
+    <!-- ИГРОВОЙ ЭКРАН -->
+    <div id="game-screen">
+        <div id="crosshair"></div>
+        
+        <!-- Управление -->
+        <div id="joystick-base">
+            <div id="joystick-stick"></div>
         </div>
 
-        <div class="hotbar" id="hotbar">
-            <!-- Слоты хотбара генерируются динамически -->
+        <div class="right-controls">
+            <div class="action-btn" id="btn-break">ЛОМАТЬ</div>
+            <div class="action-btn" id="btn-place" style="background: rgba(0,100,200,0.4);">СТАВИТЬ</div>
+            <div class="action-btn" id="btn-jump">ПРЫЖОК</div>
         </div>
 
-        <div class="touch-controls">
-            <div class="d-pad">
-                <div class="t-btn" id="btn-left">◀</div>
-                <div class="t-btn" id="btn-right">▶</div>
-            </div>
-            <div class="action-pad">
-                <div class="t-btn" id="btn-jump">▲</div>
-                <div class="t-btn" id="btn-action">РУБИТЬ/<br>СТРОИТЬ</div>
-            </div>
+        <!-- Панель быстрого доступа -->
+        <div id="hotbar">
+            <div class="hotbar-slot selected" onclick="selectBlock(1)" data-id="1"><div class="slot-icon" style="background:#5c4033;"></div></div>
+            <div class="hotbar-slot" onclick="selectBlock(2)" data-id="2"><div class="slot-icon" style="background:#5c8a32;"></div></div>
+            <div class="hotbar-slot" onclick="selectBlock(3)" data-id="3"><div class="slot-icon" style="background:#808080;"></div></div>
+            <div class="hotbar-slot" onclick="selectBlock(4)" data-id="4"><div class="slot-icon" style="background:#a0522d;"></div></div>
         </div>
     </div>
-
-    <canvas id="gameCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        let gameStarted = false;
+        let scene, camera, renderer;
+        let worldBlocks = {}; // Хранилище блоков { "x,y,z": mesh }
+        let selectedBlockType = 1; // 1: Земля, 2: Трава, 3: Камень, 4: Дерево
 
-        // Подгонка разрешения под плотность экрана мобилок
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // Игровые константы и параметры мира
-        const TSIZE = 24; // Размер блока в пикселях
-        const WORLD_WIDTH = 120; // Ширина мира в блоках
-        const WORLD_HEIGHT = 70; // Высота мира в блоках
-        
-        let world = [];
-        let particles = [];
-        let floatingTexts = [];
-        let timeOfDay = 0.2; // 0.0 - полночь, 0.5 - день, 1.0 - ночь
-        
-        // Типы блоков
-        const AIR = 0;
-        const DIRT = 1;
-        const GRASS = 2;
-        const STONE = 3;
-        const WOOD = 4;
-        const LEAVES = 5;
-        const COPPER = 6;
-
-        const blockTypes = {
-            [DIRT]: { name: 'Земля', color: '#8b5a2b', topColor: '#8b5a2b', solid: true },
-            [GRASS]: { name: 'Трава', color: '#5c4033', topColor: '#43a047', solid: true },
-            [STONE]: { name: 'Камень', color: '#7f8c8d', topColor: '#95a5a6', solid: true },
-            [WOOD]: { name: 'Дерево', color: '#6d4c41', topColor: '#8d6e63', solid: true },
-            [LEAVES]: { name: 'Листва', color: '#2e7d32', topColor: '#388e3c', solid: true },
-            [COPPER]: { name: 'Медная руда', color: '#b87333', topColor: '#d9822b', solid: true }
-        };
-
-        // Инвентарь
-        let inventory = [
-            { id: DIRT, count: 25 },
-            { id: WOOD, count: 15 },
-            { id: STONE, count: 10 },
-            { id: COPPER, count: 5 }
-        ];
-        let selectedSlot = 0;
-
-        // Скины персонажа
-        const skins = [
-            { shirt: '#3498db', pants: '#e67e22', boots: '#2c3e50', hair: '#d35400' }, // Искатель
-            { shirt: '#e74c3c', pants: '#34495e', boots: '#7f8c8d', hair: '#2c3e50' }, // Воин Магмы
-            { shirt: '#2ecc71', pants: '#f1c40f', boots: '#d35400', hair: '#512e5f' }, // Леший
-            { shirt: '#9b59b6', pants: '#ecf0f1', boots: '#34495e', hair: '#f1c40f' }  // Странник
-        ];
-        let currentSkinIndex = 0;
-
-        // Игрок с физикой
+        // Параметры игрока
         let player = {
-            x: (WORLD_WIDTH / 2) * TSIZE,
-            y: 10 * TSIZE,
-            w: 18,
-            h: 34,
-            vx: 0,
+            x: 0, y: 10, z: 0,
+            rotationX: 0, rotationY: 0,
+            speed: 0.12,
             vy: 0,
-            speed: 2.8,
-            jumpForce: -8.5,
-            gravity: 0.4,
-            grounded: false,
-            hp: 100,
-            maxHp: 100,
-            facing: 1 // 1 - вправо, -1 - влево
+            isJumping: false
         };
 
-        // Камера
-        let camera = { x: 0, y: 0 };
+        // Текстуры/Цвета блоков в стиле Minecraft
+        const blockMaterials = {
+            1: new THREE.MeshLambertMaterial({ color: 0x866043 }), // Земля
+            2: new THREE.MeshLambertMaterial({ color: 0x5b8731 }), // Трава
+            3: new THREE.MeshLambertMaterial({ color: 0x7a7a7a }), // Камень
+            4: new THREE.MeshLambertMaterial({ color: 0x6e4726 })  // Дерево
+        };
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 
-        // Управление состояниями меню
         function startGame() {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            initWorld();
-            initHotbar();
-            requestAnimationFrame(gameLoop);
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            gameStarted = true;
+            init3D();
+            initControls();
         }
 
-        function openSkins() {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('skins-menu').classList.remove('hidden');
-        }
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x8cb8ff); // Небо Minecraft PE
+            scene.fog = new THREE.FogExp2(0x8cb8ff, 0.05);
 
-        function closeSkins() {
-            document.getElementById('skins-menu').classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
-        }
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: false }); // Пиксельный стиль без сглаживания
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('game-screen').appendChild(renderer.domElement);
 
-        function selectSkin(index, element) {
-            document.querySelectorAll('.skin-card').forEach(c => c.classList.remove('selected'));
-            element.classList.add('selected');
-            currentSkinIndex = index;
-        }
+            // Освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
 
-        // Генерация мира (шумоподобный ландшафт)
-        function initWorld() {
-            world = [];
-            for (let y = 0; y < WORLD_HEIGHT; y++) {
-                world[y] = [];
-                for (let x = 0; x < WORLD_WIDTH; x++) {
-                    world[y][x] = AIR;
+            // Генерация мира (плоский мир с холмами)
+            for (let x = -8; x <= 8; x++) {
+                for (let z = -8; z <= 8; z++) {
+                    createBlock(x, 0, z, 3); // Камень снизу
+                    createBlock(x, 1, z, 1); // Земля
+                    createBlock(x, 2, z, 2); // Трава сверху
                 }
             }
 
-            // Базовый рельеф поверхности
-            let surfaceHeights = [];
-            let height = 28;
-            for (let x = 0; x < WORLD_WIDTH; x++) {
-                height += Math.floor((Math.random() - 0.5) * 2);
-                height = Math.max(20, Math.min(40, height));
-                surfaceHeights[x] = height;
+            // Спавн игрока
+            player.x = 0;
+            player.y = 5;
+            player.z = 0;
 
-                for (let y = height; y < WORLD_HEIGHT; y++) {
-                    if (y === height) {
-                        world[y][x] = GRASS;
-                    } else if (y < height + 5) {
-                        world[y][x] = DIRT;
-                    } else {
-                        // Подземелье со стратами камня и руды
-                        if (Math.random() < 0.05 && y > height + 10) {
-                            world[y][x] = COPPER;
-                        } else {
-                            world[y][x] = STONE;
-                        }
-                    }
-                }
-            }
-
-            // Генерация деревьев на поверхности
-            for (let x = 5; x < WORLD_WIDTH - 5; x += Math.floor(Math.random() * 4) + 4) {
-                let h = surfaceHeights[x];
-                if (world[h][x] === GRASS) {
-                    let treeHeight = Math.floor(Math.random() * 3) + 4;
-                    // Ствол
-                    for (let ty = 1; ty <= treeHeight; ty++) {
-                        world[h - ty][x] = WOOD;
-                    }
-                    // Крона
-                    let topY = h - treeHeight;
-                    for (let ly = -2; ly <= 0; ly++) {
-                        for (let lx = -2; lx <= 2; lx++) {
-                            let wx = x + lx;
-                            let wy = topY + ly;
-                            if (wx >= 0 && wx < WORLD_WIDTH && wy >= 0 && world[wy][wx] === AIR) {
-                                if (Math.abs(lx) !== 2 || Math.abs(ly) !== 2 || Math.random() > 0.3) {
-                                    world[wy][wx] = LEAVES;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            player.x = (WORLD_WIDTH / 2) * TSIZE;
-            player.y = (surfaceHeights[Math.floor(WORLD_WIDTH / 2)] - 4) * TSIZE;
+            animate();
         }
 
-        // Инициализация панели быстрого доступа (Хотбар)
-        function initHotbar() {
-            const hotbarEl = document.getElementById('hotbar');
-            hotbarEl.innerHTML = '';
-            for (let i = 0; i < inventory.length; i++) {
-                let slot = document.createElement('div');
-                slot.className = `slot ${i === selectedSlot ? 'active' : ''}`;
-                slot.onclick = () => selectInventorySlot(i);
-                
-                let count = document.createElement('div');
-                count.className = 'slot-count';
-                count.innerText = inventory[i].count;
-                slot.appendChild(count);
-                
-                hotbarEl.appendChild(slot);
+        function createBlock(x, y, z, type) {
+            const key = `${x},${y},${z}`;
+            if (worldBlocks[key]) return;
+
+            const mesh = new THREE.Mesh(boxGeo, blockMaterials[type]);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+            worldBlocks[key] = { mesh: mesh, type: type };
+        }
+
+        function removeBlock(x, y, z) {
+            const key = `${x},${y},${z}`;
+            if (worldBlocks[key]) {
+                scene.remove(worldBlocks[key].mesh);
+                delete worldBlocks[key];
             }
         }
 
-        function selectInventorySlot(index) {
-            selectedSlot = index;
-            document.querySelectorAll('.slot').forEach((s, idx) => {
-                s.classList.toggle('active', idx === index);
+        // --- УПРАВЛЕНИЕ МОБИЛЬНОЕ (1 в 1) ---
+        let joystickActive = false;
+        let joystickData = { x: 0, y: 0 };
+        let touchLookId = null;
+        let lastTouchX = 0, lastTouchY = 0;
+
+        function initControls() {
+            // Джойстик движения
+            const jBase = document.getElementById('joystick-base');
+            const jStick = document.getElementById('joystick-stick');
+            let baseRect = jBase.getBoundingClientRect();
+
+            jBase.addEventListener('touchstart', (e) => {
+                joystickActive = true;
+                updateJoystick(e.touches[0]);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                for (let i = 0; i < e.touches.length; i++) {
+                    let t = e.touches[i];
+                    if (joystickActive && t.clientX < window.innerWidth / 2) {
+                        updateJoystick(t);
+                    } else if (touchLookId === t.identifier) {
+                        let dx = t.clientX - lastTouchX;
+                        let dy = t.clientY - lastTouchY;
+                        player.rotationY -= dx * 0.005;
+                        player.rotationX -= dy * 0.005;
+                        player.rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotationX));
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchend', (e) => {
+                joystickActive = false;
+                joystickData = { x: 0, y: 0 };
+                jStick.style.transform = `translate(0px, 0px)`;
+                touchLookId = null;
+            });
+
+            // Обзор правой половиной экрана
+            window.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.touches.length; i++) {
+                    let t = e.touches[i];
+                    if (t.clientX >= window.innerWidth / 2 && touchLookId === null && t.target.classList.contains('action-btn') === false) {
+                        touchLookId = t.identifier;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
+            });
+
+            function updateJoystick(touch) {
+                let centerX = baseRect.left + 60;
+                let centerY = baseRect.top + 60;
+                let dx = touch.clientX - centerX;
+                let dy = touch.clientY - centerY;
+                let dist = Math.hypot(dx, dy);
+                let maxDist = 40;
+
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+
+                jStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                joystickData.x = dx / maxDist;
+                joystickData.y = dy / maxDist;
+            }
+
+            // Кнопки действий
+            document.getElementById('btn-jump').addEventListener('touchstart', () => {
+                if (player.y <= 3) { // Простейшее условие прыжка от земли
+                    player.vy = 0.15;
+                }
+            });
+
+            document.getElementById('btn-break').addEventListener('touchstart', () => {
+                raycastAction(false); // Ломать блок перед собой
+            });
+
+            document.getElementById('btn-place').addEventListener('touchstart', () => {
+                raycastAction(true); // Ставить блок перед собой
             });
         }
 
-        // Мобильное управление (кнопки)
-        let keys = { left: false, right: false, jump: false };
-
-        function setupControls() {
-            const bindBtn = (id, keyName) => {
-                const el = document.getElementById(id);
-                if(!el) return;
-                el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
-                el.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
-                el.addEventListener('mousedown', (e) => { e.preventDefault(); keys[keyName] = true; });
-                el.addEventListener('mouseup', (e) => { e.preventDefault(); keys[keyName] = false; });
-            };
-
-            bindBtn('btn-left', 'left');
-            bindBtn('btn-right', 'right');
-            bindBtn('btn-jump', 'jump');
-
-            // Кнопка действия: Ломать или Ставить блок по тапу в мир
-            const actionBtn = document.getElementById('btn-action');
-            actionBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doPlayerAction(); });
-            actionBtn.addEventListener('mousedown', (e) => { e.preventDefault(); doPlayerAction(); });
-        }
-        setupControls();
-
-        // Проверка коллизий AABB (Axis-Aligned Bounding Box)
-        function checkCollision(nx, ny, w, h) {
-            let leftBlock = Math.floor(nx / TSIZE);
-            let rightBlock = Math.floor((nx + w - 1) / TSIZE);
-            let topBlock = Math.floor(ny / TSIZE);
-            let bottomBlock = Math.floor((ny + h - 1) / TSIZE);
-
-            for (let y = topBlock; y <= bottomBlock; y++) {
-                for (let x = leftBlock; x <= rightBlock; x++) {
-                    if (y < 0 || y >= WORLD_HEIGHT || x < 0 || x >= WORLD_WIDTH) return true;
-                    if (world[y][x] !== AIR) return true;
-                }
-            }
-            return false;
+        function selectBlock(type) {
+            selectedBlockType = type;
+            document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`[data-id="${type}"]`).classList.add('selected');
         }
 
-        // Действие игрока (добыча / строительство впереди себя)
-        function doPlayerAction() {
-            // Центр игрока
-            let px = player.x + player.w / 2;
-            let py = player.y + player.h / 2;
-            // Координаты блока перед игроком на расстоянии полутора тайлов
-            let targetX = Math.floor((px + player.facing * TSIZE * 1.2) / TSIZE);
-            let targetY = Math.floor(py / TSIZE);
+        // Взаимодействие с блоками (Луч из камеры)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0); // Центр экрана
 
-            if (targetX < 0 || targetX >= WORLD_WIDTH || targetY < 0 || targetY >= WORLD_HEIGHT) return;
+        function raycastAction(isPlace) {
+            raycaster.setFromCamera(mouse, camera);
+            // Собираем все меши блоков в массив
+            let meshes = [];
+            for (let k in worldBlocks) meshes.push(worldBlocks[k].mesh);
 
-            let currentBlock = world[targetY][targetX];
+            let intersects = raycaster.intersectObjects(meshes);
+            if (intersects.length > 0) {
+                let hit = intersects[0];
+                let p = hit.point.clone();
+                let normal = hit.face.normal.clone();
 
-            if (currentBlock !== AIR) {
-                // Ломаем блок
-                world[targetY][targetX] = AIR;
-                createParticles(targetX * TSIZE + TSIZE/2, targetY * TSIZE + TSIZE/2, blockTypes[currentBlock]?.color || '#fff');
-                
-                // Добавляем в инвентарь
-                let item = inventory.find(i => i.id === currentBlock);
-                if (item) {
-                    item.count++;
+                if (isPlace) {
+                    // Ставим блок чуть смещенным по нормали
+                    p.addScaledVector(normal, 0.5);
+                    let bx = Math.round(p.x);
+                    let by = Math.round(p.y);
+                    let bz = Math.round(p.z);
+                    createBlock(bx, by, bz, selectedBlockType);
                 } else {
-                    inventory.push({ id: currentBlock, count: 1 });
-                }
-                initHotbar();
-            } else {
-                // Ставим блок из выбранного слота
-                if (inventory[selectedSlot] && inventory[selectedSlot].count > 0) {
-                    // Проверяем, не занято ли место самим игроком
-                    let bId = inventory[selectedSlot].id;
-                    world[targetY][targetX] = bId;
-                    
-                    // Если поставили в себя — отменим или позволим, но лучше проверить коллизию с игроком
-                    if (checkCollision(player.x, player.y, player.w, player.h)) {
-                        // Поставили прямо под игрока — разрешим стоять, иначе вернем назад
-                        // Оставим для удобства установки под ноги
-                    }
-                    
-                    inventory[selectedSlot].count--;
-                    if (inventory[selectedSlot].count <= 0) {
-                        // Не удаляем полностью слот, просто 0
-                    }
-                    initHotbar();
+                    // Удаляем блок
+                    p.addScaledVector(normal, -0.5);
+                    let bx = Math.round(p.x);
+                    let by = Math.round(p.y);
+                    let bz = Math.round(p.z);
+                    removeBlock(bx, by, bz);
                 }
             }
         }
 
-        // Система частиц при разрушении блоков
-        function createParticles(x, y, color) {
-            for (let i = 0; i < 6; i++) {
-                particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 5,
-                    vy: (Math.random() - 0.8) * 5,
-                    color: color,
-                    size: Math.random() * 4 + 2,
-                    life: 30
-                });
-            }
-        }
+        // Игровой цикл
+        function animate() {
+            requestAnimationFrame(animate);
 
-        // Обновление игровой логики
-        function update() {
-            // Время суток
-            timeOfDay += 0.0003;
-            if (timeOfDay > 1) timeOfDay = 0;
+            if (!gameStarted) return;
 
-            // Движение по горизонтали
-            player.vx = 0;
-            if (keys.left) { player.vx = -player.speed; player.facing = -1; }
-            if (keys.right) { player.vx = player.speed; player.facing = 1; }
+            // Движение игрока
+            let moveX = -joystickData.x;
+            let moveZ = -joystickData.y;
 
-            // Применение горизонтальной коллизии
-            let nextX = player.x + player.vx;
-            if (!checkCollision(nextX, player.y, player.w, player.h)) {
-                player.x = nextX;
-            }
+            let cos = Math.cos(player.rotationY);
+            let sin = Math.sin(player.rotationY);
 
-            // Гравитация и прыжок
-            player.vy += player.gravity;
-            if (keys.jump && player.grounded) {
-                player.vy = player.jumpForce;
-                player.grounded = false;
-            }
+            let vx = (moveX * cos - moveZ * sin) * player.speed;
+            let vz = (moveX * sin + moveZ * cos) * player.speed;
 
-            // Применение вертикальной коллизии
-            let nextY = player.y + player.vy;
-            player.grounded = false;
-            if (!checkCollision(player.x, nextY, player.w, player.h)) {
-                player.y = nextY;
-            } else {
-                if (player.vy > 0) {
-                    player.grounded = true;
-                }
+            player.x += vx;
+            player.z += vz;
+
+            // Гравитация
+            player.vy -= 0.01;
+            player.y += player.vy;
+            if (player.y < 3) {
+                player.y = 3;
                 player.vy = 0;
             }
 
-            // Плавное следование камеры за игроком
-            let targetCamX = player.x - canvas.width / 2 + player.w / 2;
-            let targetCamY = player.y - canvas.height / 2 + player.h / 2;
-            camera.x += (targetCamX - camera.x) * 0.1;
-            camera.y += (targetCamY - camera.y) * 0.1;
-
-            // Ограничение камеры миром
-            camera.x = Math.max(0, Math.min(WORLD_WIDTH * TSIZE - canvas.width, camera.x));
-            camera.y = Math.max(0, Math.min(WORLD_HEIGHT * TSIZE - canvas.height, camera.y));
-
-            // Обновление частиц
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.3; // гравитация частиц
-                p.life--;
-                if (p.life <= 0) particles.splice(i, 1);
-            }
-
-            // Обновление интерфейса здоровья
-            document.getElementById('health-fill').style.width = (player.hp / player.maxHp * 100) + '%';
+            // Обновление камеры
+            camera.position.set(player.x, player.y + 1.6, player.z); // Глаза игрока
             
-            // Текст времени суток
-            let timeText = "День";
-            if (timeOfDay < 0.25 || timeOfDay > 0.75) timeText = "Ночь";
-            else if (timeOfDay < 0.35) timeText = "Утро";
-            else if (timeOfDay > 0.65) timeText = "Вечер";
-            document.getElementById('time-text').innerText = timeText;
+            let euler = new THREE.Euler(player.rotationX, player.rotationY, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+
+            renderer.render(scene, camera);
         }
 
-        // Отрисовка графики
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Динамический фон в зависимости от времени суток (градиент неба)
-            let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            if (timeOfDay > 0.25 && timeOfDay < 0.75) {
-                skyGrad.addColorStop(0, '#4a90e2');
-                skyGrad.addColorStop(1, '#87ceeb');
-            } else {
-                skyGrad.addColorStop(0, '#0b0f19');
-                skyGrad.addColorStop(1, '#1a233a');
-            }
-            ctx.fillStyle = skyGrad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(-Math.floor(camera.x), -Math.floor(camera.y));
-
-            // Отрисовка мира (блоков) с оптимизацией видимой зоны
-            let startCol = Math.floor(camera.x / TSIZE);
-            let endCol = startCol + Math.ceil(canvas.width / TSIZE) + 1;
-            let startRow = Math.floor(camera.y / TSIZE);
-            let endRow = startRow + Math.ceil(canvas.height / TSIZE) + 1;
-
-            for (let y = startRow; y <= endRow; y++) {
-                if (y < 0 || y >= WORLD_HEIGHT) continue;
-                for (let x = startCol; x <= endCol; x++) {
-                    if (x < 0 || x >= WORLD_WIDTH) continue;
-                    let b = world[y][x];
-                    if (b !== AIR) {
-                        let info = blockTypes[b];
-                        ctx.fillStyle = info.color;
-                        ctx.fillRect(x * TSIZE, y * TSIZE, TSIZE, TSIZE);
-                        
-                        // Детализация: верхняя травяная шапка или рельеф блока
-                        if (info.topColor && info.topColor !== info.color) {
-                            ctx.fillStyle = info.topColor;
-                            ctx.fillRect(x * TSIZE, y * TSIZE, TSIZE, 4);
-                        }
-
-                        // Внутренняя текстурная сетка для объема (стиль Terraria)
-                        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-                        ctx.strokeRect(x * TSIZE, y * TSIZE, TSIZE, TSIZE);
-                    }
-                }
-            }
-
-            // Отрисовка частиц
-            for (let p of particles) {
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-            }
-
-            // Отрисовка детального персонажа (согласно выбранному скину)
-            let skin = skins[currentSkinIndex];
-            let px = player.x;
-            let py = player.y;
-
-            // Ноги
-            ctx.fillStyle = skin.pants;
-            ctx.fillRect(px + 3, py + 22, 4, 12);
-            ctx.fillRect(px + 11, py + 22, 4, 12);
-
-            // Ботинки
-            ctx.fillStyle = skin.boots;
-            ctx.fillRect(px + 2, py + 31, 5, 3);
-            ctx.fillRect(px + 11, py + 31, 5, 3);
-
-            // Торс (Рубашка)
-            ctx.fillStyle = skin.shirt;
-            ctx.fillRect(px + 2, py + 10, 14, 13);
-
-            // Руки
-            ctx.fillStyle = skin.shirt;
-            let armOffset = keys.left || keys.right ? Math.sin(Date.now() / 100) * 4 : 0;
-            ctx.fillRect(px + (player.facing === 1 ? 13 : -3), py + 11 + armOffset, 4, 10);
-
-            // Голова и волосы
-            ctx.fillStyle = '#f5d6b0'; // Кожа лица
-            ctx.fillRect(px + 4, py + 1, 10, 10);
-            
-            ctx.fillStyle = skin.hair; // Волосы/Шлем
-            ctx.fillRect(px + 3, py, 12, 4);
-            if(player.facing === 1) {
-                ctx.fillRect(px + 11, py + 3, 4, 4);
-            } else {
-                ctx.fillRect(px + 3, py + 3, 4, 4);
-            }
-
-            // Оружие / Инструмент в руке (Кирка)
-            ctx.fillStyle = '#b0bec5';
-            let toolX = player.facing === 1 ? px + 16 : px - 8;
-            let toolY = py + 14;
-            ctx.fillRect(toolX, toolY, 8, 4);
-            ctx.fillStyle = '#795548';
-            ctx.fillRect(player.facing === 1 ? toolX + 4 : toolX, toolY + 2, 3, 10);
-
-            ctx.restore();
-        }
-
-        // Главный игровой цикл
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
+        window.addEventListener('resize', () => {
+            if (!gameStarted) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
