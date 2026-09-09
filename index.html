@@ -1,231 +1,289 @@
-// JavaScript версия браузерной игры с физикой гравитации и разрушений в стиле Teardown
-
-document.body.style.margin = '0';
-document.body.style.overflow = 'hidden';
-document.body.style.background = '#111';
-
-const canvas = document.createElement('canvas');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-document.body.appendChild(canvas);
-const ctx = canvas.getContext('2d');
-
-class TeardownGravityGame {
-    constructor() {
-        this.player = { x: canvas.width / 2, y: canvas.height / 2, size: 16, speed: 3 };
-        this.blocks = [];
-        this.fallingBlocks = [];
-        this.particles = [];
-        this.keys = {};
-        this.touchMove = { x: 0, y: 0, active: false };
-
-        this.GRID_SIZE = 24;
-        this.cols = Math.ceil(canvas.width / this.GRID_SIZE);
-        this.rows = Math.ceil(canvas.height / this.GRID_SIZE);
-
-        this.initMap();
-        this.initInput();
-        this.loop();
-    }
-
-    initMap() {
-        this.blocks = [];
-        const colors = ['#555', '#777', '#8B4513', '#A0522D', '#CD853F'];
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mini Teardown Mobile</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111;
+            overflow: hidden;
+            touch-action: none;
+            font-family: sans-serif;
+            color: white;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            background: #222;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+        }
+        h1 { margin: 0; font-size: 18px; text-shadow: 1px 1px 2px black; }
+        p { margin: 5px 0 0; font-size: 12px; opacity: 0.8; }
         
-        for (let r = 0; r < this.rows; r++) {
-            this.blocks[r] = [];
-            for (let c = 0; c < this.cols; c++) {
-                const isWall = (r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1 || 
-                               (Math.random() < 0.25 && (Math.abs(c - this.cols/2) > 3 || Math.abs(r - this.rows/2) > 3)));
-                
-                if (isWall) {
-                    const maxHp = 3;
-                    this.blocks[r][c] = {
-                        x: c * this.GRID_SIZE,
-                        y: r * this.GRID_SIZE,
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        health: maxHp,
-                        maxHealth: maxHp
-                    };
-                } else {
-                    this.blocks[r][c] = null;
+        /* Мобильные кнопки управления */
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: auto;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+        .btn:active {
+            background: rgba(255, 100, 0, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>Mini Teardown: Mobile</h1>
+        <p>Сломай стены, доберись до цели!</p>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls">
+        <button class="btn" id="btnTool">Инструмент: Кувалда</button>
+        <button class="btn" id="btnReset">Сброс</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Настройка размера экрана под мобилки
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Игровой мир (карта из блоков/вокселей)
+        const tileSize = 20;
+        let map = [];
+        let particles = [];
+        let player = { x: 50, y: 50, radius: 8, speed: 3 };
+        let target = { x: 0, y: 0, size: 20 };
+        
+        let keys = { w: false, a: false, s: false, d: false };
+        let touchMove = { x: 0, y: 0 };
+
+        function initMap() {
+            map = [];
+            let cols = Math.floor(canvas.width / tileSize);
+            let rows = Math.floor(canvas.height / tileSize);
+
+            for (let r = 0; r < rows; r++) {
+                map[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    // Создаем стены по периметру и преграды внутри
+                    let isWall = 0;
+                    if (r === 0 || c === 0 || r === rows - 1 || c === cols - 1) {
+                        isWall = 1; // Внешние стены
+                    } else if (Math.random() < 0.2 && (c > 5 || r > 5)) {
+                        isWall = 1; // Рандомные разрушаемые стены
+                    }
+                    map[r][c] = isWall;
                 }
             }
+
+            // Позиция игрока
+            player.x = tileSize * 2.5;
+            player.y = tileSize * 2.5;
+
+            // Цель (сейф/выход) в другом конце карты
+            target.x = canvas.width - tileSize * 3;
+            target.y = canvas.height - tileSize * 3;
         }
-    }
 
-    initInput() {
-        window.addEventListener('keydown', e => this.keys[e.code] = true);
-        window.addEventListener('keyup', e => this.keys[e.code] = false);
+        initMap();
 
-        canvas.addEventListener('touchstart', e => this.handleTouch(e), { passive: false });
-        canvas.addEventListener('touchmove', e => this.handleTouch(e), { passive: false });
-        canvas.addEventListener('touchend', e => this.handleTouch(e), { passive: false });
-        canvas.addEventListener('mousedown', e => this.destroyAt(e.clientX, e.clientY));
-    }
+        // Управление с телефона (Тач-джойстик / Клик для разрушения)
+        canvas.addEventListener('touchstart', handleTouch, {passive: false});
+        canvas.addEventListener('touchmove', handleTouch, {passive: false});
+        canvas.addEventListener('touchend', () => { touchMove = {x: 0, y: 0}; });
 
-    handleTouch(e) {
-        e.preventDefault();
-        this.touchMove.active = false;
+        function handleTouch(e) {
+            e.preventDefault();
+            let touch = e.touches[0];
+            let rect = canvas.getBoundingClientRect();
+            let tx = touch.clientX - rect.left;
+            let ty = touch.clientY - rect.top;
 
-        for (let i = 0; i < e.touches.length; i++) {
-            const t = e.touches[i];
-            if (t.clientX < canvas.width / 2) {
-                this.touchMove = { x: t.clientX, y: t.clientY, active: true };
-            } else {
-                this.destroyAt(t.clientX, t.clientY);
+            // Если касание в нижней зоне управления — не двигаем игрока
+            if (touch.clientY > canvas.height - 120) return;
+
+            // Разрушение блоков по тачу (кувалда)
+            breakBlockAt(tx, ty);
+        }
+
+        function breakBlockAt(px, py) {
+            let c = Math.floor(px / tileSize);
+            let r = Math.floor(py / tileSize);
+
+            if (map[r] && map[r][c] === 1) {
+                map[r][c] = 0; // Снос блока!
+                createDebris(px, py);
             }
         }
-    }
 
-    destroyAt(px, py) {
-        const c = Math.floor(px / this.GRID_SIZE);
-        const r = Math.floor(py / this.GRID_SIZE);
-
-        if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
-            const block = this.blocks[r][c];
-            if (block) {
-                block.health -= 3;
-                this.spawnParticles(px, py, block.color, 6);
-
-                if (block.health <= 0) {
-                    this.blocks[r][c] = null;
-                    this.checkGravityCollapse(r, c);
-                }
-            }
-        }
-    }
-
-    checkGravityCollapse(destroyedR, destroyedC) {
-        for (let r = destroyedR - 1; r >= 0; r--) {
-            const block = this.blocks[r][destroyedC];
-            if (block) {
-                this.fallingBlocks.push({
-                    x: block.x,
-                    y: block.y,
-                    vx: (Math.random() - 0.5) * 1.5,
-                    vy: 0,
-                    color: block.color,
-                    size: this.GRID_SIZE - 2
+        // Создание осколков (эффект разрушения Teardown)
+        function createDebris(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 4 + 2,
+                    life: 30
                 });
-                this.blocks[r][destroyedC] = null;
-            } else {
-                break;
             }
         }
-    }
 
-    spawnParticles(x, y, color, count) {
-        for (let i = 0; i < count; i++) {
-            this.particles.push({
-                x, y,
-                vx: (Math.random() - 0.5) * 5,
-                vy: (Math.random() - 0.5) * 5,
-                color,
-                life: 25
-            });
+        // Кнопка сброса карты
+        document.getElementById('btnReset').addEventListener('click', () => {
+            initMap();
+            particles = [];
+        });
+
+        // Простой виртуальный джойстик (тянуть пальцем по экрану для движения)
+        let isDragging = false;
+        let startDragX = 0, startDragY = 0;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (e.clientY > canvas.height - 150) return;
+            isDragging = true;
+            startDragX = e.clientX;
+            startDragY = e.clientY;
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            touchMove.x = (e.clientX - startDragX) * 0.05;
+            touchMove.y = (e.clientY - startDragY) * 0.05;
+            // Ограничение скорости
+            touchMove.x = Math.max(-1, Math.min(1, touchMove.x));
+            touchMove.y = Math.max(-1, Math.min(1, touchMove.y));
+        });
+
+        canvas.addEventListener('pointerup', () => {
+            isDragging = false;
+            touchMove = {x: 0, y: 0};
+        });
+
+
+        // Игровой цикл
+        function update() {
+            // Движение игрока с учетом коллизий (стен)
+            let nextX = player.x + touchMove.x * player.speed;
+            let nextY = player.y + touchMove.y * player.speed;
+
+            // Проверка столкновений со стенами по X
+            let c = Math.floor(nextX / tileSize);
+            let r = Math.floor(player.y / tileSize);
+            if (!map[r] || map[r][c] !== 1) {
+                player.x = nextX;
+            }
+
+            // Проверка столкновений со стенами по Y
+            c = Math.floor(player.x / tileSize);
+            r = Math.floor(nextY / tileSize);
+            if (!map[r] || map[r][c] !== 1) {
+                player.y = nextY;
+            }
+
+            // Обновление частиц (обломков)
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Проверка победы (достигли цели)
+            let dist = Math.hypot(player.x - target.x, player.y - target.y);
+            if (dist < target.size) {
+                alert('Уровень пройден! Сейф украден!');
+                initMap();
+            }
         }
-    }
 
-    update() {
-        let dx = 0, dy = 0;
-        if (this.keys['KeyW'] || this.keys['ArrowUp']) dy -= 1;
-        if (this.keys['KeyS'] || this.keys['ArrowDown']) dy += 1;
-        if (this.keys['KeyA'] || this.keys['ArrowLeft']) dx -= 1;
-        if (this.keys['KeyD'] || this.keys['ArrowRight']) dx += 1;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (this.touchMove.active) {
-            dx = (this.touchMove.x - canvas.width / 4) / 50;
-            dy = (this.touchMove.y - canvas.height / 2) / 50;
-            const len = Math.hypot(dx, dy);
-            if (len > 1) { dx /= len; dy /= len; }
-        }
-
-        const nextX = this.player.x + dx * this.player.speed;
-        const nextY = this.player.y + dy * this.player.speed;
-        const colIdx = Math.floor(nextX / this.GRID_SIZE);
-        const rowIdx = Math.floor(nextY / this.GRID_SIZE);
-
-        if (rowIdx >= 0 && rowIdx < this.rows && colIdx >= 0 && colIdx < this.cols && !this.blocks[rowIdx][colIdx]) {
-            this.player.x = nextX;
-            this.player.y = nextY;
-        }
-
-        for (let i = this.fallingBlocks.length - 1; i >= 0; i--) {
-            const fb = this.fallingBlocks[i];
-            fb.vy += 0.4;
-            fb.x += fb.vx;
-            fb.y += fb.vy;
-
-            const targetR = Math.floor((fb.y + fb.size) / this.GRID_SIZE);
-            const targetC = Math.floor((fb.x + fb.size / 2) / this.GRID_SIZE);
-
-            if (targetR >= this.rows - 1 || (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols && this.blocks[targetR][targetC])) {
-                if (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols) {
-                    const safeR = Math.min(targetR, this.rows - 2);
-                    if (!this.blocks[safeR][targetC]) {
-                        this.blocks[safeR][targetC] = {
-                            x: targetC * this.GRID_SIZE,
-                            y: safeR * this.GRID_SIZE,
-                            color: fb.color,
-                            health: 2,
-                            maxHealth: 3
-                        };
+            // Рисуем карту (стены)
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[r].length; c++) {
+                    if (map[r][c] === 1) {
+                        ctx.fillStyle = '#666'; // Цвет бетона/стены
+                        ctx.fillRect(c * tileSize, r * tileSize, tileSize - 1, tileSize - 1);
+                        // Добавим эффект объема в стиле вокселей
+                        ctx.fillStyle = '#888';
+                        ctx.fillRect(c * tileSize, r * tileSize, tileSize - 1, 4);
                     }
                 }
-                this.spawnParticles(fb.x, fb.y, fb.color, 4);
-                this.fallingBlocks.splice(i, 1);
+            }
+
+            // Рисуем цель (сейф)
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillRect(target.x - 10, target.y - 10, target.size, target.size);
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px sans-serif';
+            ctx.fillText('ЦЕЛЬ', target.x - 12, target.y - 14);
+
+            // Рисуем частицы (обломки кирпичей/бетона)
+            ctx.fillStyle = '#aaa';
+            for (let p of particles) {
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+
+            // Рисуем игрока
+            ctx.fillStyle = '#00ffcc';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Направление взгляда / прицел
+            if (isDragging) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(player.x + touchMove.x * 30, player.y + touchMove.y * 30);
+                ctx.stroke();
             }
         }
 
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life--;
-            if (p.life <= 0) this.particles.splice(i, 1);
-        }
-    }
-
-    render() {
-        ctx.fillStyle = '#151515';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                const b = this.blocks[r][c];
-                if (b) {
-                    ctx.fillStyle = b.color;
-                    ctx.fillRect(b.x, b.y, this.GRID_SIZE - 1, this.GRID_SIZE - 1);
-                }
-            }
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
         }
 
-        for (const fb of this.fallingBlocks) {
-            ctx.fillStyle = fb.color;
-            ctx.fillRect(fb.x, fb.y, fb.size, fb.size);
-        }
-
-        for (const p of this.particles) {
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, 2, 2);
-        }
-
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath();
-        ctx.arc(this.player.x, this.player.y, this.player.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '13px sans-serif';
-        ctx.fillText('Снесите нижнюю часть стены, чтобы активировать гравитацию и обрушение!', 20, 30);
-    }
-
-    loop = () => {
-        this.update();
-        this.render();
-        requestAnimationFrame(this.loop);
-    }
-}
-
-new TeardownGravityGame();
+        loop();
+    </script>
+</body>
+</html>
