@@ -1,5 +1,4 @@
-// Обновленный TypeScript-код с гравитацией и физикой обрушения блоков (Teardown style)
-// Блоки теряют опору, падают вниз под действием гравитации и разрушаются при падении.
+// JavaScript версия браузерной игры с физикой гравитации и разрушений в стиле Teardown
 
 document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
@@ -9,53 +8,27 @@ const canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 document.body.appendChild(canvas);
-const ctx = canvas.getContext('2d')!;
-
-interface Block {
-    x: number;
-    y: number;
-    color: string;
-    health: number;
-    maxHealth: number;
-}
-
-interface FallingBlock {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    color: string;
-    size: number;
-}
-
-interface Particle {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    color: string;
-    life: number;
-}
+const ctx = canvas.getContext('2d');
 
 class TeardownGravityGame {
-    private player = { x: canvas.width / 2, y: canvas.height / 2, size: 16, speed: 3 };
-    private blocks: (Block | null)[][] = [];
-    private fallingBlocks: FallingBlock[] = [];
-    private particles: Particle[] = [];
-    private keys: { [key: string]: boolean } = {};
-    private touchMove = { x: 0, y: 0, active: false };
-
-    private readonly GRID_SIZE = 24;
-    private cols = Math.ceil(canvas.width / this.GRID_SIZE);
-    private rows = Math.ceil(canvas.height / this.GRID_SIZE);
-
     constructor() {
+        this.player = { x: canvas.width / 2, y: canvas.height / 2, size: 16, speed: 3 };
+        this.blocks = [];
+        this.fallingBlocks = [];
+        this.particles = [];
+        this.keys = {};
+        this.touchMove = { x: 0, y: 0, active: false };
+
+        this.GRID_SIZE = 24;
+        this.cols = Math.ceil(canvas.width / this.GRID_SIZE);
+        this.rows = Math.ceil(canvas.height / this.GRID_SIZE);
+
         this.initMap();
         this.initInput();
         this.loop();
     }
 
-    private initMap() {
+    initMap() {
         this.blocks = [];
         const colors = ['#555', '#777', '#8B4513', '#A0522D', '#CD853F'];
         
@@ -81,7 +54,7 @@ class TeardownGravityGame {
         }
     }
 
-    private initInput() {
+    initInput() {
         window.addEventListener('keydown', e => this.keys[e.code] = true);
         window.addEventListener('keyup', e => this.keys[e.code] = false);
 
@@ -91,7 +64,7 @@ class TeardownGravityGame {
         canvas.addEventListener('mousedown', e => this.destroyAt(e.clientX, e.clientY));
     }
 
-    private handleTouch(e: TouchEvent) {
+    handleTouch(e) {
         e.preventDefault();
         this.touchMove.active = false;
 
@@ -105,31 +78,28 @@ class TeardownGravityGame {
         }
     }
 
-    private destroyAt(px: number, py: number) {
+    destroyAt(px, py) {
         const c = Math.floor(px / this.GRID_SIZE);
         const r = Math.floor(py / this.GRID_SIZE);
 
         if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
             const block = this.blocks[r][c];
             if (block) {
-                block.health -= 3; // Уничтожаем блок кувалдой
+                block.health -= 3;
                 this.spawnParticles(px, py, block.color, 6);
 
                 if (block.health <= 0) {
                     this.blocks[r][c] = null;
-                    this.checkGravityCollapse(r, c); // Запускаем проверку обрушения по вертикали
+                    this.checkGravityCollapse(r, c);
                 }
             }
         }
     }
 
-    // Проверка гравитации: если под блоком пусто, он превращается в падающий объект
-    private checkGravityCollapse(destroyedR: number, destroyedC: number) {
-        // Проверяем все блоки, находящиеся строго выше разрушенного в том же столбце
+    checkGravityCollapse(destroyedR, destroyedC) {
         for (let r = destroyedR - 1; r >= 0; r--) {
             const block = this.blocks[r][destroyedC];
             if (block) {
-                // Превращаем висящий блок в падающий под действием гравитации
                 this.fallingBlocks.push({
                     x: block.x,
                     y: block.y,
@@ -140,12 +110,12 @@ class TeardownGravityGame {
                 });
                 this.blocks[r][destroyedC] = null;
             } else {
-                break; // Если встретили пустоту, выше цепочка не падает
+                break;
             }
         }
     }
 
-    private spawnParticles(x: number, y: number, color: string, count: number) {
+    spawnParticles(x, y, color, count) {
         for (let i = 0; i < count; i++) {
             this.particles.push({
                 x, y,
@@ -157,7 +127,7 @@ class TeardownGravityGame {
         }
     }
 
-    private update() {
+    update() {
         let dx = 0, dy = 0;
         if (this.keys['KeyW'] || this.keys['ArrowUp']) dy -= 1;
         if (this.keys['KeyS'] || this.keys['ArrowDown']) dy += 1;
@@ -171,7 +141,6 @@ class TeardownGravityGame {
             if (len > 1) { dx /= len; dy /= len; }
         }
 
-        // Движение игрока с коллизией
         const nextX = this.player.x + dx * this.player.speed;
         const nextY = this.player.y + dy * this.player.speed;
         const colIdx = Math.floor(nextX / this.GRID_SIZE);
@@ -182,19 +151,16 @@ class TeardownGravityGame {
             this.player.y = nextY;
         }
 
-        // Физика падающих блоков (Гравитация)
         for (let i = this.fallingBlocks.length - 1; i >= 0; i--) {
             const fb = this.fallingBlocks[i];
-            fb.vy += 0.4; // Ускорение свободного падения
+            fb.vy += 0.4;
             fb.x += fb.vx;
             fb.y += fb.vy;
 
-            // Столкновение с полом или нижними границами сетки
             const targetR = Math.floor((fb.y + fb.size) / this.GRID_SIZE);
             const targetC = Math.floor((fb.x + fb.size / 2) / this.GRID_SIZE);
 
             if (targetR >= this.rows - 1 || (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols && this.blocks[targetR][targetC])) {
-                // Приземление: превращаем обратно в статический блок или разбиваем в пыль
                 if (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols) {
                     const safeR = Math.min(targetR, this.rows - 2);
                     if (!this.blocks[safeR][targetC]) {
@@ -212,7 +178,6 @@ class TeardownGravityGame {
             }
         }
 
-        // Обновление частиц
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.x += p.vx;
@@ -222,11 +187,10 @@ class TeardownGravityGame {
         }
     }
 
-    private render() {
+    render() {
         ctx.fillStyle = '#151515';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Отрисовка сетки блоков
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const b = this.blocks[r][c];
@@ -237,31 +201,27 @@ class TeardownGravityGame {
             }
         }
 
-        // Отрисовка летящих/падающих под гравитацией блоков
         for (const fb of this.fallingBlocks) {
             ctx.fillStyle = fb.color;
             ctx.fillRect(fb.x, fb.y, fb.size, fb.size);
         }
 
-        // Отрисовка частиц
         for (const p of this.particles) {
             ctx.fillStyle = p.color;
             ctx.fillRect(p.x, p.y, 2, 2);
         }
 
-        // Игрок
         ctx.fillStyle = '#ffcc00';
         ctx.beginPath();
         ctx.arc(this.player.x, this.player.y, this.player.size / 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Подсказка
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '13px sans-serif';
         ctx.fillText('Снесите нижнюю часть стены, чтобы активировать гравитацию и обрушение!', 20, 30);
     }
 
-    private loop = () => {
+    loop = () => {
         this.update();
         this.render();
         requestAnimationFrame(this.loop);
