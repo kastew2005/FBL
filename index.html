@@ -5,23 +5,185 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Minecraft PE Ultra HD</title>
     
-    <!-- Three.js (r128) -->
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Press Start 2P', monospace;
+            background: #000;
+        }
+
+        #game-canvas {
+            width: 100vw; height: 100vh;
+            display: block;
+        }
+
+        /* ЭКРАН ЗАГРУЗКИ */
+        #loading-screen {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #111; color: white;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 1000; transition: opacity 0.5s ease;
+        }
+
+        .loader-content { text-align: center; }
+
+        .progress-bar {
+            width: 300px; height: 20px;
+            background: #222; border: 3px solid #fff;
+            margin: 20px auto;
+        }
+
+        #progress-fill {
+            width: 0%; height: 100%;
+            background: #55ff55; transition: width 0.15s;
+        }
+
+        /* ГЛАВНОЕ МЕНЮ */
+        #menu-screen {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.75); z-index: 500;
+        }
+
+        .menu-card {
+            background: rgba(20, 20, 20, 0.95);
+            padding: 30px; border-radius: 8px;
+            border: 3px solid #555;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 15px;
+            width: 320px; color: #fff;
+        }
+
+        .mc-title { font-size: 14px; text-align: center; text-shadow: 2px 2px 0 #000; line-height: 1.5; }
+        .subtitle { color: #ffaa00; font-size: 9px; }
+
+        .menu-options { width: 100%; display: flex; flex-direction: column; gap: 6px; font-size: 9px; }
+        .menu-options select {
+            padding: 8px; background: #222; color: #fff;
+            border: 2px solid #555; font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+        }
+
+        .mc-btn {
+            width: 100%; padding: 12px;
+            background: #555; color: #fff;
+            border: 3px solid #fff; font-family: 'Press Start 2P', monospace;
+            cursor: pointer; font-size: 10px;
+        }
+        .mc-btn:active { background: #777; }
+
+        /* ИГРОВОЙ ИНТЕРФЕЙС (HUD) */
+        #crosshair {
+            position: fixed; top: 50%; left: 50%;
+            width: 16px; height: 16px;
+            transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 100;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(255, 255, 255, 0.8);
+        }
+        #crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
+        #crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
+
+        #hud-bottom {
+            position: absolute; bottom: 15px; left: 50%;
+            transform: translateX(-50%); z-index: 100;
+        }
+        #hotbar {
+            display: flex; background: rgba(0, 0, 0, 0.6);
+            border: 3px solid #333; padding: 3px; gap: 4px;
+        }
+        .hotbar-slot {
+            width: 36px; height: 36px;
+            border: 2px solid #777; background: rgba(0,0,0,0.3);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+        }
+        .hotbar-slot.active { border-color: #fff; background: rgba(255,255,255,0.2); }
+
+        #aura-status {
+            position: fixed; top: 15px; left: 15px;
+            color: #ffaa00; font-size: 10px;
+            text-shadow: 2px 2px 0 #000; z-index: 100; display: none;
+        }
+
+        #water-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(30, 104, 181, 0.35);
+            pointer-events: none; display: none; z-index: 90;
+        }
+
+        /* МОБИЛЬНОЕ СЕНСОРНОЕ УПРАВЛЕНИЕ */
+        #mobile-controls {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 150; display: none;
+        }
+
+        #joystick-zone {
+            position: absolute; bottom: 25px; left: 25px;
+            width: 110px; height: 110px; pointer-events: auto;
+        }
+
+        #joystick-base {
+            width: 110px; height: 110px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%; position: relative;
+        }
+
+        #joystick-stick {
+            width: 45px; height: 45px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%; position: absolute;
+            top: 32.5px; left: 32.5px;
+        }
+
+        #touch-buttons {
+            position: absolute; bottom: 25px; right: 25px;
+            display: flex; flex-direction: column;
+            gap: 12px; pointer-events: auto;
+        }
+
+        .touch-btn {
+            width: 65px; height: 65px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #fff; color: #fff;
+            border-radius: 50%; font-family: 'Press Start 2P', monospace;
+            font-size: 7px; text-align: center;
+        }
+        .touch-btn:active { background: rgba(255, 255, 255, 0.4); }
+    </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ЗАГРУЗКИ -->
+    <!-- ЗАГРУЗКА -->
     <div id="loading-screen">
         <div class="loader-content">
             <h1 class="mc-title">ГЕНЕРАЦИЯ МИРА...</h1>
             <div class="progress-bar"><div id="progress-fill"></div></div>
-            <p id="loading-tip">Загрузка ресурсов и процедурных структур...</p>
+            <p id="loading-tip">Создание Ultra HD ландшафта и сущностей...</p>
         </div>
     </div>
 
-    <!-- ГЛАВНОЕ МЕНЮ -->
+    <!-- МЕНЮ -->
     <div id="menu-screen">
         <div class="menu-card">
             <div class="mc-title">MINECRAFT<br><span class="subtitle">ULTRA HD EDITION</span></div>
@@ -38,13 +200,13 @@
         </div>
     </div>
 
-    <!-- ИГРОВОЙ ЭКРАН / UI -->
+    <!-- UI -->
     <div id="game-screen">
         <div id="crosshair"></div>
         <div id="water-overlay"></div>
         <div id="aura-status">✨ АУРА ДРАКОНА АКТИВНА [F]</div>
 
-        <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
+        <!-- ДЖОЙСТИК И КНОПКИ ДЛЯ ТЕЛЕФОНА -->
         <div id="mobile-controls">
             <div id="joystick-zone">
                 <div id="joystick-base">
@@ -57,7 +219,6 @@
             </div>
         </div>
         
-        <!-- ХОТБАР -->
         <div id="hud-bottom">
             <div id="hotbar">
                 <div class="hotbar-slot active">1</div>
@@ -71,13 +232,440 @@
 
     <canvas id="game-canvas"></canvas>
 
-    <!-- Подключение JS файлов -->
-    <script src="textures.js"></script>
-    <script src="physics.js"></script>
-    <script src="world.js"></script>
-    <script src="mobs.js"></script>
-    <script src="effects.js"></script>
-    <script src="player.js"></script>
-    <script src="game.js"></script>
+    <script>
+        // --- 1. HD ТЕКСТУРЫ (128x128) ---
+        const BLOCK_TYPES = {
+            1: { name: 'Земля', color: '#5a3d28', accent: '#3d2717' },
+            2: { name: 'Трава', color: '#3b7a20', accent: '#5ca338' },
+            3: { name: 'Камень', color: '#686868', accent: '#484848' },
+            4: { name: 'Дерево', color: '#5c4028', accent: '#3b2818' },
+            5: { name: 'Листва', color: '#2d5a1e', accent: '#1f4014' },
+            6: { name: 'Алтарь', color: '#8a2be2', accent: '#4b0082' },
+            7: { name: 'Песок', color: '#d2b48c', accent: '#c2a47c' },
+            8: { name: 'Доски', color: '#a0522d', accent: '#8b4513' },
+            9: { name: 'Вода', color: '#1e68b5', accent: '#3b82d6', transparent: true },
+            10: { name: 'Булыжник', color: '#444444', accent: '#222222' }
+        };
+
+        function generateTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const cfg = BLOCK_TYPES[type] || BLOCK_TYPES[1];
+
+            ctx.fillStyle = cfg.color;
+            ctx.fillRect(0, 0, 128, 128);
+
+            for (let x = 0; x < 128; x += 4) {
+                for (let y = 0; y < 128; y += 4) {
+                    const r = Math.random();
+                    if (r > 0.55) {
+                        ctx.fillStyle = cfg.accent;
+                        ctx.globalAlpha = r * 0.35;
+                        ctx.fillRect(x, y, 4, 4);
+                    }
+                }
+            }
+            if (type === 2) { // Трава
+                ctx.fillStyle = '#5ca338';
+                ctx.fillRect(0, 0, 128, 32);
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx.strokeRect(0, 0, 128, 128);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            return tex;
+        }
+
+        function createMaterials() {
+            let mats = {};
+            for (let id in BLOCK_TYPES) {
+                let t = parseInt(id);
+                let isWater = (t === 9);
+                mats[t] = new THREE.MeshStandardMaterial({
+                    map: generateTexture(t),
+                    roughness: isWater ? 0.1 : 0.8,
+                    transparent: isWater,
+                    opacity: isWater ? 0.7 : 1.0
+                });
+            }
+            return mats;
+        }
+
+        // --- 2. МИР И ГЕНЕРАЦИЯ ---
+        class World {
+            constructor(scene, materials) {
+                this.scene = scene;
+                this.materials = materials;
+                this.blocks = new Map();
+                this.size = 40;
+            }
+
+            getKey(x, y, z) { return `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`; }
+
+            getBlock(x, y, z) { return this.blocks.get(this.getKey(x, y, z)) || 0; }
+
+            setBlock(x, y, z, type) {
+                const k = this.getKey(x, y, z);
+                if (type === 0) this.blocks.delete(k);
+                else this.blocks.set(k, type);
+            }
+
+            generate() {
+                for (let x = -this.size / 2; x < this.size / 2; x++) {
+                    for (let z = -this.size / 2; z < this.size / 2; z++) {
+                        let h = Math.floor(Math.sin(x * 0.08) * Math.cos(z * 0.08) * 4) + 5;
+                        for (let y = 0; y <= h; y++) {
+                            let type = (y === h) ? 2 : (y > h - 3 ? 1 : 3);
+                            this.setBlock(x, y, z, type);
+                        }
+                        if (Math.random() < 0.02 && (Math.abs(x) > 6 || Math.abs(z) > 6)) {
+                            this.spawnTree(x, h + 1, z);
+                        }
+                    }
+                }
+                this.spawnVillage(4, 6, 4);
+                this.buildMesh();
+            }
+
+            spawnTree(x, y, z) {
+                for (let i = 0; i < 4; i++) this.setBlock(x, y + i, z, 4);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = 2; dy <= 4; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            if (this.getBlock(x + dx, y + dy, z + dz) === 0) {
+                                this.setBlock(x + dx, y + dy, z + dz, 5);
+                            }
+                        }
+                    }
+                }
+            }
+
+            spawnVillage(vx, vy, vz) {
+                for (let x = 0; x < 5; x++) {
+                    for (let z = 0; z < 5; z++) {
+                        for (let y = 0; y < 3; y++) {
+                            if (x === 0 || x === 4 || z === 0 || z === 4) {
+                                this.setBlock(vx + x, vy + y, vz + z, 10);
+                            }
+                        }
+                    }
+                }
+                this.setBlock(vx + 2, vy, vz + 2, 6); // Алтарь дракона
+            }
+
+            buildMesh() {
+                const geo = new THREE.BoxGeometry(1, 1, 1);
+                const counts = {};
+                this.blocks.forEach((type) => counts[type] = (counts[type] || 0) + 1);
+
+                for (let type in counts) {
+                    let mat = this.materials[type] || this.materials[1];
+                    let mesh = new THREE.InstancedMesh(geo, mat, counts[type]);
+                    let idx = 0;
+                    const dummy = new THREE.Object3D();
+
+                    this.blocks.forEach((bType, key) => {
+                        if (bType === parseInt(type)) {
+                            const [x, y, z] = key.split(',').map(Number);
+                            dummy.position.set(x + 0.5, y + 0.5, z + 0.5);
+                            dummy.updateMatrix();
+                            mesh.setMatrixAt(idx++, dummy.matrix);
+                        }
+                    });
+                    this.scene.add(mesh);
+                }
+            }
+        }
+
+        // --- 3. ИГРОК И ФИЗИКА ---
+        class Player {
+            constructor(camera) {
+                this.camera = camera;
+                this.position = camera.position;
+                this.velocity = new THREE.Vector3();
+                this.width = 0.6;
+                this.height = 1.8;
+                this.heightOffset = 1.6;
+                this.isGrounded = false;
+                this.baseSpeed = 0.12;
+                this.speed = this.baseSpeed;
+                this.auraActive = false;
+            }
+
+            toggleAura() {
+                this.auraActive = !this.auraActive;
+                const status = document.getElementById('aura-status');
+                if (this.auraActive) {
+                    this.speed = this.baseSpeed * 1.85;
+                    if (status) status.style.display = 'block';
+                } else {
+                    this.speed = this.baseSpeed;
+                    if (status) status.style.display = 'none';
+                }
+            }
+
+            getAABB() {
+                const h = this.width / 2;
+                return {
+                    min: new THREE.Vector3(this.position.x - h, this.position.y - this.heightOffset, this.position.z - h),
+                    max: new THREE.Vector3(this.position.x + h, this.position.y - this.heightOffset + this.height, this.position.z + h)
+                };
+            }
+        }
+
+        class PhysicsEngine {
+            constructor(world) {
+                this.world = world;
+                this.gravity = -24.0;
+            }
+
+            checkCollision(box) {
+                for (let x = Math.floor(box.min.x); x < Math.ceil(box.max.x); x++) {
+                    for (let y = Math.floor(box.min.y); y < Math.ceil(box.max.y); y++) {
+                        for (let z = Math.floor(box.min.z); z < Math.ceil(box.max.z); z++) {
+                            const block = this.world.getBlock(x, y, z);
+                            if (block !== 0 && block !== 9) return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            apply(player, dt) {
+                player.velocity.y += this.gravity * dt;
+                player.position.y += player.velocity.y * dt;
+
+                let box = player.getAABB();
+                if (this.checkCollision(box)) {
+                    if (player.velocity.y < 0) {
+                        player.position.y = Math.floor(player.position.y) + player.heightOffset;
+                        player.isGrounded = true;
+                    }
+                    player.velocity.y = 0;
+                } else {
+                    player.isGrounded = false;
+                }
+
+                const curBlock = this.world.getBlock(player.position.x, player.position.y, player.position.z);
+                const waterOverlay = document.getElementById('water-overlay');
+                if (curBlock === 9) {
+                    if (waterOverlay) waterOverlay.style.display = 'block';
+                    player.velocity.y *= 0.8;
+                } else {
+                    if (waterOverlay) waterOverlay.style.display = 'none';
+                }
+            }
+        }
+
+        // --- 4. МОБЫ И ЭФФЕКТЫ ---
+        class Villager {
+            constructor(scene, x, y, z) {
+                this.group = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.5), new THREE.MeshStandardMaterial({ color: 0x5c3a21 }));
+                body.position.y = 0.6;
+                const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x966f43 }));
+                head.position.y = 1.45;
+                this.group.add(body, head);
+                this.group.position.set(x, y, z);
+                scene.add(this.group);
+            }
+            update() { this.group.rotation.y += (Math.random() - 0.5) * 0.02; }
+        }
+
+        class VisualFX {
+            constructor(scene) { this.scene = scene; }
+            spawnAura(pos) {
+                const p = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), new THREE.MeshBasicMaterial({ color: 0x8a2be2 }));
+                p.position.set(pos.x + (Math.random() - 0.5) * 1.4, pos.y - 0.4 + Math.random(), pos.z + (Math.random() - 0.5) * 1.4);
+                this.scene.add(p);
+                setTimeout(() => this.scene.remove(p), 450);
+            }
+        }
+
+        // --- 5. ГЛАВНЫЙ ИНИЦИАЛИЗАТОР И ЦИКЛ ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            const startBtn = document.getElementById('start-btn');
+            const menuScreen = document.getElementById('menu-screen');
+            const loadingScreen = document.getElementById('loading-screen');
+            const progressFill = document.getElementById('progress-fill');
+            const mobileControls = document.getElementById('mobile-controls');
+
+            // Анимация Загрузки
+            let p = 0;
+            const loaderTimer = setInterval(() => {
+                p += 25;
+                if (progressFill) progressFill.style.width = p + '%';
+                if (p >= 100) {
+                    clearInterval(loaderTimer);
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => loadingScreen.style.display = 'none', 500);
+                    }
+                }
+            }, 100);
+
+            // Three.js Настройка
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 0);
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const light = new THREE.DirectionalLight(0xffffff, 0.9);
+            light.position.set(20, 40, 20);
+            scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
+
+            // Запуск игрового мира
+            const materials = createMaterials();
+            const world = new World(scene, materials);
+            world.generate();
+
+            const physics = new PhysicsEngine(world);
+            const player = new Player(camera);
+            const fx = new VisualFX(scene);
+            const villager = new Villager(scene, 6, 7, 6);
+
+            // Определение мобилок
+            const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (isMobile && mobileControls) mobileControls.style.display = 'block';
+
+            // Старт игры и Полный экран
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    menuScreen.style.display = 'none';
+                    const doc = document.documentElement;
+                    if (doc.requestFullscreen) doc.requestFullscreen();
+                    else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+
+                    if (!isMobile) canvas.requestPointerLock();
+                });
+            }
+
+            // Управление Клавиатура / Мышь
+            let keys = {};
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyF') player.toggleAura();
+                if (e.code === 'Space' && player.isGrounded) player.velocity.y = 8;
+            });
+            document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === canvas) {
+                    camera.rotation.y -= e.movementX * 0.002;
+                    camera.rotation.x -= e.movementY * 0.002;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+                }
+            });
+
+            // Мобильное сенсорное управление
+            let moveFwd = 0, moveSide = 0;
+            let touchLookId = null, lastTX = 0, lastTY = 0;
+
+            const base = document.getElementById('joystick-base');
+            const stick = document.getElementById('joystick-stick');
+
+            if (base) {
+                base.addEventListener('touchstart', (e) => e.preventDefault());
+                base.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    const r = base.getBoundingClientRect();
+                    const cx = r.left + r.width / 2;
+                    const cy = r.top + r.height / 2;
+
+                    let dx = t.clientX - cx, dy = t.clientY - cy;
+                    const dist = Math.min(Math.hypot(dx, dy), 40);
+                    const angle = Math.atan2(dy, dx);
+
+                    const mx = Math.cos(angle) * dist, my = Math.sin(angle) * dist;
+                    stick.style.transform = `translate(${mx}px, ${my}px)`;
+                    moveSide = mx / 40; moveFwd = -my / 40;
+                });
+
+                const resetJ = () => {
+                    stick.style.transform = 'translate(0px, 0px)';
+                    moveFwd = 0; moveSide = 0;
+                };
+                base.addEventListener('touchend', resetJ);
+                base.addEventListener('touchcancel', resetJ);
+            }
+
+            window.addEventListener('touchstart', (e) => {
+                for (let t of e.changedTouches) {
+                    if (t.clientX > window.innerWidth / 2 && touchLookId === null) {
+                        touchLookId = t.identifier;
+                        lastTX = t.clientX; lastTY = t.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchLookId) {
+                        const dx = t.clientX - lastTX;
+                        const dy = t.clientY - lastTY;
+
+                        camera.rotation.y -= dx * 0.005;
+                        camera.rotation.x -= dy * 0.005;
+                        camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+
+                        lastTX = t.clientX; lastTY = t.clientY;
+                    }
+                }
+            });
+
+            const resetT = (e) => {
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchLookId) touchLookId = null;
+                }
+            };
+            window.addEventListener('touchend', resetT);
+            window.addEventListener('touchcancel', resetT);
+
+            const btnJump = document.getElementById('btn-jump');
+            const btnAura = document.getElementById('btn-aura');
+            if (btnJump) btnJump.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (player.isGrounded) player.velocity.y = 8;
+            });
+            if (btnAura) btnAura.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                player.toggleAura();
+            });
+
+            // Игровой Цикл
+            let lastTime = performance.now();
+            function loop() {
+                requestAnimationFrame(loop);
+                const now = performance.now();
+                const dt = Math.min((now - lastTime) / 1000, 0.1);
+                lastTime = now;
+
+                if (keys['KeyW']) camera.translateZ(-player.speed);
+                if (keys['KeyS']) camera.translateZ(player.speed);
+                if (keys['KeyA']) camera.translateX(-player.speed);
+                if (keys['KeyD']) camera.translateX(player.speed);
+
+                if (moveFwd !== 0) camera.translateZ(-moveFwd * player.speed);
+                if (moveSide !== 0) camera.translateX(moveSide * player.speed);
+
+                if (player.auraActive) fx.spawnAura(player.position);
+
+                villager.update();
+                physics.apply(player, dt);
+                renderer.render(scene, camera);
+            }
+
+            loop();
+        });
+    </script>
 </body>
 </html>
